@@ -21,12 +21,12 @@ async def fetch_open_meteo_raw() -> Dict[str, Any]:
         ],
         "hourly": [
             "temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m",
-            "uv_index", "msl_pressure", "surface_pressure"
+            "uv_index", "pressure_msl", "surface_pressure"
         ],
-        # MINTA DATA INTERVAL 15 MENIT LENGKAP DENGAN UV INDEX
+        # VARIABEL MINUTELY_15 YANG VALID DI OPEN-METEO
         "minutely_15": [
             "temperature_2m", "relative_humidity_2m", "surface_pressure", "pressure_msl",
-            "wind_speed_10m", "wind_direction_10m", "uv_index", "precipitation"
+            "wind_speed_10m", "wind_direction_10m", "precipitation"
         ],
         "timezone": "Asia/Jakarta"
     }
