@@ -4,14 +4,8 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 import logging
 
-# IMPORT SESUAI STRUKTUR FOLDER:
-# open_meteo ada di services, sedangkan translator ada di utils
-try:
-    from app.services.open_meteo import fetch_open_meteo_raw
-    from app.utils.translator import translate_aws_data
-except ImportError:
-    from services.open_meteo import fetch_open_meteo_raw
-    from utils.translator import translate_aws_data
+from app.services.open_meteo import fetch_open_meteo_raw
+from app.utils.translator import translate_aws_data
 
 app = FastAPI(title="PTDI AWS Dashboard", version="1.0.0")
 
@@ -28,7 +22,7 @@ async def get_aws_translated_data():
         raw_data = await fetch_open_meteo_raw()
         translated = translate_aws_data(raw_data)
         
-        # Meneruskan minutely_15 ke response JSON untuk history 15-menit
+        # Meneruskan minutely_15 ke response JSON untuk history 15-menitan
         translated["minutely_15"] = raw_data.get("minutely_15", {})
         
         return translated
