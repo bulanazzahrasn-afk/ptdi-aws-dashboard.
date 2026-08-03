@@ -213,10 +213,10 @@ function renderDashboard(data) {
         renderHourlyForecast(data.raw_hourly_payload);
     }
 
-    // Panggil logika History Log 15 Menitan
-    const minutelyData = data.raw_minutely_15_payload || (data.raw_current_payload ? data.raw_current_payload.minutely_15 : null);
-    if (minutelyData) {
-        renderDaily15MinHistory(minutelyData);
+    // PEMANGGILAN HISTORY LOG SECARA FLEKSIBEL (JIKA MINUTELY_15 ADA GUNAKAN, JIKA TIDAK PILIH RAW_HOURLY)
+    const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
+    if (minData) {
+        renderDailyHistoryLog(minData);
     }
 
     renderMasterTable(data.raw_current_payload, data);
@@ -482,24 +482,25 @@ function updateWindRoseChart(hourly) {
     windRoseInstance.update();
 }
 
-// -------------------------------------------------------------------------
-// HISTORY LOG OTOMATIS: INTERVAL 15 MENIT DARI JAM 00:00 HINGGA SEKARANG
-// -------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+// HISTORY LOG OTOMATIS: MENAMPILKAN DATA DARI JAM 00:00 HINGGA MENIT/JAM SEKARANG
+// ---------------------------------------------------------------------------------
 
-function renderDaily15MinHistory(minutely) {
-    if (!minutely || !minutely.time) return;
+function renderDailyHistoryLog(payload) {
+    if (!payload || !payload.time) return;
 
-    const times = minutely.time;
-    const temps = minutely.temperature_2m || [];
-    const rhs = minutely.relative_humidity_2m || [];
-    const pressures = minutely.msl_pressure || [];
-    const windSpeeds = minutely.wind_speed_10m || [];
-    const windDirs = minutely.wind_direction_10m || [];
-    const uvs = minutely.uv_index || [];
-    const precips = minutely.precipitation || [];
+    const times = payload.time;
+    const temps = payload.temperature_2m || [];
+    const rhs = payload.relative_humidity_2m || [];
+    const pressures = payload.msl_pressure || payload.surface_pressure || [];
+    const windSpeeds = payload.wind_speed_10m || [];
+    const windDirs = payload.wind_direction_10m || [];
+    const uvs = payload.uv_index || [];
+    const precips = payload.precipitation || [];
 
     const now = new Date();
-    const currentTimestamp = now.getTime();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
     
     const todayStr = now.toLocaleDateString('id-ID', {
         weekday: 'short',
@@ -510,12 +511,13 @@ function renderDaily15MinHistory(minutely) {
     let fullDayLogs = [];
 
     times.forEach((t, i) => {
-        // Parse format ISO waktu Open-Meteo (contoh: "2026-08-03T08:15")
-        const itemDate = new Date(t);
         const timeStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
+        const [hStr, mStr] = timeStr.split(":");
+        const h = parseInt(hStr);
+        const m = parseInt(mStr || "0");
 
-        // Ambil hanya data dari jam 00:00 WIB hari ini hingga menit berjalan saat ini
-        if (itemDate.getTime() <= currentTimestamp && itemDate.getDate() === now.getDate()) {
+        // Filter: Tampilkan hanya data jam 00:00 hingga jam/menit berjalan saat ini
+        if (h < currentHour || (h === currentHour && m <= currentMin)) {
             const windDirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const windCompass = degToCompassShort(windDirDeg);
             const precipVal = precips[i] !== undefined ? precips[i] : 0;
@@ -533,7 +535,7 @@ function renderDaily15MinHistory(minutely) {
         }
     });
 
-    // Urutkan dari interval 15 menit terbaru ke 00:00 WIB
+    // Urutkan dari waktu terbaru (paling atas) ke 00:00 WIB
     historyLogs = fullDayLogs.reverse();
     renderHistoryTable();
 }
@@ -543,7 +545,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data riwayat 15-menit dari 00:00 WIB...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data riwayat dari 00:00 WIB...</td></tr>';
         return;
     }
 
@@ -581,7 +583,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_PTDI_History_15Min_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_PTDI_History_Daily_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
