@@ -22,7 +22,7 @@ async def get_aws_translated_data():
         raw_data = await fetch_open_meteo_raw()
         translated = translate_aws_data(raw_data)
         
-        # MENAMBAHKAN MINUTELY_15 KE RESPONSE JSON UNTUK HISTORY LOG 15-MENITAN
+        # Meneruskan minutely_15 ke response JSON untuk history 15-menit
         translated["minutely_15"] = raw_data.get("minutely_15", {})
         
         return translated
