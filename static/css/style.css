@@ -1,0 +1,271 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    --bg-main: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent-blue: #2563eb;
+    --accent-cyan: #0891b2;
+    --accent-amber: #d97706;
+    --accent-emerald: #059669;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #e2e8f0;
+}
+::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+
+/* Navbar Custom */
+.navbar-custom {
+    background: #0f172a !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Animasi Indikator Live Pulse */
+.dot-pulse {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.spin-anim {
+    animation: spin 1s linear infinite;
+}
+
+/* Card Modern Styling */
+.card-modern {
+    background: var(--card-bg);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-modern:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+}
+
+/* Hero Temperature Card Special Gradient */
+.hero-temp-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    border: none;
+}
+
+.hero-temp-card .text-muted {
+    color: #94a3b8 !important;
+}
+
+.metric-value {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-feature-settings: "tnum";
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Custom Nav Tabs */
+.custom-tabs-container {
+    background: #ffffff;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.custom-tabs .nav-link {
+    color: #64748b;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.custom-tabs .nav-link:hover {
+    color: #0f172a;
+    background-color: #f8fafc;
+}
+
+.custom-tabs .nav-link.active {
+    color: #ffffff;
+    background-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    font-weight: 700;
+}
+
+/* Panah Kompas Angin Rotasi */
+.wind-compass-icon {
+    display: inline-block;
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.list-clean-item {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    transition: background 0.2s;
+}
+
+.list-clean-item:hover {
+    background: #f1f5f9;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.fs-7 { font-size: 0.8rem; }
+
+/* Container Background Animasi Banner */
+.weather-anim-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* 1. Animasi Awan Moving (Berawan) */
+.cloud-element {
+    position: absolute;
+    bottom: -10px;
+    background: #cbd5e1;
+    border-radius: 50px;
+    opacity: 0.25;
+}
+.cloud-element::after, .cloud-element::before {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+}
+.cloud-element-1 { width: 80px; height: 30px; left: -90px; animation: moveClouds 22s linear infinite; }
+.cloud-element-1::after { width: 40px; height: 40px; top: -18px; left: 10px; }
+.cloud-element-1::before { width: 30px; height: 30px; top: -12px; right: 10px; }
+
+.cloud-element-2 { width: 60px; height: 22px; left: -70px; animation: moveClouds 16s linear infinite; animation-delay: -6s; }
+.cloud-element-2::after { width: 30px; height: 30px; top: -12px; left: 8px; }
+
+@keyframes moveClouds {
+    0% { transform: translateX(0vw); }
+    100% { transform: translateX(110vw); }
+}
+
+/* 2. Animasi Sinar Matahari / Sun Glow (Cerah) */
+.sun-element {
+    position: absolute;
+    right: 15%;
+    top: -30px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.4) 0%, rgba(251, 191, 36, 0) 70%);
+    border-radius: 50%;
+    animation: sunPulse 3s ease-in-out infinite alternate;
+}
+@keyframes sunPulse {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    100% { transform: scale(1.2); opacity: 0.9; }
+}
+
+/* 3. Animasi Tetesan Hujan (Hujan) */
+.rain-drop {
+    position: absolute;
+    background: #0284c7;
+    width: 2px;
+    height: 12px;
+    opacity: 0.4;
+    animation: dropRain 0.8s linear infinite;
+}
+@keyframes dropRain {
+    0% { transform: translateY(-20px); opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { transform: translateY(50px); opacity: 0; }
+}
+
+/* Styling Scrollbar & Card Prakiraan per Jam Horizontal */
+.hourly-scroll-wrapper {
+    overflow-x: auto;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+    padding-bottom: 6px;
+}
+
+.hourly-card {
+    min-width: 105px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 8px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.hourly-card:hover {
+    background: #ffffff;
+    border-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.hourly-card .hour-time {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.hourly-card .hour-temp {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.hourly-card .hour-rh {
+    font-size: 0.75rem;
+    color: #0891b2;
+}
+
+.hourly-card .hour-wind {
+    font-size: 0.725rem;
+    color: #059669;
+}

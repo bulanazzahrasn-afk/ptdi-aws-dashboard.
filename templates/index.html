@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PT. Dirgantara Indonesia - AWS Master Translator</title>
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-light">
+
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-dark navbar-custom sticky-top border-bottom border-primary border-3 shadow-sm py-2">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
+                <div class="p-2 bg-primary bg-opacity-20 rounded-3 text-primary d-flex align-items-center justify-content-center">
+                    <i class="bi bi-broadcast fs-4"></i>
+                </div>
+                <div>
+                    <span class="d-block lh-1 fs-5 fw-bold">PT. Dirgantara Indonesia</span>
+                    <small class="fw-normal text-secondary fs-7">AWS Real-Time Meteorological Control Dashboard</small>
+                </div>
+            </a>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 bg-slate-800 bg-dark px-3 py-1.5 rounded-pill border border-secondary border-opacity-20">
+                    <span id="live-dot" class="dot-pulse bg-success"></span>
+                    <span id="live-text" class="badge text-white fw-semibold p-0">LIVE</span>
+                    <span class="text-secondary">|</span>
+                    <small class="text-light fs-7 font-mono" id="last-update">Updating...</small>
+                </div>
+
+                <div class="form-check form-switch text-light m-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input mt-0" type="checkbox" id="autoRefreshSwitch" checked>
+                    <label class="form-check-label small text-secondary" for="autoRefreshSwitch">Auto (30s)</label>
+                </div>
+
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-1.5 rounded-3 px-3 py-1.5" id="manualRefreshBtn" title="Fetch Fresh Data">
+                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+                    <span class="fw-semibold">Refresh</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4 py-3">
+        <!-- Alert Status Stabilitas Cuaca Dinamis -->
+        <div class="alert alert-primary bg-white border-primary border-opacity-20 py-2.5 px-3 d-flex justify-content-between align-items-center mb-3 shadow-sm rounded-3 stability-banner overflow-hidden position-relative" style="z-index: 1;">
+            
+            <!-- Container Efek Animasi Dinamis -->
+            <div id="weather-anim-container" class="weather-anim-bg"></div>
+
+            <div class="d-flex align-items-center gap-2.5 position-relative" style="z-index: 2;">
+                <i id="stability-alert-icon" class="bi bi-shield-check text-primary fs-5"></i>
+                <span id="stability-alert-text" class="fw-semibold text-dark">Memuat analisis stabilitas & perawanan atmosfer...</span>
+            </div>
+            <span class="badge bg-slate-100 text-dark border px-2.5 py-1.5 font-mono position-relative" style="z-index: 2;" id="meta-location">BDO Husein Sastranegara (-6.9006, 107.5762)</span>
+        </div>
+
+        <!-- Navigation Tabs Container -->
+        <div class="custom-tabs-container mb-3 shadow-sm">
+            <ul class="nav nav-pills custom-tabs d-flex justify-content-between" id="awsTab" role="tablist">
+                <li class="nav-item flex-fill text-center"><button class="nav-link active w-100" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1" type="button"><i class="bi bi-speedometer2 me-1.5"></i> Ringkasan Utama</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2" type="button"><i class="bi bi-compass me-1.5"></i> Profil Angin & Wind Rose</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab3-tab" data-bs-toggle="tab" data-bs-target="#tab3" type="button"><i class="bi bi-sun me-1.5"></i> Radiasi & UV</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab4-tab" data-bs-toggle="tab" data-bs-target="#tab4" type="button"><i class="bi bi-layers me-1.5"></i> Tanah & Evapo</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab5-tab" data-bs-toggle="tab" data-bs-target="#tab5" type="button"><i class="bi bi-graph-up me-1.5"></i> Grafik Tren</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab6-tab" data-bs-toggle="tab" data-bs-target="#tab6" type="button"><i class="bi bi-table me-1.5"></i> Master Table</button></li>
+                <li class="nav-item flex-fill text-center"><button class="nav-link w-100" id="tab7-tab" data-bs-toggle="tab" data-bs-target="#tab7" type="button"><i class="bi bi-clock-history me-1.5"></i> History Log</button></li>
+            </ul>
+        </div>
+
+        <div class="tab-content" id="awsTabContent">
+            
+            <!-- TAB 1: RINGKASAN UTAMA -->
+            <div class="tab-pane fade show active" id="tab1" role="tabpanel">
+                <div class="row g-3">
+                    <!-- Hero Temp Card -->
+                    <div class="col-md-3">
+                        <div class="card card-modern hero-temp-card h-100 p-2">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="metric-label text-muted">SUHU UDARA (2M)</span>
+                                    <i class="bi bi-thermometer-half fs-3 text-warning"></i>
+                                </div>
+                                <div class="my-2">
+                                    <div class="metric-value text-white font-mono" id="m-temp">-- °C</div>
+                                    <span class="text-muted small">Terasa Seperti: <strong class="text-white" id="m-app-temp">-- °C</strong></span>
+                                </div>
+                                <div class="pt-2 border-top border-secondary border-opacity-20 d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Status Siang/Malam</small>
+                                    <span class="badge bg-primary bg-opacity-20 text-info px-2.5 py-1" id="m-is-day">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kelembapan Card -->
+                    <div class="col-md-3">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="metric-label text-secondary">KELEMBAPAN RELATIF</span>
+                                    <i class="bi bi-droplet-fill fs-4 text-info"></i>
+                                </div>
+                                <div class="my-2">
+                                    <div class="metric-value text-info font-mono" id="m-rh">-- %</div>
+                                    <div class="progress my-2" style="height: 6px; background-color: #e2e8f0;">
+                                        <div id="bar-rh" class="progress-bar bg-info rounded-pill" style="width: 0%"></div>
+                                    </div>
+                                    <span class="text-secondary small">Titik Embun (Dew Point): <strong class="text-dark font-mono" id="m-dew">-- °C</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tekanan Udara Card -->
+                    <div class="col-md-3">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="metric-label text-secondary">TEKANAN UDARA (MSL)</span>
+                                    <i class="bi bi-speedometer fs-4 text-warning"></i>
+                                </div>
+                                <div class="my-2">
+                                    <div class="metric-value text-warning font-mono" id="m-press">-- hPa</div>
+                                    <span class="text-secondary small">Tekanan Permukaan: <strong class="text-dark font-mono" id="m-surf-press">-- hPa</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Angin Card -->
+                    <div class="col-md-3">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="metric-label text-secondary">ANGIN PERMUKAAN (10M)</span>
+                                    <i class="bi bi-wind fs-4 text-success"></i>
+                                </div>
+                                <div class="my-2">
+                                    <div class="metric-value text-success font-mono" id="m-wind-10m">-- km/h</div>
+                                    <div class="d-flex align-items-center gap-2 mt-1 bg-light p-2 rounded-3 border">
+                                        <i id="wind-arrow-10m" class="bi bi-arrow-up-circle-fill text-success fs-5 wind-compass-icon"></i>
+                                        <span id="m-wind-dir-10m" class="text-dark small fw-bold font-mono">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WIDGET PRAKIRAAN PER JAM (BMKG STYLE) -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card card-modern p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="fw-bold text-dark d-flex align-items-center gap-2">
+                                    <i class="bi bi-clock-history text-primary fs-5"></i> Prakiraan per Jam (WIB)
+                                </span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary font-mono">24 Hours Forecast</span>
+                            </div>
+
+                            <!-- Horizontal Scroll Container -->
+                            <div class="hourly-scroll-wrapper">
+                                <div class="d-flex gap-2 pb-2" id="hourly-forecast-container">
+                                    <div class="text-center text-muted py-3 w-100">Memuat data prakiraan per jam...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-2 pb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-cloud-rain-fill text-primary fs-5"></i> Presipitasi & Perawanan
+                            </div>
+                            <div class="card-body pt-2">
+                                <div class="list-clean-item d-flex justify-content-between align-items-center">
+                                    <span class="text-secondary small fw-semibold">Curah Hujan (Precipitation)</span>
+                                    <strong class="font-mono fs-6" id="m-precip">-- mm</strong>
+                                </div>
+                                <div class="list-clean-item d-flex justify-content-between align-items-center">
+                                    <span class="text-secondary small fw-semibold">Peluang Hujan</span>
+                                    <strong class="font-mono fs-6 text-primary" id="m-precip-prob">-- %</strong>
+                                </div>
+                                <div class="list-clean-item d-flex justify-content-between align-items-center">
+                                    <span class="text-secondary small fw-semibold">Total Tutupan Awan</span>
+                                    <strong class="font-mono fs-6" id="m-cloud-total">-- %</strong>
+                                </div>
+                                <div class="list-clean-item d-flex justify-content-between align-items-center mb-0">
+                                    <span class="text-secondary small fw-semibold">Awan (Rendah / Sedang / Tinggi)</span>
+                                    <strong class="font-mono fs-6" id="m-cloud-breakdown">-- / -- / -- %</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-2 pb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-sun-fill text-warning fs-5"></i> Indeks UV & Radiasi Fluks
+                            </div>
+                            <div class="card-body pt-2 d-flex flex-column justify-content-between">
+                                <div class="bg-light p-3 rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark">Indeks UV Saat Ini</span>
+                                        <span id="uv-badge" class="badge bg-success fs-6 px-3 py-2 rounded-pill font-mono">0.0 (Low)</span>
+                                    </div>
+                                    <p class="small text-secondary m-0" id="uv-desc">Keterangan paparan radiasi...</p>
+                                </div>
+                                
+                                <div class="row text-center g-2 mt-2">
+                                    <div class="col-6">
+                                        <div class="p-2 border rounded-3 bg-white">
+                                            <small class="text-secondary d-block fs-7 fw-semibold">Shortwave Rad</small>
+                                            <strong class="font-mono fs-6 text-dark" id="m-rad-sw">-- W/m²</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-2 border rounded-3 bg-white">
+                                            <small class="text-secondary d-block fs-7 fw-semibold">Direct Irradiance (DNI)</small>
+                                            <strong class="font-mono fs-6 text-dark" id="m-rad-dni">-- W/m²</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PROFIL ANGIN MULTILEVEL & WIND ROSE -->
+            <div class="tab-pane fade" id="tab2" role="tabpanel">
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex align-items-center gap-2">
+                                <i class="bi bi-layers-half text-primary fs-5"></i> Profil Angin Bertingkat (Vertical Wind Profile)
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle border-0">
+                                        <thead class="table-dark rounded-3">
+                                            <tr>
+                                                <th class="py-3">Ketinggian Altitudo</th>
+                                                <th class="py-3">Kecepatan (km/h)</th>
+                                                <th class="py-3">Arah (Derajat)</th>
+                                                <th class="py-3 text-center">Kompas Visual</th>
+                                                <th class="py-3">Arah Terjemahan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-semibold">10 Meter (Permukaan)</td>
+                                                <td id="w10-spd" class="fw-bold font-mono fs-6 text-primary">--</td>
+                                                <td id="w10-deg" class="font-mono">--</td>
+                                                <td class="text-center"><i id="w10-arrow" class="bi bi-arrow-up-circle-fill text-primary fs-4 wind-compass-icon"></i></td>
+                                                <td><span class="badge bg-primary px-3 py-2 font-mono fs-6" id="w10-dir">--</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold">80 Meter</td>
+                                                <td id="w80-spd" class="fw-bold font-mono fs-6 text-info">--</td>
+                                                <td id="w80-deg" class="font-mono">--</td>
+                                                <td class="text-center"><i id="w80-arrow" class="bi bi-arrow-up-circle-fill text-info fs-4 wind-compass-icon"></i></td>
+                                                <td><span class="badge bg-info px-3 py-2 font-mono fs-6" id="w80-dir">--</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold">120 Meter</td>
+                                                <td id="w120-spd" class="fw-bold font-mono fs-6 text-warning">--</td>
+                                                <td id="w120-deg" class="font-mono">--</td>
+                                                <td class="text-center"><i id="w120-arrow" class="bi bi-arrow-up-circle-fill text-warning fs-4 wind-compass-icon"></i></td>
+                                                <td><span class="badge bg-warning text-dark px-3 py-2 font-mono fs-6" id="w120-dir">--</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-semibold">180 Meter</td>
+                                                <td id="w180-spd" class="fw-bold font-mono fs-6 text-danger">--</td>
+                                                <td id="w180-deg" class="font-mono">--</td>
+                                                <td class="text-center"><i id="w180-arrow" class="bi bi-arrow-up-circle-fill text-danger fs-4 wind-compass-icon"></i></td>
+                                                <td><span class="badge bg-danger px-3 py-2 font-mono fs-6" id="w180-dir">--</span></td>
+                                            </tr>
+                                            <tr class="table-light">
+                                                <td class="fw-bold text-danger">Gusts 10m (Hembusan Ekstrem)</td>
+                                                <td id="wgust-spd" colspan="4" class="fw-bold text-danger font-mono fs-6">-- km/h</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+                                <span class="d-flex align-items-center gap-2"><i class="bi bi-compass-fill text-success fs-5"></i> Wind Rose (16 Sektor)</span>
+                                <span class="badge bg-success bg-opacity-10 text-success font-mono border border-success border-opacity-20">Kecepatan & Arah</span>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-between align-items-center">
+                                <div style="height: 290px; width: 100%;">
+                                    <canvas id="windRoseChart"></canvas>
+                                </div>
+                                
+                                <div class="w-100 mt-2 p-2 bg-light rounded-3 border">
+                                    <div class="text-center fs-7 fw-bold text-secondary mb-1">THRESHOLD KECEPATAN ANGIN (km/h)</div>
+                                    <div class="d-flex justify-content-around align-items-center fs-7 font-mono">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="width: 12px; height: 12px; background: #06b6d4; display: inline-block; border-radius: 3px;"></span>
+                                            <span>&lt; 5 (Calm)</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="width: 12px; height: 12px; background: #10b981; display: inline-block; border-radius: 3px;"></span>
+                                            <span>5 - 15 (Light)</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="width: 12px; height: 12px; background: #f59e0b; display: inline-block; border-radius: 3px;"></span>
+                                            <span>15 - 25 (Mod)</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="width: 12px; height: 12px; background: #ef4444; display: inline-block; border-radius: 3px;"></span>
+                                            <span>&gt; 25 (Strong)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: RADIASI & AWAN -->
+            <div class="tab-pane fade" id="tab3" role="tabpanel">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3">Detail Sensor Radiasi Fluks</div>
+                            <div class="card-body">
+                                <div class="list-clean-item d-flex justify-content-between"><span>Shortwave Radiation</span><strong id="r-sw" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>Direct Radiation</span><strong id="r-dir" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>Diffuse Radiation</span><strong id="r-diff" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>Direct Normal Irradiance (DNI)</span><strong id="r-dni" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>Global Tilted Irradiance (GTI)</span><strong id="r-gti" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>Terrestrial Radiation</span><strong id="r-ter" class="font-mono">-- W/m²</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between mb-0"><span>UV Index Clear Sky</span><strong id="r-uv-clear" class="font-mono">--</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-modern h-100 p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3">Komposisi Tutupan Awan (Cloud Fractions)</div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small text-secondary mb-1"><span>Awan Rendah (Low Cloud)</span><span id="val-cloud-low" class="font-mono fw-bold">0%</span></div>
+                                    <div class="progress" style="height: 8px;"><div id="pb-cloud-low" class="progress-bar bg-info rounded-pill" style="width: 0%"></div></div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small text-secondary mb-1"><span>Awan Menengah (Mid Cloud)</span><span id="val-cloud-mid" class="font-mono fw-bold">0%</span></div>
+                                    <div class="progress" style="height: 8px;"><div id="pb-cloud-mid" class="progress-bar bg-warning rounded-pill" style="width: 0%"></div></div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small text-secondary mb-1"><span>Awan Tinggi (High Cloud)</span><span id="val-cloud-high" class="font-mono fw-bold">0%</span></div>
+                                    <div class="progress" style="height: 8px;"><div id="pb-cloud-high" class="progress-bar bg-secondary rounded-pill" style="width: 0%"></div></div>
+                                </div>
+                                <div class="mt-4 p-3 bg-light rounded-3 border">
+                                    <div class="d-flex justify-content-between text-dark fw-bold mb-1"><span>Total Cloud Coverage</span><span id="val-cloud-total" class="font-mono">0%</span></div>
+                                    <div class="progress" style="height: 16px;"><div id="pb-cloud-total" class="progress-bar bg-primary rounded-pill" style="width: 0%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: TANAH & EVAPOTRANSPIRASI -->
+            <div class="tab-pane fade" id="tab4" role="tabpanel">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card card-modern p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex align-items-center gap-2">
+                                <i class="bi bi-thermometer-sun text-primary fs-5"></i> Profil Suhu Tanah (Soil Temperature)
+                            </div>
+                            <div class="card-body">
+                                <div class="list-clean-item d-flex justify-content-between"><span>0 cm (Ground Surface)</span><strong id="st-0" class="font-mono">-- °C</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>6 cm</span><strong id="st-6" class="font-mono">-- °C</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>18 cm</span><strong id="st-18" class="font-mono">-- °C</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between mb-0"><span>54 cm</span><strong id="st-54" class="font-mono">-- °C</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-modern p-2">
+                            <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex align-items-center gap-2">
+                                <i class="bi bi-droplet-half text-info fs-5"></i> Profil Kelembapan Tanah & Evapotranspirasi
+                            </div>
+                            <div class="card-body">
+                                <div class="list-clean-item d-flex justify-content-between"><span>0 - 1 cm</span><strong id="sm-0-1" class="font-mono">-- m³/m³</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>1 - 3 cm</span><strong id="sm-1-3" class="font-mono">-- m³/m³</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>3 - 9 cm</span><strong id="sm-3-9" class="font-mono">-- m³/m³</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>9 - 27 cm</span><strong id="sm-9-27" class="font-mono">-- m³/m³</strong></div>
+                                <div class="list-clean-item d-flex justify-content-between"><span>27 - 81 cm</span><strong id="sm-27-81" class="font-mono">-- m³/m³</strong></div>
+                                <div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-20 rounded-3 d-flex justify-content-between align-items-center mt-2">
+                                    <span class="fw-bold text-success">Evapotranspirasi ET0 (FAO)</span>
+                                    <strong id="et0-fao" class="font-mono fs-6 text-success">-- mm</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: GRAFIK TREN 24 JAM -->
+            <div class="tab-pane fade" id="tab5" role="tabpanel">
+                <div class="card card-modern p-2">
+                    <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-graph-up-arrow text-primary fs-5"></i> Tren Suhu & Kelembapan 24 Jam</span>
+                        <span class="badge bg-slate-100 text-secondary font-mono border">Hourly</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 400px; width: 100%;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: MASTER DATA TABLE -->
+            <div class="tab-pane fade" id="tab6" role="tabpanel">
+                <div class="card card-modern p-2">
+                    <div class="card-header bg-transparent fw-bold border-0 pt-3">Tabel Perbandingan Master: Data Mentah vs Hasil Terjemahan</div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 500px;">
+                            <table class="table table-striped table-hover align-middle fs-7">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th class="py-2.5">Nama Parameter</th>
+                                        <th class="py-2.5">Nilai Mentah (Open-Meteo)</th>
+                                        <th class="py-2.5">Satuan Unit</th>
+                                        <th class="py-2.5">Hasil Terjemahan / Interpretasi Sistem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="master-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 7: HISTORY LOG -->
+            <div class="tab-pane fade" id="tab7" role="tabpanel">
+                <div class="card card-modern p-2">
+                    <div class="card-header bg-transparent fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i> Riwayat Logging Auto-Refresh (Session History)</span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" id="exportHistoryBtn">
+                                <i class="bi bi-download"></i> Download CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" id="clearHistoryBtn">
+                                <i class="bi bi-trash"></i> Clear Log
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 480px;">
+                            <table class="table table-hover align-middle fs-7 font-mono">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Waktu Fetch (WIB)</th>
+                                        <th>Suhu (°C)</th>
+                                        <th>Kelembapan (%)</th>
+                                        <th>Tekanan (hPa)</th>
+                                        <th>Angin 10m (km/h)</th>
+                                        <th>Arah Angin</th>
+                                        <th>Indeks UV</th>
+                                        <th>Kondisi Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body">
+                                    <tr><td colspan="8" class="text-center text-muted py-4">Belum ada riwayat tercatat...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JS CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
