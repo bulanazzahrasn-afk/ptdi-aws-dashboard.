@@ -3,14 +3,14 @@ let windRoseInstance = null;
 let autoRefreshTimer = null;
 let clockTimer = null;
 
-const POLLING_INTERVAL = 30000; // Refetch data background tiap 30 detik
+const POLLING_INTERVAL = 30000; // Refetch background data tiap 30 detik
 let historyLogs = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     initChart();
     initWindRoseChart();
 
-    // 1. Jalankan jam digital header per 1 detik
+    // 1. Jalankan jam digital header per 1 detik (real-time)
     startRealtimeClock();
 
     // 2. Fetch data cuaca pertama kali saat web dibuka
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // -------------------------------------------------------------
-// JAM DIGITAL HEADER (BERJALAN TIAP 1 DETIK REAL-TIME)
+// JAM DIGITAL HEADER (BERJALAN PER 1 DETIK REAL-TIME)
 // -------------------------------------------------------------
 function startRealtimeClock() {
     updateClockDisplay();
@@ -75,7 +75,7 @@ function updateClockDisplay() {
 }
 
 // -------------------------------------------------------------
-// TIMER AUTO REFRESH FETCH DATA
+// AUTO REFRESH FETCH DATA CUACA
 // -------------------------------------------------------------
 function startAutoRefresh() {
     stopAutoRefresh();
@@ -232,7 +232,7 @@ function renderDashboard(data) {
         renderHourlyForecast(data.raw_hourly_payload);
     }
 
-    // OLAH HISTORY LOG HARIAN 00:00 WIB S/D JAM SEKARANG (INTERVAL 15 MENIT/HOURLY)
+    // UTAMAKAN MEMBACA PAYLOAD 15-MENITAN (MINUTELY_15)
     const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
     if (minData) {
         renderDaily00to24History(minData);
@@ -502,7 +502,7 @@ function updateWindRoseChart(hourly) {
 }
 
 // ---------------------------------------------------------------------------------
-// LOGIKA UTAMA: HISTORY LOG 00:00 S/D JAM BERJALAN HARI INI
+// LOGIKA UTAMA: HISTORY LOG 00:00 S/D JAM BERJALAN HARI INI (DENGAN UV & PRESS HPA)
 // ---------------------------------------------------------------------------------
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
@@ -534,26 +534,28 @@ function renderDaily00to24History(payload) {
         const h = parseInt(hStr);
         const m = parseInt(mStr || "0");
 
-        // Filter: Tampilkan hanya data jam 00:00 hingga jam/menit berjalan saat ini
+        // Filter: Tampilkan data dari 00:00 WIB hingga jam/menit berjalan saat ini
         if (h < currentHour || (h === currentHour && m <= currentMin)) {
             const windDirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const windCompass = degToCompassShort(windDirDeg);
             const precipVal = precips[i] !== undefined ? precips[i] : 0;
+            const uvVal = uvs[i] !== undefined && uvs[i] !== null ? uvs[i] : '--';
+            const pressVal = pressures[i] !== undefined && pressures[i] !== null ? `${pressures[i]} hPa` : '--';
 
             fullDayLogs.push({
                 time: `${todayStr}, ${timeStr} WIB`,
                 temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
                 rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
-                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
+                press: pressVal,
                 windSpd: windSpeeds[i] !== undefined ? `${windSpeeds[i]} km/h` : '--',
                 windDir: `${windDirDeg}° (${windCompass})`,
-                uv: uvs[i] !== undefined ? uvs[i] : '--',
+                uv: uvVal,
                 status: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
             });
         }
     });
 
-    // Urutkan dari waktu paling baru (paling atas) ke jam 00:00 WIB
+    // Urutkan dari interval waktu paling baru (atas) ke 00:00 WIB (bawah)
     historyLogs = fullDayLogs.reverse();
     renderHistoryTable();
 }
@@ -601,7 +603,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_PTDI_History_00-24_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_PTDI_History_15Min_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

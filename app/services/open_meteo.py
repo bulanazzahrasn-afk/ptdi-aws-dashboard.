@@ -20,9 +20,10 @@ async def fetch_open_meteo_raw() -> Dict[str, Any]:
             "uv_index", "uv_index_clear_sky"
         ],
         "hourly": [
-            "temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m"
+            "temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m",
+            "uv_index", "msl_pressure", "surface_pressure"
         ],
-        # MINTA DATA INTERVAL 15 MENIT DARI OPEN-METEO
+        # MINTA DATA INTERVAL 15 MENIT LENGKAP DENGAN UV INDEX
         "minutely_15": [
             "temperature_2m", "relative_humidity_2m", "surface_pressure", "pressure_msl",
             "wind_speed_10m", "wind_direction_10m", "uv_index", "precipitation"
