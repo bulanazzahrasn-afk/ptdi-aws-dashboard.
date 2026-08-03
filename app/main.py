@@ -5,7 +5,7 @@ from starlette.requests import Request
 import logging
 
 from app.services.open_meteo import fetch_open_meteo_raw
-from app.utils.translator import translate_aws_data
+from app.utils.translator import translate_aws_payload  # <-- DISESUAIKAN: payload
 
 app = FastAPI(title="PTDI AWS Dashboard", version="1.0.0")
 
@@ -20,9 +20,9 @@ async def read_root(request: Request):
 async def get_aws_translated_data():
     try:
         raw_data = await fetch_open_meteo_raw()
-        translated = translate_aws_data(raw_data)
+        translated = translate_aws_payload(raw_data)  # <-- DISESUAIKAN: payload
         
-        # Meneruskan minutely_15 ke response JSON untuk history 15-menitan
+        # Meneruskan minutely_15 ke response JSON untuk history 15-menit
         translated["minutely_15"] = raw_data.get("minutely_15", {})
         
         return translated
