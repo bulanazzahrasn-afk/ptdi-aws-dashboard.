@@ -1,16 +1,19 @@
 let chartInstance = null;
 let windRoseInstance = null;
 let autoRefreshTimer = null;
+let clockTimer = null;
 
-// Auto-refresh diubah menjadi per 15 Menit (15 * 60 * 1000 ms)
-const POLLING_INTERVAL = 900000; 
-
+const POLLING_INTERVAL = 30000; // Refetch data background tiap 30 detik
 let historyLogs = [];
-let lastLoggedDay = new Date().getDate();
 
 document.addEventListener("DOMContentLoaded", () => {
     initChart();
     initWindRoseChart();
+
+    // 1. Jalankan jam digital header per 1 detik
+    startRealtimeClock();
+
+    // 2. Fetch data cuaca pertama kali saat web dibuka
     fetchAWSData();
 
     const autoSwitch = document.getElementById("autoRefreshSwitch");
@@ -42,6 +45,38 @@ document.addEventListener("DOMContentLoaded", () => {
     startAutoRefresh();
 });
 
+// -------------------------------------------------------------
+// JAM DIGITAL HEADER (BERJALAN TIAP 1 DETIK REAL-TIME)
+// -------------------------------------------------------------
+function startRealtimeClock() {
+    updateClockDisplay();
+    if (clockTimer) clearInterval(clockTimer);
+    clockTimer = setInterval(updateClockDisplay, 1000);
+}
+
+function updateClockDisplay() {
+    const now = new Date();
+    const fullDateStr = now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+    const timeStr = now.toLocaleTimeString('id-ID', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+
+    const lastUpdate = document.getElementById("last-update");
+    if (lastUpdate) {
+        lastUpdate.textContent = `${fullDateStr} - ${timeStr} WIB`;
+    }
+}
+
+// -------------------------------------------------------------
+// TIMER AUTO REFRESH FETCH DATA
+// -------------------------------------------------------------
 function startAutoRefresh() {
     stopAutoRefresh();
     autoRefreshTimer = setInterval(fetchAWSData, POLLING_INTERVAL);
@@ -58,7 +93,7 @@ function updateLiveIndicator(isLive) {
     const text = document.getElementById("live-text");
     if (dot && text) {
         dot.className = isLive ? "dot-pulse bg-success" : "dot-pulse bg-secondary";
-        text.textContent = isLive ? "LIVE (15m)" : "PAUSED";
+        text.textContent = isLive ? "LIVE" : "PAUSED";
     }
 }
 
@@ -71,29 +106,7 @@ async function fetchAWSData() {
         if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
         
         const data = await response.json();
-        
-        const now = new Date();
-        const fullDateStr = now.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-        const timeStr = now.toLocaleTimeString('id-ID', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit' 
-        });
-
-        const lastUpdate = document.getElementById("last-update");
-        if (lastUpdate) {
-            lastUpdate.textContent = `${fullDateStr} - ${timeStr} WIB`;
-        }
-
         renderDashboard(data);
-        
-        // Tambahkan data ke History Log per 15 menit
-        addHistoryLog15Min(data, `${fullDateStr} ${timeStr}`);
 
     } catch (err) {
         console.error("Gagal mengambil/render data AWS:", err);
@@ -217,6 +230,12 @@ function renderDashboard(data) {
         updateChart(data.raw_hourly_payload);
         updateWindRoseChart(data.raw_hourly_payload);
         renderHourlyForecast(data.raw_hourly_payload);
+    }
+
+    // OLAH HISTORY LOG HARIAN 00:00 WIB S/D JAM SEKARANG (INTERVAL 15 MENIT/HOURLY)
+    const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
+    if (minData) {
+        renderDaily00to24History(minData);
     }
 
     renderMasterTable(data.raw_current_payload, data);
@@ -483,38 +502,59 @@ function updateWindRoseChart(hourly) {
 }
 
 // ---------------------------------------------------------------------------------
-// HISTORY LOG PER 15 MENIT (LIVE AUTO-REFRESH SESSION)
+// LOGIKA UTAMA: HISTORY LOG 00:00 S/D JAM BERJALAN HARI INI
 // ---------------------------------------------------------------------------------
+function renderDaily00to24History(payload) {
+    if (!payload || !payload.time) return;
 
-function addHistoryLog15Min(data, timestampStr) {
+    const times = payload.time;
+    const temps = payload.temperature_2m || [];
+    const rhs = payload.relative_humidity_2m || [];
+    const pressures = payload.msl_pressure || payload.surface_pressure || [];
+    const windSpeeds = payload.wind_speed_10m || [];
+    const windDirs = payload.wind_direction_10m || [];
+    const uvs = payload.uv_index || [];
+    const precips = payload.precipitation || [];
+
     const now = new Date();
-    const currentDay = now.getDate();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    
+    const todayStr = now.toLocaleDateString('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
+    });
 
-    // Reset log secara otomatis jika berganti hari (jam 00:00 WIB lewat)
-    if (currentDay !== lastLoggedDay) {
-        historyLogs = [];
-        lastLoggedDay = currentDay;
-    }
+    let fullDayLogs = [];
 
-    const t = data.thermodynamics || {};
-    const w = data.wind_profile || {};
-    const r = data.radiation_uv || {};
-    const c = data.clouds_precipitation || {};
+    times.forEach((t, i) => {
+        const timeStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
+        const [hStr, mStr] = timeStr.split(":");
+        const h = parseInt(hStr);
+        const m = parseInt(mStr || "0");
 
-    const statusText = typeof c.stability_status === 'object' ? c.stability_status.text : c.stability_status;
+        // Filter: Tampilkan hanya data jam 00:00 hingga jam/menit berjalan saat ini
+        if (h < currentHour || (h === currentHour && m <= currentMin)) {
+            const windDirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
+            const windCompass = degToCompassShort(windDirDeg);
+            const precipVal = precips[i] !== undefined ? precips[i] : 0;
 
-    const entry = {
-        time: timestampStr,
-        temp: t.temp_2m !== undefined ? `${t.temp_2m} °C` : '--',
-        rh: t.rh_2m !== undefined ? `${t.rh_2m} %` : '--',
-        press: t.msl_pressure !== undefined ? `${t.msl_pressure} hPa` : '--',
-        windSpd: w["10m"] ? `${w["10m"].speed} km/h` : '--',
-        windDir: w["10m"] ? `${w["10m"].dir_deg}° (${w["10m"].dir_compass})` : '--',
-        uv: r.uv_index !== undefined ? r.uv_index : '--',
-        status: statusText || '--'
-    };
+            fullDayLogs.push({
+                time: `${todayStr}, ${timeStr} WIB`,
+                temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
+                rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
+                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
+                windSpd: windSpeeds[i] !== undefined ? `${windSpeeds[i]} km/h` : '--',
+                windDir: `${windDirDeg}° (${windCompass})`,
+                uv: uvs[i] !== undefined ? uvs[i] : '--',
+                status: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
+            });
+        }
+    });
 
-    historyLogs.unshift(entry); // Masukkan data terbaru ke baris paling atas
+    // Urutkan dari waktu paling baru (paling atas) ke jam 00:00 WIB
+    historyLogs = fullDayLogs.reverse();
     renderHistoryTable();
 }
 
@@ -523,7 +563,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada riwayat tercatat... (Auto-refresh tiap 15 menit)</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data riwayat dari 00:00 WIB...</td></tr>';
         return;
     }
 
@@ -561,7 +601,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_PTDI_History_15Min_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_PTDI_History_00-24_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
