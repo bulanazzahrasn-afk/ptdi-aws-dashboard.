@@ -1,16 +1,11 @@
 let chartInstance = null;
 let windRoseInstance = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000; // Auto refresh setiap 30 detik
-const ONE_DAY_MS = 86400000;    // Durasi 24 jam dalam milidetik
+const POLLING_INTERVAL = 30000; // Auto-refresh data tiap 30 detik
 
-// 1. Muat data History Log dari localStorage saat aplikasi pertama dibuka
-let historyLogs = JSON.parse(localStorage.getItem("aws_history_logs") || "[]");
+let historyLogs = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Clean-up data lama yang sudah berusia lebih dari 24 jam
-    filterLogsOlderThan24Hours();
-
     initChart();
     initWindRoseChart();
     fetchAWSData();
@@ -30,7 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const clearBtn = document.getElementById("clearHistoryBtn");
     if (clearBtn) {
-        clearBtn.addEventListener("click", clearHistoryLog);
+        clearBtn.addEventListener("click", () => {
+            historyLogs = [];
+            renderHistoryTable();
+        });
     }
 
     const exportBtn = document.getElementById("exportHistoryBtn");
@@ -90,7 +88,6 @@ async function fetchAWSData() {
         }
 
         renderDashboard(data);
-        addHistoryLog(data, `${fullDateStr} ${timeStr}`);
 
     } catch (err) {
         console.error("Gagal mengambil/render data AWS:", err);
@@ -214,6 +211,7 @@ function renderDashboard(data) {
         updateChart(data.raw_hourly_payload);
         updateWindRoseChart(data.raw_hourly_payload);
         renderHourlyForecast(data.raw_hourly_payload);
+        renderDaily24HourHistory(data.raw_hourly_payload);
     }
 
     renderMasterTable(data.raw_current_payload, data);
@@ -479,41 +477,58 @@ function updateWindRoseChart(hourly) {
     windRoseInstance.update();
 }
 
-// -------------------------------------------------------------
-// MANAJEMEN HISTORY LOG PERSISTEN (24 JAM VIA LOCALSTORAGE)
-// -------------------------------------------------------------
+// ----------------------------------------------------------------------
+// HISTORY LOG OTOMATIS: DARI JAM 00:00 WIB HINGGA JAM SEKARANG (HARI INI)
+// ----------------------------------------------------------------------
 
-function filterLogsOlderThan24Hours() {
-    const now = new Date().getTime();
-    historyLogs = historyLogs.filter(log => {
-        if (!log.timestamp) return true;
-        return (now - log.timestamp) < ONE_DAY_MS;
+function renderDaily24HourHistory(hourly) {
+    if (!hourly || !hourly.time) return;
+
+    const times = hourly.time;
+    const temps = hourly.temperature_2m || [];
+    const rhs = hourly.relative_humidity_2m || [];
+    const pressures = hourly.msl_pressure || [];
+    const windSpeeds = hourly.wind_speed_10m || [];
+    const windDirs = hourly.wind_direction_10m || [];
+    const uvs = hourly.uv_index || [];
+    const precips = hourly.precipitation || [];
+
+    const now = new Date();
+    const currentHour = now.getHours(); // Jam sekarang dalam skala 0-23
+    
+    const todayStr = now.toLocaleDateString('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
     });
-    localStorage.setItem("aws_history_logs", JSON.stringify(historyLogs));
-}
 
-function addHistoryLog(data, timestampStr) {
-    const t = data.thermodynamics || {};
-    const w = data.wind_profile || {};
-    const r = data.radiation_uv || {};
-    const c = data.clouds_precipitation || {};
+    let fullDayLogs = [];
 
-    const statusText = typeof c.stability_status === 'object' ? c.stability_status.text : c.stability_status;
+    times.forEach((t, i) => {
+        const hourStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
+        const hourNum = parseInt(hourStr.split(":")[0]);
 
-    const entry = {
-        timestamp: new Date().getTime(), // Simpan milidetik untuk kalkulasi umur log 24 jam
-        time: timestampStr,
-        temp: t.temp_2m !== undefined ? `${t.temp_2m} °C` : '--',
-        rh: t.rh_2m !== undefined ? `${t.rh_2m} %` : '--',
-        press: t.msl_pressure !== undefined ? `${t.msl_pressure} hPa` : '--',
-        windSpd: w["10m"] ? `${w["10m"].speed} km/h` : '--',
-        windDir: w["10m"] ? `${w["10m"].dir_deg}° (${w["10m"].dir_compass})` : '--',
-        uv: r.uv_index !== undefined ? r.uv_index : '--',
-        status: statusText || '--'
-    };
+        // Filter: Ambil jam dari 00:00 hingga jam berjalan saat ini
+        if (hourNum <= currentHour) {
+            const windDirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
+            const windCompass = degToCompassShort(windDirDeg);
+            const precipVal = precips[i] !== undefined ? precips[i] : 0;
 
-    historyLogs.unshift(entry);
-    filterLogsOlderThan24Hours(); // Otomatis bersihkan log berusia > 24 jam
+            fullDayLogs.push({
+                time: `${todayStr}, ${hourStr} WIB`,
+                temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
+                rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
+                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
+                windSpd: windSpeeds[i] !== undefined ? `${windSpeeds[i]} km/h` : '--',
+                windDir: `${windDirDeg}° (${windCompass})`,
+                uv: uvs[i] !== undefined ? uvs[i] : '--',
+                status: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
+            });
+        }
+    });
+
+    // Urutkan dari jam terbaru ke jam 00:00 WIB
+    historyLogs = fullDayLogs.reverse();
     renderHistoryTable();
 }
 
@@ -522,7 +537,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada riwayat tercatat...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data riwayat 00:00 WIB...</td></tr>';
         return;
     }
 
@@ -543,12 +558,6 @@ function renderHistoryTable() {
     });
 }
 
-function clearHistoryLog() {
-    historyLogs = [];
-    localStorage.removeItem("aws_history_logs");
-    renderHistoryTable();
-}
-
 function exportHistoryCSV() {
     if (historyLogs.length === 0) {
         alert("Belum ada data riwayat untuk di-export!");
@@ -566,7 +575,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_Husein_History_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_PTDI_History_00-24_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
