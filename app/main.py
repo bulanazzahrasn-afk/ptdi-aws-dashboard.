@@ -4,8 +4,14 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 import logging
 
-from app.services.open_meteo import fetch_open_meteo_raw
-from app.services.translator import translate_aws_data
+# IMPORT SESUAI STRUKTUR FOLDER:
+# open_meteo ada di services, sedangkan translator ada di utils
+try:
+    from app.services.open_meteo import fetch_open_meteo_raw
+    from app.utils.translator import translate_aws_data
+except ImportError:
+    from services.open_meteo import fetch_open_meteo_raw
+    from utils.translator import translate_aws_data
 
 app = FastAPI(title="PTDI AWS Dashboard", version="1.0.0")
 
