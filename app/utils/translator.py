@@ -181,6 +181,8 @@ def translate_aws_payload(raw: dict) -> dict:
             "et0_fao": safe_val(curr.get("et0_fao_evapotranspiration"))
         },
         "raw_current_payload": curr,
-        "raw_hourly_payload": raw.get("hourly", {})
+        "raw_hourly_payload": raw.get("hourly", {}),
+        "minutely_15": raw.get("minutely_15", {}), # Passthrough payload 15-menit
+        "raw_minutely_15_payload": raw.get("minutely_15", {})
     }
     return translated
