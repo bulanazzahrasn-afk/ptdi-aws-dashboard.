@@ -22,7 +22,7 @@ async def fetch_open_meteo_raw() -> Dict[str, Any]:
         "hourly": [
             "temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m"
         ],
-        # MINTA DATA HISTORIS & PREDIKSI INTERVAL 15 MENIT
+        # MINTA DATA INTERVAL 15 MENIT DARI OPEN-METEO
         "minutely_15": [
             "temperature_2m", "relative_humidity_2m", "surface_pressure", "pressure_msl",
             "wind_speed_10m", "wind_direction_10m", "uv_index", "precipitation"
