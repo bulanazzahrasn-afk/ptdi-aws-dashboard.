@@ -1,9 +1,12 @@
 let chartInstance = null;
 let windRoseInstance = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000; // Auto-refresh data tiap 30 detik
+
+// Auto-refresh diubah menjadi per 15 Menit (15 * 60 * 1000 ms)
+const POLLING_INTERVAL = 900000; 
 
 let historyLogs = [];
+let lastLoggedDay = new Date().getDate();
 
 document.addEventListener("DOMContentLoaded", () => {
     initChart();
@@ -55,7 +58,7 @@ function updateLiveIndicator(isLive) {
     const text = document.getElementById("live-text");
     if (dot && text) {
         dot.className = isLive ? "dot-pulse bg-success" : "dot-pulse bg-secondary";
-        text.textContent = isLive ? "LIVE" : "PAUSED";
+        text.textContent = isLive ? "LIVE (15m)" : "PAUSED";
     }
 }
 
@@ -88,6 +91,9 @@ async function fetchAWSData() {
         }
 
         renderDashboard(data);
+        
+        // Tambahkan data ke History Log per 15 menit
+        addHistoryLog15Min(data, `${fullDateStr} ${timeStr}`);
 
     } catch (err) {
         console.error("Gagal mengambil/render data AWS:", err);
@@ -211,12 +217,6 @@ function renderDashboard(data) {
         updateChart(data.raw_hourly_payload);
         updateWindRoseChart(data.raw_hourly_payload);
         renderHourlyForecast(data.raw_hourly_payload);
-    }
-
-    // PEMANGGILAN HISTORY LOG SECARA FLEKSIBEL (JIKA MINUTELY_15 ADA GUNAKAN, JIKA TIDAK PILIH RAW_HOURLY)
-    const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
-    if (minData) {
-        renderDailyHistoryLog(minData);
     }
 
     renderMasterTable(data.raw_current_payload, data);
@@ -483,60 +483,38 @@ function updateWindRoseChart(hourly) {
 }
 
 // ---------------------------------------------------------------------------------
-// HISTORY LOG OTOMATIS: MENAMPILKAN DATA DARI JAM 00:00 HINGGA MENIT/JAM SEKARANG
+// HISTORY LOG PER 15 MENIT (LIVE AUTO-REFRESH SESSION)
 // ---------------------------------------------------------------------------------
 
-function renderDailyHistoryLog(payload) {
-    if (!payload || !payload.time) return;
-
-    const times = payload.time;
-    const temps = payload.temperature_2m || [];
-    const rhs = payload.relative_humidity_2m || [];
-    const pressures = payload.msl_pressure || payload.surface_pressure || [];
-    const windSpeeds = payload.wind_speed_10m || [];
-    const windDirs = payload.wind_direction_10m || [];
-    const uvs = payload.uv_index || [];
-    const precips = payload.precipitation || [];
-
+function addHistoryLog15Min(data, timestampStr) {
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
-    
-    const todayStr = now.toLocaleDateString('id-ID', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short'
-    });
+    const currentDay = now.getDate();
 
-    let fullDayLogs = [];
+    // Reset log secara otomatis jika berganti hari (jam 00:00 WIB lewat)
+    if (currentDay !== lastLoggedDay) {
+        historyLogs = [];
+        lastLoggedDay = currentDay;
+    }
 
-    times.forEach((t, i) => {
-        const timeStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
-        const [hStr, mStr] = timeStr.split(":");
-        const h = parseInt(hStr);
-        const m = parseInt(mStr || "0");
+    const t = data.thermodynamics || {};
+    const w = data.wind_profile || {};
+    const r = data.radiation_uv || {};
+    const c = data.clouds_precipitation || {};
 
-        // Filter: Tampilkan hanya data jam 00:00 hingga jam/menit berjalan saat ini
-        if (h < currentHour || (h === currentHour && m <= currentMin)) {
-            const windDirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
-            const windCompass = degToCompassShort(windDirDeg);
-            const precipVal = precips[i] !== undefined ? precips[i] : 0;
+    const statusText = typeof c.stability_status === 'object' ? c.stability_status.text : c.stability_status;
 
-            fullDayLogs.push({
-                time: `${todayStr}, ${timeStr} WIB`,
-                temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
-                rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
-                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
-                windSpd: windSpeeds[i] !== undefined ? `${windSpeeds[i]} km/h` : '--',
-                windDir: `${windDirDeg}° (${windCompass})`,
-                uv: uvs[i] !== undefined ? uvs[i] : '--',
-                status: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
-            });
-        }
-    });
+    const entry = {
+        time: timestampStr,
+        temp: t.temp_2m !== undefined ? `${t.temp_2m} °C` : '--',
+        rh: t.rh_2m !== undefined ? `${t.rh_2m} %` : '--',
+        press: t.msl_pressure !== undefined ? `${t.msl_pressure} hPa` : '--',
+        windSpd: w["10m"] ? `${w["10m"].speed} km/h` : '--',
+        windDir: w["10m"] ? `${w["10m"].dir_deg}° (${w["10m"].dir_compass})` : '--',
+        uv: r.uv_index !== undefined ? r.uv_index : '--',
+        status: statusText || '--'
+    };
 
-    // Urutkan dari waktu terbaru (paling atas) ke 00:00 WIB
-    historyLogs = fullDayLogs.reverse();
+    historyLogs.unshift(entry); // Masukkan data terbaru ke baris paling atas
     renderHistoryTable();
 }
 
@@ -545,7 +523,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat data riwayat dari 00:00 WIB...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada riwayat tercatat... (Auto-refresh tiap 15 menit)</td></tr>';
         return;
     }
 
@@ -583,7 +561,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_PTDI_History_Daily_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_PTDI_History_15Min_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
