@@ -1,11 +1,16 @@
 let chartInstance = null;
 let windRoseInstance = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000;
+const POLLING_INTERVAL = 30000; // Auto refresh setiap 30 detik
+const ONE_DAY_MS = 86400000;    // Durasi 24 jam dalam milidetik
 
-let historyLogs = [];
+// 1. Muat data History Log dari localStorage saat aplikasi pertama dibuka
+let historyLogs = JSON.parse(localStorage.getItem("aws_history_logs") || "[]");
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Clean-up data lama yang sudah berusia lebih dari 24 jam
+    filterLogsOlderThan24Hours();
+
     initChart();
     initWindRoseChart();
     fetchAWSData();
@@ -474,6 +479,19 @@ function updateWindRoseChart(hourly) {
     windRoseInstance.update();
 }
 
+// -------------------------------------------------------------
+// MANAJEMEN HISTORY LOG PERSISTEN (24 JAM VIA LOCALSTORAGE)
+// -------------------------------------------------------------
+
+function filterLogsOlderThan24Hours() {
+    const now = new Date().getTime();
+    historyLogs = historyLogs.filter(log => {
+        if (!log.timestamp) return true;
+        return (now - log.timestamp) < ONE_DAY_MS;
+    });
+    localStorage.setItem("aws_history_logs", JSON.stringify(historyLogs));
+}
+
 function addHistoryLog(data, timestampStr) {
     const t = data.thermodynamics || {};
     const w = data.wind_profile || {};
@@ -483,6 +501,7 @@ function addHistoryLog(data, timestampStr) {
     const statusText = typeof c.stability_status === 'object' ? c.stability_status.text : c.stability_status;
 
     const entry = {
+        timestamp: new Date().getTime(), // Simpan milidetik untuk kalkulasi umur log 24 jam
         time: timestampStr,
         temp: t.temp_2m !== undefined ? `${t.temp_2m} °C` : '--',
         rh: t.rh_2m !== undefined ? `${t.rh_2m} %` : '--',
@@ -494,6 +513,7 @@ function addHistoryLog(data, timestampStr) {
     };
 
     historyLogs.unshift(entry);
+    filterLogsOlderThan24Hours(); // Otomatis bersihkan log berusia > 24 jam
     renderHistoryTable();
 }
 
@@ -525,6 +545,7 @@ function renderHistoryTable() {
 
 function clearHistoryLog() {
     historyLogs = [];
+    localStorage.removeItem("aws_history_logs");
     renderHistoryTable();
 }
 
@@ -545,7 +566,7 @@ function exportHistoryCSV() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AWS_PTDI_History_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `AWS_Husein_History_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
