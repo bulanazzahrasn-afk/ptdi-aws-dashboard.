@@ -507,7 +507,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// LOGIKA PRESISI KONTROL TIMEZONE & FILTERING LOG HISTORY (15m)
+// LOGIKA PRESISI HISTORY LOG 15m DARI TEPAT 00:00 WIB HINGGA JAM TERKINI
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -520,35 +520,35 @@ function renderDaily00to24History(payload) {
     const precips = payload.precipitation || [];
 
     const now = new Date();
-    // Tanggal hari ini dalam format ISO lokal WIB (YYYY-MM-DD)
-    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
-    let logsMap = new Map(); // Map untuk menjamin keunikan timestamp
+    // Buat objek Date khusus untuk batas awal jam 00:00:00 WIB hari ini
+    const startOfTodayWIB = new Date(now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' }) + "T00:00:00+07:00");
+
+    let logsMap = new Map();
 
     times.forEach((isoTimeStr, i) => {
         if (!isoTimeStr) return;
 
-        // Parse Waktu UTC
+        // Parse waktu dari Open-Meteo sebagai objek Date UTC
         const dt = new Date(isoTimeStr.includes("Z") ? isoTimeStr : isoTimeStr + ":00Z");
-        
-        // Konversi eksplisit ke WIB (Asia/Jakarta)
-        const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
-        const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
-            timeZone: 'Asia/Jakarta', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: false 
-        }).replace('.', ':');
 
-        const labelDate = dt.toLocaleDateString('id-ID', { 
-            timeZone: 'Asia/Jakarta', 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
-        });
+        // BISA/FILTER: Hanya ambil data yang berada dalam rentang [00:00 WIB Hari Ini, Sampai Jam Terkini]
+        if (dt >= startOfTodayWIB && dt <= now) {
+            const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+            const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
+                timeZone: 'Asia/Jakarta', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            }).replace('.', ':');
 
-        // Filter: HANYA data tanggal WIB hari ini dan waktu <= saat ini
-        if (wibDateStr === todayISO && dt <= now) {
+            const labelDate = dt.toLocaleDateString('id-ID', { 
+                timeZone: 'Asia/Jakarta', 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short' 
+            });
+
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const precipVal = precips[i] || 0;
@@ -567,7 +567,7 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    // Urutkan kronologis dari waktu paling baru di atas ke paling lampau di bawah
+    // Urutkan dari waktu paling baru di paling atas sampai jam 00:00 WIB di paling bawah
     historyLogs = Array.from(logsMap.values()).sort((a, b) => b.rawTime - a.rawTime);
     renderHistoryTable();
 }
