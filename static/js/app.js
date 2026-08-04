@@ -129,7 +129,7 @@ async function fetchAWSData() {
         renderDashboard(data);
 
     } catch (err) {
-        console.error("Gagal memuat data NOAA WICC METAR:", err);
+        console.error("Gagal memuat data Open-Meteo AWS:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
     }
@@ -142,30 +142,32 @@ function safeSetText(id, value, suffix = "") {
     }
 }
 
+function degToCompassShort(deg) {
+    if (deg === null || deg === undefined) return "";
+    const sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
+}
+
 function renderDashboard(data) {
     if (!data) return;
 
-    const meta = data.metadata || {};
     const t = data.thermodynamics || {};
     const w = data.wind_profile || {};
     const c = data.clouds_precipitation || {};
 
-    // Raw METAR Banner
-    safeSetText("raw-metar-text", meta.raw_metar || "N/A");
-
-    // Ringkasan Utama
+    // 1. Ringkasan Utama
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
-    safeSetText("m-visib", c.visibility, "SM");
+    safeSetText("m-cloud-pcts", `${c.cloud_cover_low_pct || 0}% / ${c.cloud_cover_mid_pct || 0}% / ${c.cloud_cover_high_pct || 0}%`);
 
     const barRh = document.getElementById("bar-rh");
-    if (barRh && t.rh_2m !== undefined && t.rh_2m !== "--") barRh.style.width = `${t.rh_2m}%`;
+    if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
 
-    // Profil Angin
+    // 2. Profil Angin Surface
     if (w["33ft"]) {
         safeSetText("w33-spd", w["33ft"].speed_kt, "kt");
         safeSetText("w33-dir", `${w["33ft"].dir_deg}° (${w["33ft"].dir_compass})`);
@@ -177,13 +179,19 @@ function renderDashboard(data) {
     }
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
-    // Update Wind Rose
-    if (w["33ft"]) {
-        updateWindRoseSingleObs(w["33ft"].dir_deg, w["33ft"].speed_kt);
+    // 3. Render Wind Rose Hari Ini
+    const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
+    if (minData) {
+        updateWindRoseChart(minData);
+        renderDaily00to24History(minData);
     }
 
-    // Update History & Master Table
-    pushToHistoryLog(meta.timestamp_wib, t.temp_2m, t.rh_2m, t.msl_pressure, w["33ft"], c.cloud_cover_octa);
+    // 4. Render Prakiraan 2 Hari
+    if (data.raw_daily_payload) {
+        render2DayForecast(data.raw_daily_payload);
+    }
+
+    // 5. Render Master Table Penerbangan
     renderFlightPrepTable(data);
 }
 
@@ -230,27 +238,159 @@ function initWindRoseChart() {
     });
 }
 
-function updateWindRoseSingleObs(deg, spdKt) {
-    if (!windRoseInstance || deg === undefined || deg === "VRB") return;
+function updateWindRoseChart(payload) {
+    if (!windRoseInstance || !payload.wind_direction_10m || !payload.wind_speed_10m) return;
+
+    const dirs = payload.wind_direction_10m;
+    const speeds = payload.wind_speed_10m;
 
     const catCalm = Array(16).fill(0);
     const catLight = Array(16).fill(0);
     const catMod = Array(16).fill(0);
     const catStrong = Array(16).fill(0);
 
-    const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
-    const speed = parseFloat(spdKt);
+    dirs.forEach((deg, i) => {
+        if (deg !== null && deg !== undefined && speeds[i] !== null && speeds[i] !== undefined) {
+            const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
+            const spdKt = parseFloat(speeds[i]) * 0.539957;
 
-    if (speed < 3.0) catCalm[idx] = 1;
-    else if (speed <= 10.0) catLight[idx] = 1;
-    else if (speed <= 20.0) catMod[idx] = 1;
-    else catStrong[idx] = 1;
+            if (spdKt < 3.0) catCalm[idx] += 1;
+            else if (spdKt <= 10.0) catLight[idx] += 1;
+            else if (spdKt <= 20.0) catMod[idx] += 1;
+            else catStrong[idx] += 1;
+        }
+    });
 
     windRoseInstance.data.datasets[0].data = catCalm;
     windRoseInstance.data.datasets[1].data = catLight;
     windRoseInstance.data.datasets[2].data = catMod;
     windRoseInstance.data.datasets[3].data = catStrong;
     windRoseInstance.update();
+}
+
+function render2DayForecast(daily) {
+    const container = document.getElementById("daily-forecast-cards");
+    if (!container || !daily.time) return;
+
+    container.innerHTML = "";
+    const dates = daily.time.slice(0, 2);
+
+    dates.forEach((dStr, i) => {
+        const dateObj = new Date(dStr);
+        const dayLabel = i === 0 ? "Hari Ini (Today)" : "Besok (Tomorrow)";
+        const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
+        });
+
+        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+        
+        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+        
+        const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+        const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+        
+        const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+        const domDirCompass = degToCompassShort(domDirDeg);
+        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+
+        let flightCategory = "VFR";
+        let categoryBadge = "bg-success";
+        let weatherIcon = "bi-sun-fill text-warning";
+        let weatherText = "Kondisi visual operasional optimal.";
+
+        if (precipSum > 10.0) {
+            flightCategory = "IFR / Severe";
+            categoryBadge = "bg-danger";
+            weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
+            weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
+        } else if (precipSum > 1.0 || windMaxKt > 15.0) {
+            flightCategory = "MVFR";
+            categoryBadge = "bg-warning text-dark";
+            weatherIcon = "bi-cloud-rain-heavy-fill text-info";
+            weatherText = "Waspada presipitasi lokal / angin kencang.";
+        } else if (windMaxKt <= 10.0) {
+            weatherIcon = "bi-cloud-sun-fill text-warning";
+        }
+
+        const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
+        const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
+
+        const card = document.createElement("div");
+        card.className = "col-md-6";
+        card.innerHTML = `
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
+                        <h4 class="fw-bold mb-0">${dayLabel}</h4>
+                        <div class="small text-secondary font-mono">${formattedDate}</div>
+                    </div>
+                    <div class="text-end">
+                        <i class="bi ${weatherIcon} display-4"></i>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 bg-white">
+                    <div class="d-flex align-items-baseline gap-3 mb-3">
+                        <div class="display-5 fw-bold text-dark">${tempMax}</div>
+                        <div class="fs-5 text-secondary">/ ${tempMin}</div>
+                        <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-wind me-1 text-primary"></i>MAX WIND & DIRECTION
+                                </div>
+                                <div class="fw-bold fs-5 text-dark">${windMaxKt} kt</div>
+                                <div class="small text-muted">${domDirDeg}° (${domDirCompass})</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST
+                                </div>
+                                <div class="fw-bold fs-5 text-danger">${gustsMaxKt} kt</div>
+                                <div class="small text-muted">Peak Surface Gust</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND (RWY 11/29)
+                                </div>
+                                <div class="fw-bold fs-5 text-warning">${crosswindKt} kt</div>
+                                <div class="small text-muted">Komponen Angin Samping</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION SUM
+                                </div>
+                                <div class="fw-bold fs-5 text-info">${precipSum} mm</div>
+                                <div class="small text-muted">Akumulasi Hujan Harian</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light p-3 text-center border-0">
+                    <small class="text-muted"><i class="bi bi-airplane me-1"></i>Husein Sastranegara Aerodrome Flight Operational Forecast</small>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
 function renderFlightPrepTable(data) {
@@ -262,14 +402,14 @@ function renderFlightPrepTable(data) {
     const c = data.clouds_precipitation || {};
 
     const flightParams = [
-        { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar WICC" },
+        { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
-        { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Spread Titik Embun Stasiun" },
+        { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
         { name: "Surface Wind (33 ft)", val: w["33ft"] ? `${w["33ft"].speed_kt} kt / ${w["33ft"].dir_deg}° (${w["33ft"].dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
-        { name: "Maximum Wind Gust", val: w.gusts_kt, unit: "Knots", desc: "Hembusan Angin Maksimum" },
-        { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "Okta", desc: "Tutupan Awan Aerodrom" },
-        { name: "Visibility Range", val: c.visibility, unit: "Statute Miles", desc: "Jarak Pandang Mendatar" }
+        { name: "Maximum Wind Gust", val: w.gusts_kt, unit: "Knots", desc: "Potensi Kecepatan Hembusan Maksimum" },
+        { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "Okta", desc: "Jumlah Tutupan Awan Aerodrom" },
+        { name: "Precipitation Rate", val: c.precipitation_mm, unit: "mm", desc: "Intensitas Curah Hujan Aerodrom" }
     ];
 
     tbody.innerHTML = "";
@@ -285,19 +425,45 @@ function renderFlightPrepTable(data) {
     });
 }
 
-function pushToHistoryLog(timeStr, temp, rh, press, windObj, cloudStr) {
-    if (!timeStr || historyLogs.some(l => l.time === timeStr)) return;
+function renderDaily00to24History(payload) {
+    if (!payload || !payload.time) return;
 
-    historyLogs.unshift({
-        time: timeStr,
-        temp: `${temp} °C`,
-        rh: `${rh} %`,
-        press: `${press} hPa`,
-        windSpd: windObj ? `${windObj.speed_kt} kt` : '--',
-        windDir: windObj ? `${windObj.dir_deg}°` : '--',
-        cloud: cloudStr
+    const times = payload.time;
+    const temps = payload.temperature_2m || [];
+    const rhs = payload.relative_humidity_2m || [];
+    const pressures = payload.msl_pressure || payload.surface_pressure || [];
+    const windSpeeds = payload.wind_speed_10m || [];
+    const windDirs = payload.wind_direction_10m || [];
+    const precips = payload.precipitation || [];
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const todayStr = now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    let logs = [];
+    times.forEach((t, i) => {
+        const timeStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
+        const [h, m] = timeStr.split(":").map(Number);
+
+        if (h < currentHour || (h === currentHour && m <= currentMin)) {
+            const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
+            const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
+            const precipVal = precips[i] || 0;
+
+            logs.push({
+                time: `${todayStr}, ${timeStr} WIB`,
+                temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
+                rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
+                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
+                windSpd: `${spdKt} kt`,
+                windDir: `${dirDeg}°`,
+                precip: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
+            });
+        }
     });
 
+    historyLogs = logs.reverse();
     renderHistoryTable();
 }
 
@@ -306,7 +472,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat METAR...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat 15m...</td></tr>';
         return;
     }
 
@@ -320,7 +486,7 @@ function renderHistoryTable() {
             <td>${log.press}</td>
             <td>${log.windSpd}</td>
             <td>${log.windDir}</td>
-            <td><span class="badge bg-secondary font-mono">${log.cloud}</span></td>
+            <td class="small text-secondary">${log.precip}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -328,12 +494,12 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Waktu,Suhu (C),RH (%),QNH (hPa),Angin (kt),Arah,Awan\n";
+    let csv = "Waktu,Suhu (C),RH (%),QNH (hPa),Angin (kt),Arah,Status\n";
     historyLogs.forEach(l => {
-        csv += `"${l.time}","${l.temp}","${l.rh}","${l.press}","${l.windSpd}","${l.windDir}","${l.cloud}"\n`;
+        csv += `"${l.time}","${l.temp}","${l.rh}","${l.press}","${l.windSpd}","${l.windDir}","${l.precip}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_WICC_NOAA_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_15m_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }
