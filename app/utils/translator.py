@@ -53,7 +53,6 @@ def safe_val(val, default=0.0):
 def translate_aws_payload(raw: dict) -> dict:
     curr = raw.get("current", {})
     
-    # Profil Angin dalam Knots & Ketinggian Feet
     wind_levels = {
         "33ft": {
             "speed_kt": kmh_to_knots(curr.get("wind_speed_10m")),
@@ -88,7 +87,7 @@ def translate_aws_payload(raw: dict) -> dict:
             "runway": "RWY 11/29 (110° / 290°)",
             "latitude": raw.get("latitude", HUSEIN_LAT),
             "longitude": raw.get("longitude", HUSEIN_LON),
-            "elevation_ft": 2428, # 740 meter = ~2428 ft
+            "elevation_ft": 2428,
             "timestamp_wib": utc_to_wib(curr.get("time", "")),
             "is_day": "Siang" if curr.get("is_day") == 1 else "Malam"
         },

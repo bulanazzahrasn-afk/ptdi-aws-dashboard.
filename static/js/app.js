@@ -1,7 +1,7 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000; // Refetch data background tiap 30 detik
+const POLLING_INTERVAL = 30000;
 let historyLogs = [];
 
 // ---------------------------------------------------------------------------------
@@ -18,14 +18,13 @@ const runwayOverlayPlugin = {
         const centerY = rScale.yCenter;
         const radius = rScale.drawingArea;
 
-        // Angle Orientasi Runway 11/29: 110 deg & 290 deg
-        // Konversi derajat meteorologi ke radian koordinat Canvas (0 deg = Utara/Atas)
+        // Angle RWY 11/29: 110 deg & 290 deg
         const rad110 = (110 - 90) * (Math.PI / 180);
         const rad290 = (290 - 90) * (Math.PI / 180);
 
         ctx.save();
 
-        // 1. Gambar Strip Runway (Garis Tebal Dark Slate)
+        // 1. Gambar Strip Runway
         ctx.beginPath();
         ctx.lineWidth = 6;
         ctx.strokeStyle = '#1e293b'; 
@@ -33,7 +32,7 @@ const runwayOverlayPlugin = {
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
 
-        // 2. Gambar Garis Tengah Runway (Dash Putih)
+        // 2. Gambar Garis Tengah Dash Putih
         ctx.beginPath();
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
@@ -41,11 +40,11 @@ const runwayOverlayPlugin = {
         ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
-        ctx.setLineDash([]); // Reset line dash
+        ctx.setLineDash([]);
 
-        // 3. Tulis Teks Label RWY 29 dan RWY 11
+        // 3. Tulis Teks RWY 29 dan RWY 11
         ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
-        ctx.fillStyle = '#ef4444'; // Merah tegas
+        ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -63,7 +62,6 @@ const runwayOverlayPlugin = {
     }
 };
 
-// Registrasi plugin Runway Overlay
 Chart.register(runwayOverlayPlugin);
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -92,9 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startAutoRefresh();
 });
 
-// ---------------------------------------------------------------------------------
-// JAM DIGITAL REAL-TIME
-// ---------------------------------------------------------------------------------
 function startRealtimeClock() {
     updateClockDisplay();
     if (clockTimer) clearInterval(clockTimer);
@@ -148,6 +143,12 @@ function safeSetText(id, value, suffix = "") {
     if (el) {
         el.textContent = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
     }
+}
+
+function degToCompassShort(deg) {
+    if (deg === null || deg === undefined) return "";
+    const sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
 }
 
 function renderDashboard(data) {
@@ -286,7 +287,7 @@ function updateWindRoseChart(payload) {
 }
 
 // ---------------------------------------------------------------------------------
-// PRAKIRAAN 2 HARI
+// PRAKIRAAN CUACA 2 HARI (WEATHER APP STYLE + AVIATION PARAMS)
 // ---------------------------------------------------------------------------------
 function render2DayForecast(daily) {
     const container = document.getElementById("daily-forecast-cards");
@@ -297,43 +298,115 @@ function render2DayForecast(daily) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
-        const title = i === 0 ? "Hari Ini (Today)" : "Besok (Tomorrow)";
-        const formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const dayLabel = i === 0 ? "Hari Ini (Today)" : "Besok (Tomorrow)";
+        const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
+        });
+
+        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
         
-        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]} °C` : '--';
-        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]} °C` : '--';
-        const windMaxKt = daily.wind_speed_10m_max[i] !== undefined ? (daily.wind_speed_10m_max[i] * 0.539957).toFixed(1) : '--';
-        const gustsMaxKt = daily.wind_gusts_10m_max[i] !== undefined ? (daily.wind_gusts_10m_max[i] * 0.539957).toFixed(1) : '--';
-        const precipSum = daily.precipitation_sum[i] !== undefined ? `${daily.precipitation_sum[i]} mm` : '0 mm';
+        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+        
+        const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+        const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+        
+        const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+        const domDirCompass = degToCompassShort(domDirDeg);
+        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+
+        let flightCategory = "VFR";
+        let categoryBadge = "bg-success";
+        let weatherIcon = "bi-sun-fill text-warning";
+        let weatherText = "Kondisi visual operasional optimal.";
+
+        if (precipSum > 10.0) {
+            flightCategory = "IFR / Severe";
+            categoryBadge = "bg-danger";
+            weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
+            weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
+        } else if (precipSum > 1.0 || windMaxKt > 15.0) {
+            flightCategory = "MVFR";
+            categoryBadge = "bg-warning text-dark";
+            weatherIcon = "bi-cloud-rain-heavy-fill text-info";
+            weatherText = "Waspada presipitasi lokal / angin kencang.";
+        } else if (windMaxKt <= 10.0) {
+            weatherIcon = "bi-cloud-sun-fill text-warning";
+        }
+
+        const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
+        const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
 
         const card = document.createElement("div");
         card.className = "col-md-6";
         card.innerHTML = `
-            <div class="card shadow-sm border-0 border-top border-primary border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="fw-bold text-primary mb-0">${title}</h5>
-                        <span class="badge bg-light text-dark font-mono">${formattedDate}</span>
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
+                        <h4 class="fw-bold mb-0">${dayLabel}</h4>
+                        <div class="small text-secondary font-mono">${formattedDate}</div>
                     </div>
-                    <hr>
+                    <div class="text-end">
+                        <i class="bi ${weatherIcon} display-4"></i>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 bg-white">
+                    <div class="d-flex align-items-baseline gap-3 mb-3">
+                        <div class="display-5 fw-bold text-dark">${tempMax}</div>
+                        <div class="fs-5 text-secondary">/ ${tempMin}</div>
+                        <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
+                    </div>
+
+                    <hr class="my-3">
+
                     <div class="row g-3">
                         <div class="col-6">
-                            <div class="small text-muted">Rentang Suhu</div>
-                            <div class="fw-bold fs-5">${tempMin} - ${tempMax}</div>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-wind me-1 text-primary"></i>MAX WIND & DIRECTION
+                                </div>
+                                <div class="fw-bold fs-5 text-dark">${windMaxKt} kt</div>
+                                <div class="small text-muted">${domDirDeg}° (${domDirCompass})</div>
+                            </div>
                         </div>
+
                         <div class="col-6">
-                            <div class="small text-muted">Akumulasi Presipitasi</div>
-                            <div class="fw-bold fs-5 text-info">${precipSum}</div>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST
+                                </div>
+                                <div class="fw-bold fs-5 text-danger">${gustsMaxKt} kt</div>
+                                <div class="small text-muted">Peak Surface Gust</div>
+                            </div>
                         </div>
+
                         <div class="col-6">
-                            <div class="small text-muted">Angin Maksimum</div>
-                            <div class="fw-bold text-dark">${windMaxKt} kt</div>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND (RWY 11/29)
+                                </div>
+                                <div class="fw-bold fs-5 text-warning">${crosswindKt} kt</div>
+                                <div class="small text-muted">Komponen Angin Samping</div>
+                            </div>
                         </div>
+
                         <div class="col-6">
-                            <div class="small text-muted">Hembusan (Gust) Maks</div>
-                            <div class="fw-bold text-danger">${gustsMaxKt} kt</div>
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary small fw-bold mb-1">
+                                    <i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION SUM
+                                </div>
+                                <div class="fw-bold fs-5 text-info">${precipSum} mm</div>
+                                <div class="small text-muted">Akumulasi Hujan Harian</div>
+                            </div>
                         </div>
                     </div>
+                </div>
+                
+                <div class="card-footer bg-light p-3 text-center border-0">
+                    <small class="text-muted"><i class="bi bi-airplane me-1"></i>Husein Sastranegara Aerodrome Flight Operational Forecast</small>
                 </div>
             </div>
         `;

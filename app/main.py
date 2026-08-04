@@ -7,7 +7,7 @@ import logging
 from app.services.open_meteo import fetch_open_meteo_raw
 from app.utils.translator import translate_aws_payload
 
-app = FastAPI(title="PTDI AWS Dashboard", version="1.0.0")
+app = FastAPI(title="PTDI Aviation AWS Dashboard", version="1.0.0")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
