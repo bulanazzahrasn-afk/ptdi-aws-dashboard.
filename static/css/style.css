@@ -7,7 +7,29 @@
     font-family: "JetBrains Mono", "Courier New", Courier, monospace;
 }
 
-/* 1. Spin Animation untuk Tombol Refresh */
+/* Sidebar Wrapper & Navigation Styling */
+.sidebar-wrapper {
+    border-right: 1px solid #e2e8f0;
+}
+
+.sidebar-wrapper .nav-link {
+    color: #475569;
+    transition: all 0.25s ease-in-out;
+}
+
+.sidebar-wrapper .nav-link:hover {
+    background-color: #f1f5f9;
+    color: #0d6efd;
+    transform: translateX(4px);
+}
+
+.sidebar-wrapper .nav-link.active {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+}
+
+/* Spin Animation untuk Tombol Refresh */
 .spin-anim {
     animation: spin 0.8s linear infinite;
 }
@@ -15,7 +37,7 @@
     100% { transform: rotate(360deg); }
 }
 
-/* 2. Soft Pulsing Glow & Hover Elevation pada Kartu Parameter */
+/* Soft Pulsing Glow & Hover Elevation pada Kartu Parameter */
 .card {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -24,7 +46,7 @@
     box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* 3. Animasi Teks & Angka Saat Data Update */
+/* Animasi Teks & Angka Saat Data Update */
 .value-update-anim {
     animation: pulseValue 0.6s ease-out;
 }
@@ -34,7 +56,7 @@
     100% { transform: scale(1); }
 }
 
-/* 4. Live Beacon Pulse Dot (Tanda Data Real-Time Stream) */
+/* Live Beacon Pulse Dot */
 .live-beacon {
     display: inline-block;
     width: 10px;
@@ -60,7 +82,7 @@
     }
 }
 
-/* 5. Custom Styling Modal Pop-Up Biar Terlihat Premium */
+/* Custom Styling Modal Pop-Up */
 .modal-content {
     animation: modalSlideUp 0.35s ease-out;
 }
