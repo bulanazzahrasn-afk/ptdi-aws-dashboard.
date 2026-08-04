@@ -32,7 +32,7 @@ def cover_to_octa(cover_code: str) -> str:
     return "0/8"
 
 def translate_aws_payload(raw: dict) -> dict:
-    # Waktu Observasi METAR ke WIB
+    # Waktu Observasi METAR NOAA ke WIB
     wib_str = "-"
     report_time = raw.get("reportTime")
     if report_time:
@@ -42,7 +42,7 @@ def translate_aws_payload(raw: dict) -> dict:
         except Exception:
             wib_str = str(report_time)
 
-    # Param WICC METAR
+    # Param WICC METAR NOAA
     wind_spd_kt = raw.get("wspd", 0)
     wind_dir_deg = raw.get("wdir", 0)
     wind_gust_kt = raw.get("wgst", wind_spd_kt)
@@ -52,7 +52,7 @@ def translate_aws_payload(raw: dict) -> dict:
     visib = raw.get("visib", "10+")
 
     # Kalkulasi Kelembapan Relatif (RH) dari Temp & Dew Point
-    rh_calc = 100 - (5 * (temp_c - dew_c)) if temp_c and dew_c else "--"
+    rh_calc = 100 - (5 * (temp_c - dew_c)) if (temp_c is not None and dew_c is not None) else "--"
 
     # Cloud Layer
     clouds = raw.get("clouds", [])
@@ -82,9 +82,6 @@ def translate_aws_payload(raw: dict) -> dict:
                 "dir_deg": wind_dir_deg,
                 "dir_compass": deg_to_compass(wind_dir_deg)
             },
-            "260ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
-            "400ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
-            "600ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
             "gusts_kt": wind_gust_kt
         },
         "clouds_precipitation": {

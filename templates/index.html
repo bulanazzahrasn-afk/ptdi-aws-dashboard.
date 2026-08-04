@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTDI Aviation AWS Dashboard - BDO/WICC</title>
+    <title>PTDI Aviation AWS Dashboard - BDO/WICC (NOAA)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -18,7 +18,7 @@
                 <i class="bi bi-airplane-engines-fill text-primary fs-3"></i>
                 <div>
                     <div class="fw-bold fs-5">PT. DIRGANTARA INDONESIA</div>
-                    <div class="text-secondary small">In-Situ Weather Monitoring - Husein Sastranegara (BDO/WICC)</div>
+                    <div class="text-secondary small">NOAA METAR Weather Monitoring - Husein Sastranegara (BDO/WICC)</div>
                 </div>
             </a>
             <div class="d-flex align-items-center gap-3">
@@ -39,7 +39,7 @@
         <div class="alert alert-dark d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
             <i class="bi bi-terminal-fill fs-4 text-warning"></i>
             <div>
-                <div class="fw-bold text-uppercase small text-muted">Raw METAR Observation (WICC):</div>
+                <div class="fw-bold text-uppercase small text-muted">Raw NOAA METAR Observation (WICC):</div>
                 <code class="fs-6 text-warning" id="raw-metar-text">MEMUAT METAR WICC...</code>
             </div>
         </div>
@@ -113,12 +113,12 @@
                     </div>
                 </div>
 
-                <!-- Section Profil Angin Vertikal & Wind Rose Hari Ini -->
+                <!-- Section Profil Angin Surface & Wind Rose -->
                 <div class="row g-3">
                     <div class="col-md-5">
                         <div class="card shadow-sm border-0 h-100">
                             <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Surface (WICC)</span>
+                                <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Surface (WICC NOAA)</span>
                                 <span class="badge bg-primary">Satuan: Knots</span>
                             </div>
                             <div class="card-body">
@@ -154,7 +154,7 @@
                         <div class="card shadow-sm border-0 h-100">
                             <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
                                 <span><i class="bi bi-compass me-2 text-danger"></i>Wind Rose Observasi WICC (RWY 11/29)</span>
-                                <span class="badge bg-secondary">Real-Time In-Situ</span>
+                                <span class="badge bg-secondary">Real-Time NOAA</span>
                             </div>
                             <div class="card-body text-center p-2" style="position: relative; height: 350px;">
                                 <canvas id="windRoseChart"></canvas>
@@ -182,7 +182,7 @@
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Parameter Penerbangan</th>
-                                        <th>Nilai Sensor METAR</th>
+                                        <th>Nilai Sensor METAR NOAA</th>
                                         <th>Satuan Standar</th>
                                         <th>Keterangan Operasional</th>
                                     </tr>

@@ -129,7 +129,7 @@ async function fetchAWSData() {
         renderDashboard(data);
 
     } catch (err) {
-        console.error("Gagal memuat data WICC METAR:", err);
+        console.error("Gagal memuat data NOAA WICC METAR:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
     }
@@ -150,10 +150,10 @@ function renderDashboard(data) {
     const w = data.wind_profile || {};
     const c = data.clouds_precipitation || {};
 
-    // 0. Raw METAR Banner
+    // Raw METAR Banner
     safeSetText("raw-metar-text", meta.raw_metar || "N/A");
 
-    // 1. Ringkasan Utama
+    // Ringkasan Utama
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
@@ -165,7 +165,7 @@ function renderDashboard(data) {
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined && t.rh_2m !== "--") barRh.style.width = `${t.rh_2m}%`;
 
-    // 2. Profil Angin
+    // Profil Angin
     if (w["33ft"]) {
         safeSetText("w33-spd", w["33ft"].speed_kt, "kt");
         safeSetText("w33-dir", `${w["33ft"].dir_deg}° (${w["33ft"].dir_compass})`);
@@ -177,12 +177,12 @@ function renderDashboard(data) {
     }
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
-    // 3. Update Wind Rose
+    // Update Wind Rose
     if (w["33ft"]) {
         updateWindRoseSingleObs(w["33ft"].dir_deg, w["33ft"].speed_kt);
     }
 
-    // 4. Update History & Master Table
+    // Update History & Master Table
     pushToHistoryLog(meta.timestamp_wib, t.temp_2m, t.rh_2m, t.msl_pressure, w["33ft"], c.cloud_cover_octa);
     renderFlightPrepTable(data);
 }
@@ -334,6 +334,6 @@ function exportHistoryCSV() {
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_WICC_METAR_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_WICC_NOAA_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }
