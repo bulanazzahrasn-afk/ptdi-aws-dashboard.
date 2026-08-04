@@ -167,19 +167,30 @@ function renderDashboard(data) {
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
 
-    // 2. Profil Angin Surface
-    if (w["33ft"]) {
-        safeSetText("w33-spd", w["33ft"].speed_kt, "kt");
-        safeSetText("w33-dir", `${w["33ft"].dir_deg}° (${w["33ft"].dir_compass})`);
-        
-        const arrow = document.getElementById("w33-arrow");
-        if (arrow && w["33ft"].dir_deg !== undefined) {
-            arrow.style.transform = `rotate(${w["33ft"].dir_deg}deg)`;
+    // 2. Profil Angin Vertikal Penerbangan (Surface, 025, 040, 060)
+    const levels = [
+        { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
+        { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
+        { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
+    ];
+
+    levels.forEach(lvl => {
+        const item = w[lvl.key];
+        if (item) {
+            safeSetText(lvl.spdId, item.speed_kt, "kt");
+            safeSetText(lvl.dirId, `${item.dir_deg}° (${item.dir_compass})`);
+            
+            const arrow = document.getElementById(lvl.arrowId);
+            if (arrow && item.dir_deg !== undefined) {
+                arrow.style.transform = `rotate(${item.dir_deg}deg)`;
+            }
         }
-    }
+    });
+
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
-    // 3. Render Wind Rose Hari Ini
+    // 3. Render Wind Rose & History Log
     const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
     if (minData) {
         updateWindRoseChart(minData);
@@ -406,7 +417,7 @@ function renderFlightPrepTable(data) {
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
         { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
-        { name: "Surface Wind (33 ft)", val: w["33ft"] ? `${w["33ft"].speed_kt} kt / ${w["33ft"].dir_deg}° (${w["33ft"].dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
+        { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
         { name: "Maximum Wind Gust", val: w.gusts_kt, unit: "Knots", desc: "Potensi Kecepatan Hembusan Maksimum" },
         { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "Okta", desc: "Jumlah Tutupan Awan Aerodrom" },
         { name: "Precipitation Rate", val: c.precipitation_mm, unit: "mm", desc: "Intensitas Curah Hujan Aerodrom" }

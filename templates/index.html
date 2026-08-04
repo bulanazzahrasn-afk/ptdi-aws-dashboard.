@@ -109,19 +109,19 @@
                     </div>
                 </div>
 
-                <!-- Section Profil Angin Surface & Wind Rose -->
+                <!-- Section Profil Angin Multi-Height & Wind Rose Hari Ini -->
                 <div class="row g-3">
                     <div class="col-md-5">
                         <div class="card shadow-sm border-0 h-100">
                             <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Surface (WICC)</span>
+                                <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Vertikal (Aviation Levels)</span>
                                 <span class="badge bg-primary">Satuan: Knots</span>
                             </div>
                             <div class="card-body">
                                 <table class="table table-hover align-middle mb-0">
                                     <thead class="table-light small">
                                         <tr>
-                                            <th>Ketinggian</th>
+                                            <th>Ketinggian / Level</th>
                                             <th>Kecepatan</th>
                                             <th>Arah</th>
                                             <th>Visual</th>
@@ -129,13 +129,31 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td class="fw-bold">33 ft (Surface)</td>
+                                            <td class="fw-bold">33 ft (Surface / RWY)</td>
                                             <td class="fw-bold text-primary" id="w33-spd">-- kt</td>
                                             <td id="w33-dir">--° (--)</td>
                                             <td><i class="bi bi-arrow-up-circle fs-5" id="w33-arrow" style="display:inline-block;"></i></td>
                                         </tr>
+                                        <tr>
+                                            <td class="fw-bold">250 ft (Level 025)</td>
+                                            <td class="fw-bold text-primary" id="w250-spd">-- kt</td>
+                                            <td id="w250-dir">--° (--)</td>
+                                            <td><i class="bi bi-arrow-up-circle fs-5" id="w250-arrow" style="display:inline-block;"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold">400 ft (Level 040)</td>
+                                            <td class="fw-bold text-primary" id="w400-spd">-- kt</td>
+                                            <td id="w400-dir">--° (--)</td>
+                                            <td><i class="bi bi-arrow-up-circle fs-5" id="w400-arrow" style="display:inline-block;"></i></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold">600 ft (Level 060)</td>
+                                            <td class="fw-bold text-primary" id="w600-spd">-- kt</td>
+                                            <td id="w600-dir">--° (--)</td>
+                                            <td><i class="bi bi-arrow-up-circle fs-5" id="w600-arrow" style="display:inline-block;"></i></td>
+                                        </tr>
                                         <tr class="table-warning">
-                                            <td class="fw-bold">Gust (Hembusan)</td>
+                                            <td class="fw-bold">Gust (Hembusan Surface)</td>
                                             <td class="fw-bold text-danger" id="wgust-spd">-- kt</td>
                                             <td colspan="2" class="small text-muted">Maximum Gust Observed</td>
                                         </tr>

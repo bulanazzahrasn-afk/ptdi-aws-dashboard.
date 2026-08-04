@@ -54,10 +54,29 @@ def translate_aws_payload(raw: dict) -> dict:
     curr = raw.get("current", {})
     
     wind_levels = {
-        "33ft": {
+        "surface": {
+            "label": "33 ft (Surface / Runway)",
             "speed_kt": kmh_to_knots(curr.get("wind_speed_10m")),
             "dir_deg": safe_val(curr.get("wind_direction_10m")),
             "dir_compass": deg_to_compass(curr.get("wind_direction_10m"))
+        },
+        "lvl_025": {
+            "label": "250 ft (Level 025)",
+            "speed_kt": kmh_to_knots(curr.get("wind_speed_80m")),
+            "dir_deg": safe_val(curr.get("wind_direction_80m")),
+            "dir_compass": deg_to_compass(curr.get("wind_direction_80m"))
+        },
+        "lvl_040": {
+            "label": "400 ft (Level 040)",
+            "speed_kt": kmh_to_knots(curr.get("wind_speed_120m")),
+            "dir_deg": safe_val(curr.get("wind_direction_120m")),
+            "dir_compass": deg_to_compass(curr.get("wind_direction_120m"))
+        },
+        "lvl_060": {
+            "label": "600 ft (Level 060 / Circuit)",
+            "speed_kt": kmh_to_knots(curr.get("wind_speed_180m")),
+            "dir_deg": safe_val(curr.get("wind_direction_180m")),
+            "dir_compass": deg_to_compass(curr.get("wind_direction_180m"))
         },
         "gusts_kt": kmh_to_knots(curr.get("wind_gusts_10m"))
     }
