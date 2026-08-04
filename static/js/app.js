@@ -1,8 +1,70 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000;
+const POLLING_INTERVAL = 30000; // Refetch data background tiap 30 detik
 let historyLogs = [];
+
+// ---------------------------------------------------------------------------------
+// CUSTOM PLUGIN CHART.JS: OVERLAY RUNWAY 11/29 HUSEIN SASTRANEGARA (BDO/WABB)
+// ---------------------------------------------------------------------------------
+const runwayOverlayPlugin = {
+    id: 'runwayOverlay',
+    afterDraw: (chart) => {
+        const { ctx, scales } = chart;
+        const rScale = scales.r;
+        if (!rScale) return;
+
+        const centerX = rScale.xCenter;
+        const centerY = rScale.yCenter;
+        const radius = rScale.drawingArea;
+
+        // Angle Orientasi Runway 11/29: 110 deg & 290 deg
+        // Konversi derajat meteorologi ke radian koordinat Canvas (0 deg = Utara/Atas)
+        const rad110 = (110 - 90) * (Math.PI / 180);
+        const rad290 = (290 - 90) * (Math.PI / 180);
+
+        ctx.save();
+
+        // 1. Gambar Strip Runway (Garis Tebal Dark Slate)
+        ctx.beginPath();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#1e293b'; 
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.95), centerY + Math.sin(rad290) * (radius * 0.95));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
+
+        // 2. Gambar Garis Tengah Runway (Dash Putih)
+        ctx.beginPath();
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = '#ffffff';
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset line dash
+
+        // 3. Tulis Teks Label RWY 29 dan RWY 11
+        ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+        ctx.fillStyle = '#ef4444'; // Merah tegas
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // RWY 11
+        const x11 = centerX + Math.cos(rad110) * (radius * 1.08);
+        const y11 = centerY + Math.sin(rad110) * (radius * 1.08);
+        ctx.fillText('RWY 11', x11, y11);
+
+        // RWY 29
+        const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
+        const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
+        ctx.fillText('RWY 29', x29, y29);
+
+        ctx.restore();
+    }
+};
+
+// Registrasi plugin Runway Overlay
+Chart.register(runwayOverlayPlugin);
 
 document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
@@ -30,6 +92,9 @@ document.addEventListener("DOMContentLoaded", () => {
     startAutoRefresh();
 });
 
+// ---------------------------------------------------------------------------------
+// JAM DIGITAL REAL-TIME
+// ---------------------------------------------------------------------------------
 function startRealtimeClock() {
     updateClockDisplay();
     if (clockTimer) clearInterval(clockTimer);
@@ -134,7 +199,9 @@ function renderDashboard(data) {
     renderFlightPrepTable(data);
 }
 
-// Chart Wind Rose Real-time + Overlay Runway 11/29
+// ---------------------------------------------------------------------------------
+// INITIALIZE WIND ROSE CHART DENGAN LABEL DILUAR LINGKARAN
+// ---------------------------------------------------------------------------------
 function initWindRoseChart() {
     const canvas = document.getElementById("windRoseChart");
     if (!canvas) return;
@@ -147,21 +214,41 @@ function initWindRoseChart() {
         data: {
             labels: sectors,
             datasets: [
-                { label: 'Calm (<3 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(6, 182, 212, 0.75)' },
-                { label: 'Light (3-10 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(16, 185, 129, 0.75)' },
-                { label: 'Moderate (11-20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(245, 158, 11, 0.75)' },
-                { label: 'Strong (>20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(239, 68, 68, 0.75)' }
+                { label: 'Calm (<3 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(6, 182, 212, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Light (3-10 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(16, 185, 129, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Moderate (11-20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(245, 158, 11, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Strong (>20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ffffff', borderWidth: 1 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: 15 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (ctx) => `Sektor Arah: ${ctx[0].label}`,
+                        label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw} Sampel`
+                    }
+                }
+            },
             scales: {
                 r: {
                     stacked: true,
-                    ticks: { font: { size: 9 } },
-                    grid: { color: '#cbd5e1' },
-                    angleLines: { display: true, color: '#94a3b8' }
+                    ticks: {
+                        display: true,
+                        backdropColor: 'rgba(255, 255, 255, 0.85)',
+                        font: { size: 9, family: 'JetBrains Mono' }
+                    },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { display: true, color: '#cbd5e1' },
+                    pointLabels: {
+                        display: true,
+                        centerPointLabels: true,
+                        font: { size: 11, weight: 'bold', family: 'Plus Jakarta Sans' },
+                        color: '#1e293b'
+                    }
                 }
             }
         }
@@ -180,9 +267,9 @@ function updateWindRoseChart(payload) {
     const catStrong = Array(16).fill(0);
 
     dirs.forEach((deg, i) => {
-        if (deg !== null && deg !== undefined && speeds[i] !== null) {
+        if (deg !== null && deg !== undefined && speeds[i] !== null && speeds[i] !== undefined) {
             const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
-            const spdKt = parseFloat(speeds[i]) * 0.539957; // konversi km/h ke knots
+            const spdKt = parseFloat(speeds[i]) * 0.539957;
 
             if (spdKt < 3.0) catCalm[idx] += 1;
             else if (spdKt <= 10.0) catLight[idx] += 1;
@@ -198,7 +285,9 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// Render Prakiraan 2 Hari (Hari Ini & Besok)
+// ---------------------------------------------------------------------------------
+// PRAKIRAAN 2 HARI
+// ---------------------------------------------------------------------------------
 function render2DayForecast(daily) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;
@@ -233,7 +322,7 @@ function render2DayForecast(daily) {
                             <div class="fw-bold fs-5">${tempMin} - ${tempMax}</div>
                         </div>
                         <div class="col-6">
-                            <div class="small text-muted">Akurasi Presipitasi</div>
+                            <div class="small text-muted">Akumulasi Presipitasi</div>
                             <div class="fw-bold fs-5 text-info">${precipSum}</div>
                         </div>
                         <div class="col-6">
@@ -252,7 +341,9 @@ function render2DayForecast(daily) {
     });
 }
 
-// Master Table Khusus Flight Preparation
+// ---------------------------------------------------------------------------------
+// MASTER TABLE FLIGHT PREPARATION
+// ---------------------------------------------------------------------------------
 function renderFlightPrepTable(data) {
     const tbody = document.getElementById("flight-prep-table-body");
     if (!tbody) return;
@@ -285,7 +376,9 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// History Log 15-menitan
+// ---------------------------------------------------------------------------------
+// HISTORY LOG 15-MENITAN
+// ---------------------------------------------------------------------------------
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -319,7 +412,6 @@ function renderDaily00to24History(payload) {
                 press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
                 windSpd: `${spdKt} kt`,
                 windDir: `${dirDeg}°`,
-                cloud: 'OKTA',
                 precip: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
             });
         }
@@ -334,7 +426,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat riwayat 15m...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat 15m...</td></tr>';
         return;
     }
 
@@ -348,7 +440,6 @@ function renderHistoryTable() {
             <td>${log.press}</td>
             <td>${log.windSpd}</td>
             <td>${log.windDir}</td>
-            <td><span class="badge bg-secondary font-mono">${log.cloud}</span></td>
             <td class="small text-secondary">${log.precip}</td>
         `;
         tbody.appendChild(tr);
@@ -357,9 +448,9 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Waktu,Suhu (C),RH (%),QNH (hPa),Angin (kt),Arah,Awan,Status\n";
+    let csv = "Waktu,Suhu (C),RH (%),QNH (hPa),Angin (kt),Arah,Status\n";
     historyLogs.forEach(l => {
-        csv += `"${l.time}","${l.temp}","${l.rh}","${l.press}","${l.windSpd}","${l.windDir}","${l.cloud}","${l.precip}"\n`;
+        csv += `"${l.time}","${l.temp}","${l.rh}","${l.press}","${l.windSpd}","${l.windDir}","${l.precip}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
