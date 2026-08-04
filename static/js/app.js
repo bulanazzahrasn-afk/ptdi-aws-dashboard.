@@ -507,7 +507,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// LOGIKA PRESISI HISTORY LOG 15m DARI TEPAT 00:00 WIB HINGGA JAM TERKINI
+// LOGIKA RENTANG 24 JAM UTUH (00:00 WIB S/D 23:45 WIB HARI INI)
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -520,35 +520,35 @@ function renderDaily00to24History(payload) {
     const precips = payload.precipitation || [];
 
     const now = new Date();
-
-    // Buat objek Date khusus untuk batas awal jam 00:00:00 WIB hari ini
-    const startOfTodayWIB = new Date(now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' }) + "T00:00:00+07:00");
+    // String Tanggal Hari Ini dalam Format YYYY-MM-DD (WIB)
+    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
     let logsMap = new Map();
 
     times.forEach((isoTimeStr, i) => {
         if (!isoTimeStr) return;
 
-        // Parse waktu dari Open-Meteo sebagai objek Date UTC
+        // Parse Waktu UTC ke Objek Date
         const dt = new Date(isoTimeStr.includes("Z") ? isoTimeStr : isoTimeStr + ":00Z");
+        
+        // Ambil Tanggal & Jam Dikonversi ke Timezone Asia/Jakarta (WIB)
+        const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+        const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
+            timeZone: 'Asia/Jakarta', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: false 
+        }).replace('.', ':');
 
-        // BISA/FILTER: Hanya ambil data yang berada dalam rentang [00:00 WIB Hari Ini, Sampai Jam Terkini]
-        if (dt >= startOfTodayWIB && dt <= now) {
-            const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
-            const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
-                timeZone: 'Asia/Jakarta', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                hour12: false 
-            }).replace('.', ':');
+        const labelDate = dt.toLocaleDateString('id-ID', { 
+            timeZone: 'Asia/Jakarta', 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+        });
 
-            const labelDate = dt.toLocaleDateString('id-ID', { 
-                timeZone: 'Asia/Jakarta', 
-                weekday: 'short', 
-                day: 'numeric', 
-                month: 'short' 
-            });
-
+        // AMBIL SEMUA DATA DARI JAM 00:00 S/D 23:45 HARI INI (TANPA MEMBATASI HANYA SAMPAI JAM SEKARANG)
+        if (wibDateStr === todayISO) {
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const precipVal = precips[i] || 0;
@@ -567,7 +567,7 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    // Urutkan dari waktu paling baru di paling atas sampai jam 00:00 WIB di paling bawah
+    // Urutkan dari jam 23:45 WIB di paling atas turun berurutan sampai 00:00 WIB di paling bawah
     historyLogs = Array.from(logsMap.values()).sort((a, b) => b.rawTime - a.rawTime);
     renderHistoryTable();
 }
@@ -577,7 +577,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat 15m...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat 24 jam...</td></tr>';
         return;
     }
 
@@ -605,6 +605,6 @@ function exportHistoryCSV() {
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_BDO_15m_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_24h_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }
