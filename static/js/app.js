@@ -507,6 +507,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
+// LOGIKA PRESISI KONTROL TIMEZONE & FILTERING LOG HISTORY (15m)
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -519,22 +520,43 @@ function renderDaily00to24History(payload) {
     const precips = payload.precipitation || [];
 
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMin = now.getMinutes();
-    const todayStr = now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+    // Tanggal hari ini dalam format ISO lokal WIB (YYYY-MM-DD)
+    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
-    let logs = [];
-    times.forEach((t, i) => {
-        const timeStr = t.includes("T") ? t.split("T")[1].substring(0, 5) : t;
-        const [h, m] = timeStr.split(":").map(Number);
+    let logsMap = new Map(); // Map untuk menjamin keunikan timestamp
 
-        if (h < currentHour || (h === currentHour && m <= currentMin)) {
+    times.forEach((isoTimeStr, i) => {
+        if (!isoTimeStr) return;
+
+        // Parse Waktu UTC
+        const dt = new Date(isoTimeStr.includes("Z") ? isoTimeStr : isoTimeStr + ":00Z");
+        
+        // Konversi eksplisit ke WIB (Asia/Jakarta)
+        const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+        const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
+            timeZone: 'Asia/Jakarta', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: false 
+        }).replace('.', ':');
+
+        const labelDate = dt.toLocaleDateString('id-ID', { 
+            timeZone: 'Asia/Jakarta', 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+        });
+
+        // Filter: HANYA data tanggal WIB hari ini dan waktu <= saat ini
+        if (wibDateStr === todayISO && dt <= now) {
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const precipVal = precips[i] || 0;
 
-            logs.push({
-                time: `${todayStr}, ${timeStr} WIB`,
+            const key = `${wibDateStr} ${wibTimeStr}`;
+            logsMap.set(key, {
+                rawTime: dt.getTime(),
+                time: `${labelDate}, ${wibTimeStr} WIB`,
                 temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
                 rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
                 press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
@@ -545,7 +567,8 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    historyLogs = logs.reverse();
+    // Urutkan kronologis dari waktu paling baru di atas ke paling lampau di bawah
+    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.rawTime - a.rawTime);
     renderHistoryTable();
 }
 
