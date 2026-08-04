@@ -11,7 +11,7 @@ async def fetch_open_meteo_raw() -> Dict[str, Any]:
     params = {
         "latitude": LATITUDE,
         "longitude": LONGITUDE,
-        # DATA REAL-TIME SAAT INI + WIND PROFILES
+        # DATA REAL-TIME SAAT INI + WIND PROFILES MULTI-LAYER
         "current": [
             "temperature_2m", "relative_humidity_2m", "apparent_temperature", "is_day",
             "precipitation", "rain", "showers", "weather_code", "cloud_cover",

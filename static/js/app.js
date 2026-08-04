@@ -3,8 +3,9 @@ let clockTimer = null;
 let autoRefreshTimer = null;
 const POLLING_INTERVAL = 30000;
 let historyLogs = [];
+let dashOffset = 0;
 
-// PLUGIN CUSTOM CHART.JS: OVERLAY RUNWAY 11/29 HUSEIN SASTRANEGARA (WICC)
+// PLUGIN OVERLAY RUNWAY WITH ANIMATED CENTERLINE
 const runwayOverlayPlugin = {
     id: 'runwayOverlay',
     afterDraw: (chart) => {
@@ -21,25 +22,27 @@ const runwayOverlayPlugin = {
 
         ctx.save();
 
-        // Strip Runway
+        // 1. Strip Runway
         ctx.beginPath();
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 7;
         ctx.strokeStyle = '#1e293b'; 
         ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.95), centerY + Math.sin(rad290) * (radius * 0.95));
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
 
-        // Garis Tengah Dash Putih
+        // 2. Garis Tengah Runway Beranimasi (Animated Moving Dashes)
+        dashOffset = (dashOffset + 0.3) % 8;
         ctx.beginPath();
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 3]);
-        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([5, 3]);
+        ctx.lineDashOffset = -dashOffset;
+        ctx.strokeStyle = '#38bdf8';
         ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Teks RWY 29 & RWY 11
+        // 3. Teks RWY 29 & RWY 11
         ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
@@ -146,10 +149,17 @@ async function fetchAWSData() {
     }
 }
 
+// safeSetText dengan Animasi Pulse halus saat nilai berganti
 function safeSetText(id, value, suffix = "") {
     const el = document.getElementById(id);
     if (el) {
-        el.textContent = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
+        const newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
+        if (el.textContent !== newText) {
+            el.textContent = newText;
+            el.classList.remove("value-update-anim");
+            void el.offsetWidth; // Reflow
+            el.classList.add("value-update-anim");
+        }
     }
 }
 
@@ -178,7 +188,7 @@ function renderDashboard(data) {
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
 
-    // 2. Profil Angin Vertikal Penerbangan (Surface, 025, 040, 060)
+    // 2. Profil Angin Vertikal Penerbangan
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
@@ -262,7 +272,7 @@ function calculatePopUpCrosswind() {
         } else {
             threatBadge.className = "badge bg-success px-3 py-1 font-mono fs-6";
             threatBadge.textContent = "SAFE";
-            threatDesc.textContent = "AMANA: Komponen angin samping di bawah limitasi penerbangan normal.";
+            threatDesc.textContent = "AMAN: Komponen angin samping di bawah limitasi penerbangan normal.";
         }
     }
 }
