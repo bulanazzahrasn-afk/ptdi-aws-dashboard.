@@ -507,7 +507,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// LOGIKA RENTANG 24 JAM UTUH (00:00 WIB S/D 23:45 WIB HARI INI)
+// LOGIKA PRESISI HISTORY LOG 24 JAM (00:00 - 23:45 WIB HARI INI)
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -519,44 +519,37 @@ function renderDaily00to24History(payload) {
     const windDirs = payload.wind_direction_10m || [];
     const precips = payload.precipitation || [];
 
+    // Ambil tanggal hari ini dalam format YYYY-MM-DD
     const now = new Date();
-    // String Tanggal Hari Ini dalam Format YYYY-MM-DD (WIB)
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const labelDate = now.toLocaleDateString('id-ID', { 
+        timeZone: 'Asia/Jakarta', 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+    });
 
     let logsMap = new Map();
 
-    times.forEach((isoTimeStr, i) => {
-        if (!isoTimeStr) return;
+    times.forEach((isoStr, i) => {
+        if (!isoStr) return;
 
-        // Parse Waktu UTC ke Objek Date
-        const dt = new Date(isoTimeStr.includes("Z") ? isoTimeStr : isoTimeStr + ":00Z");
-        
-        // Ambil Tanggal & Jam Dikonversi ke Timezone Asia/Jakarta (WIB)
-        const wibDateStr = dt.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
-        const wibTimeStr = dt.toLocaleTimeString('id-ID', { 
-            timeZone: 'Asia/Jakarta', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            hour12: false 
-        }).replace('.', ':');
+        // Open-Meteo membalas dengan format: "2026-08-04T00:00" (sudah WIB)
+        const parts = isoStr.split("T");
+        if (parts.length < 2) return;
 
-        const labelDate = dt.toLocaleDateString('id-ID', { 
-            timeZone: 'Asia/Jakarta', 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
-        });
+        const datePart = parts[0]; // "2026-08-04"
+        const timePart = parts[1].substring(0, 5); // "00:00", "00:15", ... "23:45"
 
-        // AMBIL SEMUA DATA DARI JAM 00:00 S/D 23:45 HARI INI (TANPA MEMBATASI HANYA SAMPAI JAM SEKARANG)
-        if (wibDateStr === todayISO) {
+        // HANYA ambil data yang tanggalnya SAMA DENGAN HARI INI (00:00 s/d 23:45 WIB)
+        if (datePart === todayISO) {
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const precipVal = precips[i] || 0;
 
-            const key = `${wibDateStr} ${wibTimeStr}`;
-            logsMap.set(key, {
-                rawTime: dt.getTime(),
-                time: `${labelDate}, ${wibTimeStr} WIB`,
+            logsMap.set(timePart, {
+                timeKey: timePart,
+                time: `${labelDate}, ${timePart} WIB`,
                 temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
                 rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
                 press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
@@ -567,8 +560,8 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    // Urutkan dari jam 23:45 WIB di paling atas turun berurutan sampai 00:00 WIB di paling bawah
-    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.rawTime - a.rawTime);
+    // Urutkan dari jam 23:45 WIB di paling atas mundur hingga 00:00 WIB di paling bawah
+    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
     renderHistoryTable();
 }
 
