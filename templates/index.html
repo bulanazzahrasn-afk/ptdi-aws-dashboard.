@@ -21,9 +21,17 @@
                     <div class="text-secondary small">Aviation Weather System - Husein Sastranegara (BDO/WICC)</div>
                 </div>
             </a>
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Tombol Pop-Up Modals -->
+                <button class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#crosswindModal">
+                    <i class="bi bi-calculator me-1"></i>Kalkulator Crosswind
+                </button>
+                <button class="btn btn-outline-info btn-sm me-2" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
+                    <i class="bi bi-info-circle me-1"></i>Info Aerodrom WICC
+                </button>
+
                 <span class="badge bg-outline-light font-mono" id="last-update">--:--:-- WIB</span>
-                <div class="form-check form-switch text-white me-2">
+                <div class="form-check form-switch text-white me-2 ms-2">
                     <input class="form-check-input" type="checkbox" id="autoRefreshSwitch" checked>
                     <label class="form-check-label small" for="autoRefreshSwitch">Auto (30s)</label>
                 </div>
@@ -247,6 +255,120 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- POP-UP MODAL 1: KALKULATOR CROSSWIND & RUNWAY THREAT -->
+    <!-- ================================================================= -->
+    <div class="modal fade" id="crosswindModal" tabindex="-1" aria-labelledby="crosswindModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white p-4 border-0">
+                    <h5 class="modal-header-title fw-bold mb-0" id="crosswindModalLabel">
+                        <i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind & Wind Component Calculator
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Orientasi Runway Alignment</label>
+                            <select class="form-select fw-bold" id="calc-rwy-heading">
+                                <option value="110" selected>RWY 11 (110°)</option>
+                                <option value="290">RWY 29 (290°)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Arah Datang Angin (°)</label>
+                            <input type="number" class="form-control font-mono" id="calc-wind-dir" min="0" max="360" value="180">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-secondary">Kecepatan Angin (Knots)</label>
+                            <input type="number" class="form-control font-mono" id="calc-wind-spd" min="0" value="12">
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark">Status Keselamatan Komponen Angin:</span>
+                            <span class="badge bg-success px-3 py-1 font-mono fs-6" id="calc-threat-badge">SAFE</span>
+                        </div>
+                        <p class="small text-muted mb-0" id="calc-threat-desc">Kondisi komponen angin samping di bawah limit aman penerbangan normal (15 Knots).</p>
+                    </div>
+
+                    <div class="row g-3 text-center">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="small text-muted fw-bold mb-1">KOMPONEN CROSSWIND (ANGIN SAMPING)</div>
+                                <div class="fs-2 fw-bold text-warning" id="calc-out-cross">0.0 kt</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="small text-muted fw-bold mb-1">HEADWIND / TAILWIND</div>
+                                <div class="fs-2 fw-bold text-primary" id="calc-out-headtail">0.0 kt</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-3 border-0">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- POP-UP MODAL 2: AERO DROME INFO WICC / BDO -->
+    <!-- ================================================================= -->
+    <div class="modal fade" id="airportInfoModal" tabindex="-1" aria-labelledby="airportInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white p-4 border-0">
+                    <h5 class="modal-header-title fw-bold mb-0" id="airportInfoModalLabel">
+                        <i class="bi bi-airplane me-2"></i>Spesifikasi Aerodrom Husein Sastranegara (BDO/WICC)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <table class="table table-bordered table-striped align-middle mb-0">
+                        <tbody>
+                            <tr>
+                                <th class="w-35 bg-light">Nama Aerodrom</th>
+                                <td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Kode ICAO / IATA</th>
+                                <td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Koordinat Stasiun</th>
+                                <td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Elevasi Aerodrom</th>
+                                <td class="fw-bold text-primary">2,428 ft MSL (740 Meter)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Dimensi Runway</th>
+                                <td><strong>2,220 m x 45 m</strong> (Asphalt Concrete)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Orientasi Runway</th>
+                                <td><strong>RWY 11 / RWY 29</strong> (True Heading: 110° / 290°)</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Fasilitas Navigasi</th>
+                                <td>DVOR/DME, NDB, PAPI, AWS BMKG Aviation Stasiun</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer bg-light p-3 border-0">
+                    <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Mengerti</button>
+                </div>
+            </div>
         </div>
     </div>
 

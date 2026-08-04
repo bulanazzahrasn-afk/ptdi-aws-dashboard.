@@ -84,6 +84,17 @@ document.addEventListener("DOMContentLoaded", () => {
         exportBtn.addEventListener("click", exportHistoryCSV);
     }
 
+    // Event Listener Kalkulator Crosswind Pop-Up
+    const rwySelect = document.getElementById("calc-rwy-heading");
+    const windDirInput = document.getElementById("calc-wind-dir");
+    const windSpdInput = document.getElementById("calc-wind-spd");
+
+    if (rwySelect && windDirInput && windSpdInput) {
+        [rwySelect, windDirInput, windSpdInput].forEach(el => {
+            el.addEventListener("input", calculatePopUpCrosswind);
+        });
+    }
+
     startAutoRefresh();
 });
 
@@ -190,6 +201,17 @@ function renderDashboard(data) {
 
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
+    // Otomatis Isikan Angin Saat Ini ke Kalkulator Pop-Up
+    if (w.surface) {
+        const windDirInput = document.getElementById("calc-wind-dir");
+        const windSpdInput = document.getElementById("calc-wind-spd");
+        if (windDirInput && windSpdInput) {
+            windDirInput.value = w.surface.dir_deg;
+            windSpdInput.value = w.surface.speed_kt;
+            calculatePopUpCrosswind();
+        }
+    }
+
     // 3. Render Wind Rose & History Log
     const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
     if (minData) {
@@ -204,6 +226,45 @@ function renderDashboard(data) {
 
     // 5. Render Master Table Penerbangan
     renderFlightPrepTable(data);
+}
+
+// LOGIKA KALKULATOR CROSSWIND POP-UP
+function calculatePopUpCrosswind() {
+    const rwyHeading = parseFloat(document.getElementById("calc-rwy-heading").value) || 110;
+    const windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
+    const windSpd = parseFloat(document.getElementById("calc-wind-spd").value) || 0;
+
+    const angleRad = (windDir - rwyHeading) * (Math.PI / 180);
+    const crosswind = Math.abs(windSpd * Math.sin(angleRad));
+    const headtail = windSpd * Math.cos(angleRad);
+
+    const outCross = document.getElementById("calc-out-cross");
+    const outHeadTail = document.getElementById("calc-out-headtail");
+    const threatBadge = document.getElementById("calc-threat-badge");
+    const threatDesc = document.getElementById("calc-threat-desc");
+
+    if (outCross) outCross.textContent = `${crosswind.toFixed(1)} kt`;
+    if (outHeadTail) {
+        const type = headtail >= 0 ? "Headwind" : "Tailwind";
+        outHeadTail.textContent = `${Math.abs(headtail).toFixed(1)} kt (${type})`;
+    }
+
+    // Penilaian Bahaya Limit Angin Samping
+    if (threatBadge && threatDesc) {
+        if (crosswind > 20.0) {
+            threatBadge.className = "badge bg-danger px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "HAZARDOUS";
+            threatDesc.textContent = "BAHAYA: Komponen crosswind melebihi limit maksimum operasional (20 Knots).";
+        } else if (crosswind > 12.0) {
+            threatBadge.className = "badge bg-warning text-dark px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "CAUTION";
+            threatDesc.textContent = "WASPADA: Komponen crosswind cukup tinggi (12-20 Knots).";
+        } else {
+            threatBadge.className = "badge bg-success px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "SAFE";
+            threatDesc.textContent = "AMANA: Komponen angin samping di bawah limitasi penerbangan normal.";
+        }
+    }
 }
 
 function initWindRoseChart() {
