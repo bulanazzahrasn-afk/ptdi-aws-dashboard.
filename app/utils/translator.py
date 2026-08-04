@@ -1,115 +1,97 @@
 from datetime import datetime
 import zoneinfo
 
-HUSEIN_LAT = -6.9006
-HUSEIN_LON = 107.5762
-
 COMPASS_SECTORS = [
     "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
     "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
 ]
 
 def deg_to_compass(deg) -> str:
-    if deg is None:
-        return "N/A"
+    if deg is None or deg == "VRB":
+        return "VRB"
     try:
         idx = int((float(deg) + 11.25) / 22.5) % 16
         return COMPASS_SECTORS[idx]
     except (ValueError, TypeError):
         return "N/A"
 
-def kmh_to_knots(kmh):
-    if kmh is None:
-        return 0.0
-    return round(float(kmh) * 0.539957, 1)
-
-def percent_to_octa(percent):
-    if percent is None:
+def cover_to_octa(cover_code: str) -> str:
+    if not cover_code:
         return "0/8"
-    p = float(percent)
-    if p <= 0: return "0/8"
-    elif p <= 18: return "1/8"
-    elif p <= 31: return "2/8"
-    elif p <= 43: return "3/8"
-    elif p <= 56: return "4/8"
-    elif p <= 68: return "5/8"
-    elif p <= 81: return "6/8"
-    elif p <= 93: return "7/8"
-    else: return "8/8"
-
-def utc_to_wib(utc_str: str) -> str:
-    if not utc_str:
-        return "-"
-    try:
-        dt = datetime.fromisoformat(str(utc_str).replace("Z", "+00:00"))
-        wib_dt = dt.astimezone(zoneinfo.ZoneInfo("Asia/Jakarta"))
-        return wib_dt.strftime("%Y-%m-%d %H:%M:%S WIB")
-    except Exception:
-        return str(utc_str)
-
-def safe_val(val, default=0.0):
-    return val if val is not None else default
+    c = str(cover_code).upper()
+    if c in ["SKC", "CLR", "NSC"]:
+        return "0/8 (Clear)"
+    elif c == "FEW":
+        return "1-2/8 (Few)"
+    elif c == "SCT":
+        return "3-4/8 (Scattered)"
+    elif c == "BKN":
+        return "5-7/8 (Broken)"
+    elif c == "OVC":
+        return "8/8 (Overcast)"
+    return "0/8"
 
 def translate_aws_payload(raw: dict) -> dict:
-    curr = raw.get("current", {})
-    
-    wind_levels = {
-        "33ft": {
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_10m")),
-            "dir_deg": safe_val(curr.get("wind_direction_10m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_10m"))
-        },
-        "260ft": {
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_80m")),
-            "dir_deg": safe_val(curr.get("wind_direction_80m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_80m"))
-        },
-        "400ft": {
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_120m")),
-            "dir_deg": safe_val(curr.get("wind_direction_120m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_120m"))
-        },
-        "600ft": {
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_180m")),
-            "dir_deg": safe_val(curr.get("wind_direction_180m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_180m"))
-        },
-        "gusts_kt": kmh_to_knots(curr.get("wind_gusts_10m"))
-    }
+    # Waktu Observasi METAR ke WIB
+    wib_str = "-"
+    report_time = raw.get("reportTime")
+    if report_time:
+        try:
+            dt = datetime.fromisoformat(report_time.replace("Z", "+00:00"))
+            wib_str = dt.astimezone(zoneinfo.ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M:%S WIB")
+        except Exception:
+            wib_str = str(report_time)
 
-    cloud_total_pct = safe_val(curr.get("cloud_cover"), 0)
-    cloud_low_pct = safe_val(curr.get("cloud_cover_low"), 0)
-    precip_val = safe_val(curr.get("precipitation"), 0.0)
+    # Param WICC METAR
+    wind_spd_kt = raw.get("wspd", 0)
+    wind_dir_deg = raw.get("wdir", 0)
+    wind_gust_kt = raw.get("wgst", wind_spd_kt)
+    temp_c = raw.get("temp", 0)
+    dew_c = raw.get("dewp", 0)
+    altim_hpa = raw.get("altim", 1013)  # QNH dalam hPa
+    visib = raw.get("visib", "10+")
+
+    # Kalkulasi Kelembapan Relatif (RH) dari Temp & Dew Point
+    rh_calc = 100 - (5 * (temp_c - dew_c)) if temp_c and dew_c else "--"
+
+    # Cloud Layer
+    clouds = raw.get("clouds", [])
+    primary_cover = clouds[0].get("cover", "CLR") if clouds else "CLR"
+    cloud_octa = cover_to_octa(primary_cover)
 
     translated = {
         "metadata": {
-            "location": "Bandara Husein Sastranegara (BDO/WABB)",
+            "location": "Bandara Husein Sastranegara (BDO/WICC)",
             "runway": "RWY 11/29 (110° / 290°)",
-            "latitude": raw.get("latitude", HUSEIN_LAT),
-            "longitude": raw.get("longitude", HUSEIN_LON),
+            "latitude": -6.9006,
+            "longitude": 107.5762,
             "elevation_ft": 2428,
-            "timestamp_wib": utc_to_wib(curr.get("time", "")),
-            "is_day": "Siang" if curr.get("is_day") == 1 else "Malam"
+            "timestamp_wib": wib_str,
+            "raw_metar": raw.get("rawOb", "")
         },
         "thermodynamics": {
-            "temp_2m": safe_val(curr.get("temperature_2m")),
-            "rh_2m": safe_val(curr.get("relative_humidity_2m")),
-            "dew_point": safe_val(curr.get("dew_point_2m")),
-            "msl_pressure": safe_val(curr.get("pressure_msl")),
-            "surface_pressure": safe_val(curr.get("surface_pressure"))
+            "temp_2m": temp_c,
+            "rh_2m": rh_calc,
+            "dew_point": dew_c,
+            "msl_pressure": altim_hpa,
+            "surface_pressure": round(altim_hpa - 85.5, 1)  # Estimasi QFE dari elevasi BDO
         },
-        "wind_profile": wind_levels,
+        "wind_profile": {
+            "33ft": {
+                "speed_kt": wind_spd_kt,
+                "dir_deg": wind_dir_deg,
+                "dir_compass": deg_to_compass(wind_dir_deg)
+            },
+            "260ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
+            "400ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
+            "600ft": {"speed_kt": wind_spd_kt, "dir_deg": wind_dir_deg, "dir_compass": deg_to_compass(wind_dir_deg)},
+            "gusts_kt": wind_gust_kt
+        },
         "clouds_precipitation": {
-            "precipitation_mm": precip_val,
-            "cloud_cover_octa": percent_to_octa(cloud_total_pct),
-            "cloud_cover_pct": cloud_total_pct,
-            "cloud_cover_low_pct": cloud_low_pct,
-            "cloud_cover_mid_pct": safe_val(curr.get("cloud_cover_mid")),
-            "cloud_cover_high_pct": safe_val(curr.get("cloud_cover_high"))
+            "precipitation_mm": 0.0,
+            "cloud_cover_octa": cloud_octa,
+            "visibility": visib
         },
-        "raw_current_payload": curr,
-        "raw_hourly_payload": raw.get("hourly", {}),
-        "raw_daily_payload": raw.get("daily", {}),
-        "minutely_15": raw.get("minutely_15", {})
+        "raw_metar_payload": raw
     }
     return translated
