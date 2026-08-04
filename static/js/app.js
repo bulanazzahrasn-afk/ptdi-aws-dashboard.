@@ -22,7 +22,6 @@ const runwayOverlayPlugin = {
 
         ctx.save();
 
-        // 1. Strip Runway
         ctx.beginPath();
         ctx.lineWidth = 7;
         ctx.strokeStyle = '#1e293b'; 
@@ -30,7 +29,6 @@ const runwayOverlayPlugin = {
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
 
-        // 2. Garis Tengah Runway Beranimasi (Animated Moving Dashes)
         dashOffset = (dashOffset + 0.3) % 8;
         ctx.beginPath();
         ctx.lineWidth = 1.8;
@@ -42,18 +40,15 @@ const runwayOverlayPlugin = {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // 3. Teks RWY 29 & RWY 11
         ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // RWY 11
         const x11 = centerX + Math.cos(rad110) * (radius * 1.08);
         const y11 = centerY + Math.sin(rad110) * (radius * 1.08);
         ctx.fillText('RWY 11', x11, y11);
 
-        // RWY 29
         const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
         const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
         ctx.fillText('RWY 29', x29, y29);
@@ -68,6 +63,18 @@ document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
     startRealtimeClock();
     fetchAWSData();
+
+    // Toggle Sidebar Collapsible Functionality
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    const sidebar = document.getElementById("sidebar");
+    const contentArea = document.getElementById("contentArea");
+
+    if (sidebarToggle && sidebar && contentArea) {
+        sidebarToggle.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+            contentArea.classList.toggle("expanded");
+        });
+    }
 
     const autoSwitch = document.getElementById("autoRefreshSwitch");
     if (autoSwitch) {
@@ -87,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
         exportBtn.addEventListener("click", exportHistoryCSV);
     }
 
-    // Event Listener Kalkulator Crosswind Pop-Up
     const rwySelect = document.getElementById("calc-rwy-heading");
     const windDirInput = document.getElementById("calc-wind-dir");
     const windSpdInput = document.getElementById("calc-wind-spd");
@@ -149,7 +155,6 @@ async function fetchAWSData() {
     }
 }
 
-// safeSetText dengan Animasi Pulse halus saat nilai berganti
 function safeSetText(id, value, suffix = "") {
     const el = document.getElementById(id);
     if (el) {
@@ -157,7 +162,7 @@ function safeSetText(id, value, suffix = "") {
         if (el.textContent !== newText) {
             el.textContent = newText;
             el.classList.remove("value-update-anim");
-            void el.offsetWidth; // Reflow
+            void el.offsetWidth;
             el.classList.add("value-update-anim");
         }
     }
@@ -176,7 +181,6 @@ function renderDashboard(data) {
     const w = data.wind_profile || {};
     const c = data.clouds_precipitation || {};
 
-    // 1. Ringkasan Utama
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
@@ -188,7 +192,6 @@ function renderDashboard(data) {
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
 
-    // 2. Profil Angin Vertikal Penerbangan
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
@@ -211,7 +214,6 @@ function renderDashboard(data) {
 
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
-    // Otomatis Isikan Angin Saat Ini ke Kalkulator Pop-Up
     if (w.surface) {
         const windDirInput = document.getElementById("calc-wind-dir");
         const windSpdInput = document.getElementById("calc-wind-spd");
@@ -222,23 +224,19 @@ function renderDashboard(data) {
         }
     }
 
-    // 3. Render Wind Rose & History Log Real-Time
     const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
     if (minData) {
         updateWindRoseChart(minData);
         renderDaily00to24History(minData);
     }
 
-    // 4. Render Prakiraan 2 Hari
     if (data.raw_daily_payload) {
         render2DayForecast(data.raw_daily_payload);
     }
 
-    // 5. Render Master Table Penerbangan
     renderFlightPrepTable(data);
 }
 
-// LOGIKA KALKULATOR CROSSWIND POP-UP
 function calculatePopUpCrosswind() {
     const rwyHeading = parseFloat(document.getElementById("calc-rwy-heading").value) || 110;
     const windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
@@ -259,7 +257,6 @@ function calculatePopUpCrosswind() {
         outHeadTail.textContent = `${Math.abs(headtail).toFixed(1)} kt (${type})`;
     }
 
-    // Penilaian Bahaya Limit Angin Samping
     if (threatBadge && threatDesc) {
         if (crosswind > 20.0) {
             threatBadge.className = "badge bg-danger px-3 py-1 font-mono fs-6";
@@ -299,21 +296,14 @@ function initWindRoseChart() {
             responsive: true,
             maintainAspectRatio: false,
             layout: { padding: 15 },
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 r: {
                     stacked: true,
                     ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
                     grid: { color: '#e2e8f0' },
                     angleLines: { display: true, color: '#cbd5e1' },
-                    pointLabels: {
-                        display: true,
-                        centerPointLabels: true,
-                        font: { size: 11, weight: 'bold' },
-                        color: '#1e293b'
-                    }
+                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#1e293b' }
                 }
             }
         }
@@ -402,7 +392,7 @@ function render2DayForecast(daily) {
         const card = document.createElement("div");
         card.className = "col-md-6";
         card.innerHTML = `
-            <div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100">
+            <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
                 <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
                     <div>
                         <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
@@ -416,8 +406,8 @@ function render2DayForecast(daily) {
 
                 <div class="card-body p-4 bg-white">
                     <div class="d-flex align-items-baseline gap-3 mb-3">
-                        <div class="display-5 fw-bold text-dark">${tempMax}</div>
-                        <div class="fs-5 text-secondary">/ ${tempMin}</div>
+                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
+                        <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
                         <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
                     </div>
 
@@ -426,48 +416,36 @@ function render2DayForecast(daily) {
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary small fw-bold mb-1">
-                                    <i class="bi bi-wind me-1 text-primary"></i>MAX WIND & DIRECTION
-                                </div>
-                                <div class="fw-bold fs-5 text-dark">${windMaxKt} kt</div>
-                                <div class="small text-muted">${domDirDeg}° (${domDirCompass})</div>
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
+                                <div class="fw-bold fs-5 text-dark font-mono">${windMaxKt} kt</div>
+                                <div class="small text-muted font-mono">${domDirDeg}° (${domDirCompass})</div>
                             </div>
                         </div>
 
                         <div class="col-6">
                             <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary small fw-bold mb-1">
-                                    <i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST
-                                </div>
-                                <div class="fw-bold fs-5 text-danger">${gustsMaxKt} kt</div>
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
+                                <div class="fw-bold fs-5 text-danger font-mono">${gustsMaxKt} kt</div>
                                 <div class="small text-muted">Peak Surface Gust</div>
                             </div>
                         </div>
 
                         <div class="col-6">
                             <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary small fw-bold mb-1">
-                                    <i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND (RWY 11/29)
-                                </div>
-                                <div class="fw-bold fs-5 text-warning">${crosswindKt} kt</div>
-                                <div class="small text-muted">Komponen Angin Samping</div>
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
+                                <div class="fw-bold fs-5 text-warning font-mono">${crosswindKt} kt</div>
+                                <div class="small text-muted">Runway Component</div>
                             </div>
                         </div>
 
                         <div class="col-6">
                             <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary small fw-bold mb-1">
-                                    <i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION SUM
-                                </div>
-                                <div class="fw-bold fs-5 text-info">${precipSum} mm</div>
-                                <div class="small text-muted">Akumulasi Hujan Harian</div>
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
+                                <div class="fw-bold fs-5 text-info font-mono">${precipSum} mm</div>
+                                <div class="small text-muted">Total Harian</div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="card-footer bg-light p-3 text-center border-0">
-                    <small class="text-muted"><i class="bi bi-airplane me-1"></i>Husein Sastranegara Aerodrome Flight Operational Forecast</small>
                 </div>
             </div>
         `;
@@ -498,16 +476,15 @@ function renderFlightPrepTable(data) {
     flightParams.forEach(p => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="fw-bold text-primary">${p.name}</td>
-            <td><code class="px-2 py-1 bg-light text-dark rounded border fw-bold">${p.val !== undefined ? p.val : '--'}</code></td>
+            <td class="ps-4 fw-bold text-primary">${p.name}</td>
+            <td><code class="px-2 py-1 bg-light text-dark rounded border fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
             <td class="text-secondary">${p.unit}</td>
-            <td class="small text-muted">${p.desc}</td>
+            <td class="pe-4 small text-muted">${p.desc}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// LOGIKA REAL-TIME HISTORY LOG (00:00 WIB S/D JAM SEKARANG)
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -528,7 +505,6 @@ function renderDaily00to24History(payload) {
         month: 'short' 
     });
 
-    // Format Jam Saat Ini dalam HH:MM (WIB)
     const currentHHMM = now.toLocaleTimeString('id-ID', { 
         timeZone: 'Asia/Jakarta', 
         hour: '2-digit', 
@@ -544,10 +520,9 @@ function renderDaily00to24History(payload) {
         const parts = isoStr.split("T");
         if (parts.length < 2) return;
 
-        const datePart = parts[0]; // "2026-08-04"
-        const timePart = parts[1].substring(0, 5); // "00:00", "00:15", ...
+        const datePart = parts[0];
+        const timePart = parts[1].substring(0, 5);
 
-        // FILTER: HANYA TANGGAL HARI INI DAN WAKTU <= JAM TERKINI
         if (datePart === todayISO && timePart <= currentHHMM) {
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
@@ -566,7 +541,6 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    // Urutkan dari jam terkini di paling atas mundur hingga 00:00 WIB di paling bawah
     historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
     renderHistoryTable();
 }
@@ -584,13 +558,13 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="fw-bold text-primary">${log.time}</td>
-            <td>${log.temp}</td>
-            <td>${log.rh}</td>
-            <td>${log.press}</td>
-            <td>${log.windSpd}</td>
-            <td>${log.windDir}</td>
-            <td class="small text-secondary">${log.precip}</td>
+            <td class="ps-4 fw-bold text-primary font-mono">${log.time}</td>
+            <td class="font-mono">${log.temp}</td>
+            <td class="font-mono">${log.rh}</td>
+            <td class="font-mono">${log.press}</td>
+            <td class="font-mono">${log.windSpd}</td>
+            <td class="font-mono">${log.windDir}</td>
+            <td class="pe-4 small text-secondary">${log.precip}</td>
         `;
         tbody.appendChild(tr);
     });

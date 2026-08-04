@@ -3,271 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTDI Aviation AWS Dashboard - BDO/WICC (Open-Meteo)</title>
+    <title>PTDI Aviation AWS Dashboard - BDO/WICC</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-light">
+<body>
 
-    <!-- Header Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4 shadow-sm fixed-top">
+    <!-- Header Navbar Glassmorphism -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-3 py-2 fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-airplane-engines-fill text-primary fs-3"></i>
-                <div>
-                    <div class="fw-bold fs-5">PT. DIRGANTARA INDONESIA</div>
-                    <div class="text-secondary small">Aviation Weather System - Husein Sastranegara (BDO/WICC)</div>
-                </div>
-            </a>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#crosswindModal">
-                    <i class="bi bi-calculator me-1"></i>Kalkulator Crosswind
+            <div class="d-flex align-items-center gap-3">
+                <!-- Tombol Toggle Buka-Tutup Sidebar -->
+                <button class="btn btn-toggle-sidebar" id="sidebarToggle" title="Buka/Tutup Sidebar">
+                    <i class="bi bi-list fs-5"></i>
                 </button>
-                <button class="btn btn-outline-info btn-sm me-2" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
-                    <i class="bi bi-info-circle me-1"></i>Info Aerodrom WICC
+                <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="#">
+                    <i class="bi bi-airplane-engines-fill text-primary fs-3"></i>
+                    <div>
+                        <div class="fw-bold fs-6 text-white tracking-wide">PT. DIRGANTARA INDONESIA</div>
+                        <div class="text-secondary extra-small" style="font-size: 0.75rem;">Aviation Weather System - WICC/BDO</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-warning btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#crosswindModal">
+                    <i class="bi bi-calculator me-1"></i>Crosswind
+                </button>
+                <button class="btn btn-outline-info btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
+                    <i class="bi bi-info-circle me-1"></i>Info WICC
                 </button>
 
-                <span class="live-beacon" title="Live Data Stream Active"></span>
-                <span class="badge bg-outline-light font-mono" id="last-update">--:--:-- WIB</span>
-                <div class="form-check form-switch text-white me-2 ms-2">
-                    <input class="form-check-input" type="checkbox" id="autoRefreshSwitch" checked>
-                    <label class="form-check-label small" for="autoRefreshSwitch">Auto (30s)</label>
+                <div class="vr bg-secondary mx-1 my-1 opacity-25"></div>
+
+                <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1.5 rounded-3 border border-secondary border-opacity-25">
+                    <span class="live-beacon" title="Live Stream Active"></span>
+                    <span class="text-light font-mono small" id="last-update">--:--:-- WIB</span>
                 </div>
-                <button class="btn btn-primary btn-sm px-3" id="manualRefreshBtn">
-                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh
+
+                <div class="form-check form-switch text-white mb-0 ms-2">
+                    <input class="form-check-input" type="checkbox" id="autoRefreshSwitch" checked>
+                    <label class="form-check-label small text-secondary" for="autoRefreshSwitch">Auto</label>
+                </div>
+
+                <button class="btn btn-primary btn-sm px-3 fw-semibold rounded-2" id="manualRefreshBtn">
+                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- Layout Container Utama (Sidebar + Content Area) -->
-    <div class="container-fluid" style="margin-top: 70px;">
-        <div class="row">
-            
-            <!-- SIDEBAR NAVIGASI KIRI -->
-            <div class="col-md-3 col-lg-2 sidebar-wrapper bg-white shadow-sm p-3 min-vh-100">
-                <div class="text-uppercase text-muted small fw-bold mb-3 px-2">Menu Utama</div>
-                <div class="nav flex-column nav-pills gap-2" id="mainTab" role="tablist">
-                    <button class="nav-link active text-start py-3 px-3 rounded-3 fw-semibold" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
-                        <i class="bi bi-speedometer2 me-2 fs-5"></i>Ringkasan Utama
-                    </button>
-                    <button class="nav-link text-start py-3 px-3 rounded-3 fw-semibold" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button">
-                        <i class="bi bi-calendar2-week me-2 fs-5"></i>Prakiraan Cuaca
-                    </button>
-                    <button class="nav-link text-start py-3 px-3 rounded-3 fw-semibold" id="master-tab" data-bs-toggle="tab" data-bs-target="#master" type="button">
-                        <i class="bi bi-card-checklist me-2 fs-5"></i>Master Table
-                    </button>
-                    <button class="nav-link text-start py-3 px-3 rounded-3 fw-semibold" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">
-                        <i class="bi bi-clock-history me-2 fs-5"></i>History Log (15m)
-                    </button>
-                </div>
-            </div>
-
-            <!-- AREA KONTEN UTAMA -->
-            <div class="col-md-9 col-lg-10 p-4">
-                <div class="tab-content" id="mainTabContent">
+    <!-- Main Layout -->
+    <div class="app-layout">
+        
+        <!-- SIDEBAR FIX & COLLAPSIBLE -->
+        <aside class="sidebar-wrapper" id="sidebar">
+            <div class="py-3">
+                <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.68rem; letter-spacing: 1px;">Navigasi Utama</div>
+                <div class="nav flex-column nav-pills" id="mainTab" role="tablist">
                     
-                    <!-- TAB 1: RINGKASAN UTAMA & PROFIL ANGIN -->
-                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-3">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-body">
-                                        <div class="text-secondary small fw-bold">SUHU UDARA (2M)</div>
-                                        <div class="display-5 fw-bold text-primary my-2" id="m-temp">-- °C</div>
-                                        <div class="small text-muted">Dew Point: <span id="m-dew" class="fw-bold">-- °C</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-body">
-                                        <div class="text-secondary small fw-bold">KELEMBAPAN RELATIF</div>
-                                        <div class="display-5 fw-bold text-info my-2" id="m-rh">-- %</div>
-                                        <div class="progress mt-2" style="height: 6px;">
-                                            <div class="progress-bar bg-info" id="bar-rh" style="width: 0%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-body">
-                                        <div class="text-secondary small fw-bold">ALTIMETER (QNH)</div>
-                                        <div class="display-5 fw-bold text-warning my-2" id="m-press">-- hPa</div>
-                                        <div class="small text-muted">Surface Pressure (QFE): <span id="m-surf-press" class="fw-bold">-- hPa</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-body">
-                                        <div class="text-secondary small fw-bold">TUTUPAN AWAN (OKTA)</div>
-                                        <div class="display-6 fw-bold text-dark my-2" id="m-cloud-octa">--</div>
-                                        <div class="small text-muted">Awan Rendah / Sedang / Tinggi: <span id="m-cloud-pcts" class="fw-bold">--%</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" data-bs-toggle="tooltip" data-bs-placement="right" title="Ringkasan Utama">
+                        <i class="bi bi-speedometer2 me-3"></i>
+                        <span class="nav-text">Ringkasan Utama</span>
+                    </button>
 
-                        <div class="row g-3">
-                            <div class="col-md-5">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                        <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Vertikal (Aviation Levels)</span>
-                                        <span class="badge bg-primary">Satuan: Knots</span>
-                                    </div>
-                                    <div class="card-body">
-                                        <table class="table table-hover align-middle mb-0">
-                                            <thead class="table-light small">
-                                                <tr>
-                                                    <th>Ketinggian / Level</th>
-                                                    <th>Kecepatan</th>
-                                                    <th>Arah</th>
-                                                    <th>Visual</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="fw-bold">33 ft (Surface / RWY)</td>
-                                                    <td class="fw-bold text-primary" id="w33-spd">-- kt</td>
-                                                    <td id="w33-dir">--° (--)</td>
-                                                    <td><i class="bi bi-arrow-up-circle fs-5" id="w33-arrow" style="display:inline-block;"></i></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-bold">250 ft (Level 025)</td>
-                                                    <td class="fw-bold text-primary" id="w250-spd">-- kt</td>
-                                                    <td id="w250-dir">--° (--)</td>
-                                                    <td><i class="bi bi-arrow-up-circle fs-5" id="w250-arrow" style="display:inline-block;"></i></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-bold">400 ft (Level 040)</td>
-                                                    <td class="fw-bold text-primary" id="w400-spd">-- kt</td>
-                                                    <td id="w400-dir">--° (--)</td>
-                                                    <td><i class="bi bi-arrow-up-circle fs-5" id="w400-arrow" style="display:inline-block;"></i></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-bold">600 ft (Level 060)</td>
-                                                    <td class="fw-bold text-primary" id="w600-spd">-- kt</td>
-                                                    <td id="w600-dir">--° (--)</td>
-                                                    <td><i class="bi bi-arrow-up-circle fs-5" id="w600-arrow" style="display:inline-block;"></i></td>
-                                                </tr>
-                                                <tr class="table-warning">
-                                                    <td class="fw-bold">Gust (Hembusan Surface)</td>
-                                                    <td class="fw-bold text-danger" id="wgust-spd">-- kt</td>
-                                                    <td colspan="2" class="small text-muted">Maximum Gust Observed</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+                    <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" data-bs-toggle="tooltip" data-bs-placement="right" title="Prakiraan Cuaca">
+                        <i class="bi bi-calendar2-week me-3"></i>
+                        <span class="nav-text">Prakiraan Cuaca</span>
+                    </button>
 
-                            <div class="col-md-7">
-                                <div class="card shadow-sm border-0 h-100">
-                                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                        <span><i class="bi bi-compass me-2 text-danger"></i>Wind Rose Hari Ini (RWY 11/29 Alignment)</span>
-                                        <span class="badge bg-secondary">Real-Time Open-Meteo</span>
-                                    </div>
-                                    <div class="card-body text-center p-2" style="position: relative; height: 350px;">
-                                        <canvas id="windRoseChart"></canvas>
-                                    </div>
-                                    <div class="card-footer bg-white small text-muted d-flex justify-content-around">
-                                        <span><i class="bi bi-square-fill text-info me-1"></i>Calm (&lt;3 kt)</span>
-                                        <span><i class="bi bi-square-fill me-1" style="color:#10b981;"></i>Light (3-10 kt)</span>
-                                        <span><i class="bi bi-square-fill me-1" style="color:#f59e0b;"></i>Moderate (11-20 kt)</span>
-                                        <span><i class="bi bi-square-fill text-danger me-1"></i>Strong (&gt;20 kt)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <button class="nav-link" id="master-tab" data-bs-toggle="tab" data-bs-target="#master" type="button" data-bs-toggle="tooltip" data-bs-placement="right" title="Master Table">
+                        <i class="bi bi-card-checklist me-3"></i>
+                        <span class="nav-text">Master Table</span>
+                    </button>
 
-                    <!-- TAB 2: PRAKIRAAN CUACA -->
-                    <div class="tab-pane fade" id="forecast" role="tabpanel">
-                        <div class="row g-4" id="daily-forecast-cards">
-                            <!-- Cards dipopulasi via JS -->
-                        </div>
-                    </div>
-
-                    <!-- TAB 3: MASTER TABLE -->
-                    <div class="tab-pane fade" id="master" role="tabpanel">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-white fw-bold">
-                                <i class="bi bi-file-earmark-text me-2 text-primary"></i>Ringkasan Parameter Operasional Penerbangan (WICC)
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover mb-0">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Parameter Penerbangan</th>
-                                                <th>Nilai Sensor</th>
-                                                <th>Satuan Standar</th>
-                                                <th>Keterangan Operasional</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="flight-prep-table-body">
-                                            <!-- Terisi via JS -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 4: HISTORY LOG -->
-                    <div class="tab-pane fade" id="history" role="tabpanel">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-clock-history me-2 text-primary"></i>Riwayat Pengamatan Tiap 15 Menit (Hari Ini)</span>
-                                <button class="btn btn-outline-success btn-sm" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Waktu (WIB)</th>
-                                                <th>Suhu (°C)</th>
-                                                <th>RH (%)</th>
-                                                <th>QNH (hPa)</th>
-                                                <th>Angin (kt)</th>
-                                                <th>Arah Angin</th>
-                                                <th>Presipitasi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="history-table-body">
-                                            <!-- Terisi via JS -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" data-bs-toggle="tooltip" data-bs-placement="right" title="History Log (15m)">
+                        <i class="bi bi-clock-history me-3"></i>
+                        <span class="nav-text">History Log (15m)</span>
+                    </button>
 
                 </div>
             </div>
+        </aside>
 
-        </div>
+        <!-- KONTEN UTAMA -->
+        <main class="content-wrapper" id="contentArea">
+            <div class="tab-content" id="mainTabContent">
+                
+                <!-- TAB 1: RINGKASAN UTAMA -->
+                <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-4">
+                                    <div class="text-secondary small fw-bold tracking-wider">SUHU UDARA (2M)</div>
+                                    <div class="display-5 fw-extrabold text-primary my-2 font-mono" id="m-temp">-- °C</div>
+                                    <div class="small text-muted">Dew Point: <span id="m-dew" class="fw-bold font-mono">-- °C</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-4">
+                                    <div class="text-secondary small fw-bold tracking-wider">KELEMBAPAN RELATIF</div>
+                                    <div class="display-5 fw-extrabold text-info my-2 font-mono" id="m-rh">-- %</div>
+                                    <div class="progress mt-2" style="height: 6px;">
+                                        <div class="progress-bar bg-info" id="bar-rh" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-4">
+                                    <div class="text-secondary small fw-bold tracking-wider">ALTIMETER (QNH)</div>
+                                    <div class="display-5 fw-extrabold text-warning my-2 font-mono" id="m-press">-- hPa</div>
+                                    <div class="small text-muted">QFE: <span id="m-surf-press" class="fw-bold font-mono">-- hPa</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-4">
+                                    <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN (OKTA)</div>
+                                    <div class="display-6 fw-extrabold text-dark my-2" id="m-cloud-octa">--</div>
+                                    <div class="small text-muted">Low/Mid/High: <span id="m-cloud-pcts" class="fw-bold font-mono">--%</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profil Angin & Wind Rose -->
+                    <div class="row g-3">
+                        <div class="col-lg-5">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-header bg-white py-3 fw-bold d-flex justify-content-between align-items-center border-0">
+                                    <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Vertikal</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Satuan: Knots</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light small">
+                                            <tr>
+                                                <th class="ps-4">Level</th>
+                                                <th>Kecepatan</th>
+                                                <th>Arah</th>
+                                                <th class="pe-4 text-center">Visual</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">33 ft (Surface)</td>
+                                                <td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td>
+                                                <td class="font-mono" id="w33-dir">--°</td>
+                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">250 ft (Lvl 025)</td>
+                                                <td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td>
+                                                <td class="font-mono" id="w250-dir">--°</td>
+                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">400 ft (Lvl 040)</td>
+                                                <td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td>
+                                                <td class="font-mono" id="w400-dir">--°</td>
+                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4 fw-bold">600 ft (Lvl 060)</td>
+                                                <td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td>
+                                                <td class="font-mono" id="w600-dir">--°</td>
+                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td>
+                                            </tr>
+                                            <tr class="table-warning border-0">
+                                                <td class="ps-4 fw-bold">Peak Gust</td>
+                                                <td class="fw-bold text-danger font-mono" id="wgust-spd">-- kt</td>
+                                                <td colspan="2" class="pe-4 small text-muted">Max Surface Gust</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-7">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-header bg-white py-3 fw-bold d-flex justify-content-between align-items-center border-0">
+                                    <span><i class="bi bi-compass me-2 text-danger"></i>Wind Rose RWY 11/29 Alignment</span>
+                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">Open-Meteo Realtime</span>
+                                </div>
+                                <div class="card-body text-center p-2" style="position: relative; height: 320px;">
+                                    <canvas id="windRoseChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: PRAKIRAAN CUACA -->
+                <div class="tab-pane fade" id="forecast" role="tabpanel">
+                    <div class="row g-4" id="daily-forecast-cards"></div>
+                </div>
+
+                <!-- TAB 3: MASTER TABLE -->
+                <div class="tab-pane fade" id="master" role="tabpanel">
+                    <div class="card card-luxury shadow-sm">
+                        <div class="card-header bg-white fw-bold py-3">
+                            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Ringkasan Parameter Operasional Penerbangan (WICC)
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th class="ps-4">Parameter Penerbangan</th>
+                                            <th>Nilai Sensor</th>
+                                            <th>Satuan Standar</th>
+                                            <th class="pe-4">Keterangan Operasional</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="flight-prep-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: HISTORY LOG -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <div class="card card-luxury shadow-sm">
+                        <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-clock-history me-2 text-primary"></i>Riwayat Pengamatan Tiap 15 Menit (Hari Ini)</span>
+                            <button class="btn btn-outline-success btn-sm fw-semibold" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-4">Waktu (WIB)</th>
+                                            <th>Suhu (°C)</th>
+                                            <th>RH (%)</th>
+                                            <th>QNH (hPa)</th>
+                                            <th>Angin (kt)</th>
+                                            <th>Arah Angin</th>
+                                            <th class="pe-4">Presipitasi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
-    <!-- POP-UP MODAL 1: KALKULATOR CROSSWIND & RUNWAY THREAT -->
-    <div class="modal fade" id="crosswindModal" tabindex="-1" aria-labelledby="crosswindModalLabel" aria-hidden="true">
+    <!-- POP-UP MODALS -->
+    <div class="modal fade" id="crosswindModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white p-4 border-0">
-                    <h5 class="modal-header-title fw-bold mb-0" id="crosswindModalLabel">
-                        <i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind & Wind Component Calculator
+                    <h5 class="modal-title fw-bold" id="crosswindModalLabel">
+                        <i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind Calculator
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Orientasi Runway Alignment</label>
+                            <label class="form-label small fw-bold text-secondary">Runway Alignment</label>
                             <select class="form-select fw-bold" id="calc-rwy-heading">
                                 <option value="110" selected>RWY 11 (110°)</option>
                                 <option value="290">RWY 29 (290°)</option>
@@ -278,87 +288,56 @@
                             <input type="number" class="form-control font-mono" id="calc-wind-dir" min="0" max="360" value="180">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Kecepatan Angin (Knots)</label>
+                            <label class="form-label small fw-bold text-secondary">Kecepatan (Knots)</label>
                             <input type="number" class="form-control font-mono" id="calc-wind-spd" min="0" value="12">
                         </div>
                     </div>
 
                     <div class="alert alert-light border rounded-3 p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-dark">Status Keselamatan Komponen Angin:</span>
                             <span class="badge bg-success px-3 py-1 font-mono fs-6" id="calc-threat-badge">SAFE</span>
                         </div>
-                        <p class="small text-muted mb-0" id="calc-threat-desc">Kondisi komponen angin samping di bawah limit aman penerbangan normal (15 Knots).</p>
+                        <p class="small text-muted mb-0" id="calc-threat-desc">Kondisi angin samping di bawah limit aman penerbangan normal (15 Knots).</p>
                     </div>
 
                     <div class="row g-3 text-center">
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded-3 border">
-                                <div class="small text-muted fw-bold mb-1">KOMPONEN CROSSWIND (ANGIN SAMPING)</div>
-                                <div class="fs-2 fw-bold text-warning" id="calc-out-cross">0.0 kt</div>
+                                <div class="small text-muted fw-bold mb-1">CROSSWIND (ANGIN SAMPING)</div>
+                                <div class="fs-2 fw-bold text-warning font-mono" id="calc-out-cross">0.0 kt</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded-3 border">
                                 <div class="small text-muted fw-bold mb-1">HEADWIND / TAILWIND</div>
-                                <div class="fs-2 fw-bold text-primary" id="calc-out-headtail">0.0 kt</div>
+                                <div class="fs-2 fw-bold text-primary font-mono" id="calc-out-headtail">0.0 kt</div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer bg-light p-3 border-0">
-                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- POP-UP MODAL 2: AERODROME SPEC WICC / BDO -->
-    <div class="modal fade" id="airportInfoModal" tabindex="-1" aria-labelledby="airportInfoModalLabel" aria-hidden="true">
+    <div class="modal fade" id="airportInfoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-primary text-white p-4 border-0">
-                    <h5 class="modal-header-title fw-bold mb-0" id="airportInfoModalLabel">
-                        <i class="bi bi-airplane me-2"></i>Spesifikasi Aerodrom Husein Sastranegara (BDO/WICC)
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-airplane me-2"></i>Spesifikasi Aerodrom Husein Sastranegara (BDO/WICC)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <table class="table table-bordered table-striped align-middle mb-0">
                         <tbody>
-                            <tr>
-                                <th class="w-35 bg-light">Nama Aerodrom</th>
-                                <td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Kode ICAO / IATA</th>
-                                <td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Koordinat Stasiun</th>
-                                <td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Elevasi Aerodrom</th>
-                                <td class="fw-bold text-primary">2,428 ft MSL (740 Meter)</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Dimensi Runway</th>
-                                <td><strong>2,220 m x 45 m</strong> (Asphalt Concrete)</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Orientasi Runway</th>
-                                <td><strong>RWY 11 / RWY 29</strong> (True Heading: 110° / 290°)</td>
-                            </tr>
-                            <tr>
-                                <th class="bg-light">Fasilitas Navigasi</th>
-                                <td>DVOR/DME, NDB, PAPI, AWS BMKG Aviation Stasiun</td>
-                            </tr>
+                            <tr><th class="w-35 bg-light">Nama Aerodrom</th><td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td></tr>
+                            <tr><th class="bg-light">Kode ICAO / IATA</th><td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td></tr>
+                            <tr><th class="bg-light">Koordinat Stasiun</th><td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td></tr>
+                            <tr><th class="bg-light">Elevasi Aerodrom</th><td class="fw-bold text-primary font-mono">2,428 ft MSL (740 Meter)</td></tr>
+                            <tr><th class="bg-light">Dimensi Runway</th><td><strong>2,220 m x 45 m</strong> (Asphalt Concrete)</td></tr>
+                            <tr><th class="bg-light">Orientasi Runway</th><td><strong>RWY 11 / RWY 29</strong> (True Heading: 110° / 290°)</td></tr>
                         </tbody>
                     </table>
-                </div>
-                <div class="modal-footer bg-light p-3 border-0">
-                    <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Mengerti</button>
                 </div>
             </div>
         </div>

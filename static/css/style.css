@@ -1,52 +1,132 @@
 /* -----------------------------------------------------------------
-   STYLING & ANIMASI DASHBOARD PTDI AVIATION AWS
+   STYLING ELEGAN & MEWAH (LUXURY GLASSMORPHISM) PTDI AVIATION AWS
 ----------------------------------------------------------------- */
 
-/* Font & Monospace Styling */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    overflow-x: hidden;
+}
+
 .font-mono {
-    font-family: "JetBrains Mono", "Courier New", Courier, monospace;
+    font-family: "JetBrains Mono", monospace;
 }
 
-/* Sidebar Wrapper & Navigation Styling */
+/* Glassmorphism Navbar */
+.navbar-custom {
+    background: rgba(15, 23, 42, 0.92) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1040;
+}
+
+/* -----------------------------------------------------------------
+   COLLAPSIBLE & FIXED SIDEBAR LAYOUT
+----------------------------------------------------------------- */
+
+.app-layout {
+    display: flex;
+    margin-top: 68px; /* Offset tinggi navbar */
+    min-height: calc(100vh - 68px);
+}
+
+/* Sidebar Fixed Position */
 .sidebar-wrapper {
-    border-right: 1px solid #e2e8f0;
+    position: fixed;
+    top: 68px;
+    bottom: 0;
+    left: 0;
+    width: 250px;
+    background: #0f172a; /* Deep Navy */
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1030;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
+/* Mode Sidebar Collapsed (Hanya Ikon) */
+.sidebar-wrapper.collapsed {
+    width: 78px;
+}
+
+.sidebar-wrapper.collapsed .nav-text,
+.sidebar-wrapper.collapsed .menu-header-text {
+    display: none !important;
+}
+
+.sidebar-wrapper.collapsed .nav-link {
+    justify-content: center;
+    padding: 14px 0;
+}
+
+.sidebar-wrapper.collapsed .nav-link i {
+    margin-right: 0 !important;
+    font-size: 1.35rem;
+}
+
+/* Area Konten Utama Terpengaruh Sidebar */
+.content-wrapper {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 2rem;
+}
+
+.content-wrapper.expanded {
+    margin-left: 78px;
+    width: calc(100% - 78px);
+}
+
+/* Navigasi Link Mewah */
 .sidebar-wrapper .nav-link {
-    color: #475569;
-    transition: all 0.25s ease-in-out;
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.925rem;
+    border-radius: 12px;
+    margin: 4px 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    transition: all 0.25s ease;
 }
 
 .sidebar-wrapper .nav-link:hover {
-    background-color: #f1f5f9;
-    color: #0d6efd;
-    transform: translateX(4px);
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(3px);
 }
 
 .sidebar-wrapper .nav-link.active {
-    background-color: #0d6efd !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
     color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+    box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.45);
 }
 
-/* Spin Animation untuk Tombol Refresh */
+/* Kartu Parameter Mewah */
+.card-luxury {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.card-luxury:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03) !important;
+    border-color: #cbd5e1;
+}
+
+/* Animasi Refresh Spin & Live Pulse */
 .spin-anim {
     animation: spin 0.8s linear infinite;
 }
-@keyframes spin {
-    100% { transform: rotate(360deg); }
-}
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* Soft Pulsing Glow & Hover Elevation pada Kartu Parameter */
-.card {
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12) !important;
-}
-
-/* Animasi Teks & Angka Saat Data Update */
 .value-update-anim {
     animation: pulseValue 0.6s ease-out;
 }
@@ -56,37 +136,31 @@
     100% { transform: scale(1); }
 }
 
-/* Live Beacon Pulse Dot */
 .live-beacon {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     background-color: #10b981;
     border-radius: 50%;
-    margin-right: 4px;
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
     animation: beaconPulse 1.8s infinite;
 }
 @keyframes beaconPulse {
-    0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    }
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-    }
-    100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* Custom Styling Modal Pop-Up */
-.modal-content {
-    animation: modalSlideUp 0.35s ease-out;
+/* Custom Toggle Button */
+.btn-toggle-sidebar {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 6px 12px;
+    transition: all 0.2s ease;
 }
-@keyframes modalSlideUp {
-    from { opacity: 0; transform: translateY(30px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+.btn-toggle-sidebar:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
 }
