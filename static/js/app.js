@@ -222,7 +222,7 @@ function renderDashboard(data) {
         }
     }
 
-    // 3. Render Wind Rose & History Log
+    // 3. Render Wind Rose & History Log Real-Time
     const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
     if (minData) {
         updateWindRoseChart(minData);
@@ -507,7 +507,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// LOGIKA PRESISI HISTORY LOG 24 JAM (00:00 - 23:45 WIB HARI INI)
+// LOGIKA REAL-TIME HISTORY LOG (00:00 WIB S/D JAM SEKARANG)
 function renderDaily00to24History(payload) {
     if (!payload || !payload.time) return;
 
@@ -519,7 +519,6 @@ function renderDaily00to24History(payload) {
     const windDirs = payload.wind_direction_10m || [];
     const precips = payload.precipitation || [];
 
-    // Ambil tanggal hari ini dalam format YYYY-MM-DD
     const now = new Date();
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
     const labelDate = now.toLocaleDateString('id-ID', { 
@@ -529,20 +528,27 @@ function renderDaily00to24History(payload) {
         month: 'short' 
     });
 
+    // Format Jam Saat Ini dalam HH:MM (WIB)
+    const currentHHMM = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false 
+    }).replace('.', ':');
+
     let logsMap = new Map();
 
     times.forEach((isoStr, i) => {
         if (!isoStr) return;
 
-        // Open-Meteo membalas dengan format: "2026-08-04T00:00" (sudah WIB)
         const parts = isoStr.split("T");
         if (parts.length < 2) return;
 
         const datePart = parts[0]; // "2026-08-04"
-        const timePart = parts[1].substring(0, 5); // "00:00", "00:15", ... "23:45"
+        const timePart = parts[1].substring(0, 5); // "00:00", "00:15", ...
 
-        // HANYA ambil data yang tanggalnya SAMA DENGAN HARI INI (00:00 s/d 23:45 WIB)
-        if (datePart === todayISO) {
+        // FILTER: HANYA TANGGAL HARI INI DAN WAKTU <= JAM TERKINI
+        if (datePart === todayISO && timePart <= currentHHMM) {
             const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
             const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
             const precipVal = precips[i] || 0;
@@ -560,7 +566,7 @@ function renderDaily00to24History(payload) {
         }
     });
 
-    // Urutkan dari jam 23:45 WIB di paling atas mundur hingga 00:00 WIB di paling bawah
+    // Urutkan dari jam terkini di paling atas mundur hingga 00:00 WIB di paling bawah
     historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
     renderHistoryTable();
 }
@@ -570,7 +576,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat 24 jam...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat real-time...</td></tr>';
         return;
     }
 
@@ -598,6 +604,6 @@ function exportHistoryCSV() {
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_BDO_24h_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_Realtime_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }
