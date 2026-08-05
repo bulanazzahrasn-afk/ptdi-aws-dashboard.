@@ -5,6 +5,7 @@ const POLLING_INTERVAL = 30000;
 let historyLogs = [];
 let dashOffset = 0;
 
+// PLUGIN OVERLAY RUNWAY WITH ANIMATED CENTERLINE
 const runwayOverlayPlugin = {
     id: 'runwayOverlay',
     afterDraw: (chart) => {
@@ -63,7 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startRealtimeClock();
     fetchAWSData();
 
-    // Event listener: Render ulang Kurva Matahari saat Tab Cuaca Hari Ini diklik
     const forecastTabBtn = document.getElementById("forecast-tab");
     if (forecastTabBtn) {
         forecastTabBtn.addEventListener("shown.bs.tab", () => {
@@ -115,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startAutoRefresh();
 });
 
-// FUNGSI RENDER DAYLIGHT CURVE CANVAS (DAYLIGHT PERIOD)
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
@@ -132,7 +131,6 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Garis Horizon Baseline (Putih Transparan)
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.lineWidth = 1.5;
@@ -140,9 +138,8 @@ function drawDaylightCurve() {
     ctx.lineTo(w - 20, midY);
     ctx.stroke();
 
-    // 2. Kurva Gelombang Sine Matahari
     ctx.beginPath();
-    ctx.strokeStyle = '#38bdf8'; // Sky Blue Glow
+    ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 3;
     for (let x = 20; x <= w - 20; x++) {
         const rad = ((x - 20) / (w - 40)) * Math.PI * 2;
@@ -152,20 +149,17 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // 3. Ikon Matahari di Puncak Kurva
     const sunX = w / 2;
     const sunY = midY - 48;
 
-    // Lingkaran Luar Matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 11, 0, Math.PI * 2);
-    ctx.fillStyle = '#f59e0b'; // Amber Gold
+    ctx.fillStyle = '#f59e0b';
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Sinar Matahari (Sun Rays)
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
         const rayStartX = sunX + Math.cos(angle) * 14;
@@ -268,10 +262,10 @@ function renderDashboard(data) {
     safeSetText("m-rh", t.rh_2m, "%");
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
+    
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
-    safeSetText("m-cloud-pcts", c.cloud_cover_octa);
+    safeSetText("m-cloud-pcts", c.cloud_desc || c.cloud_cover_octa);
 
-    // Update Tab Cuaca Hari Ini (Metar-TAF Style)
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
     safeSetText("sun-sunset-val", `${dl.sunset} (${dl.duration})`);
@@ -393,6 +387,7 @@ function initWindRoseChart() {
             plugins: { legend: { display: false } },
             scales: {
                 r: {
+                    startAngle: -11.25, // FIX KUNCI: Menyesuaikan rotasi -11.25° agar N tepat tegak di 12 o'clock & S tegak di 6 o'clock
                     stacked: true,
                     ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
                     grid: { color: '#e2e8f0' },
