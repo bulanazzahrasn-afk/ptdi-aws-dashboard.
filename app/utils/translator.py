@@ -42,15 +42,15 @@ def translate_aws_payload(raw: dict) -> dict:
     headwind_kt = round(wspd_kt * math.cos(angle_rad), 1)
     crosswind_pct = round((crosswind_kt / wspd_kt * 100), 0) if wspd_kt > 0 else 0
 
+    # PROFIL ANGIN REVISI NAMA KETINGGIAN
     wind_levels = {
-        "surface": {"label": "33 ft (Surface / Runway)", "speed_kt": wspd_kt, "dir_deg": wdir_deg, "dir_compass": deg_to_compass(wdir_deg)},
-        "lvl_025": {"label": "250 ft (Level 025)", "speed_kt": round((upper.get("wind_speed_80m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_80m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_80m", wdir_deg))},
-        "lvl_040": {"label": "400 ft (Level 040)", "speed_kt": round((upper.get("wind_speed_120m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_120m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_120m", wdir_deg))},
-        "lvl_060": {"label": "600 ft (Level 060 / Circuit)", "speed_kt": round((upper.get("wind_speed_180m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_180m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_180m", wdir_deg))},
+        "surface": {"label": "33 ft (Angin Permukaan)", "speed_kt": wspd_kt, "dir_deg": wdir_deg, "dir_compass": deg_to_compass(wdir_deg)},
+        "lvl_025": {"label": "250 ft (Angin Lapisan Rendah)", "speed_kt": round((upper.get("wind_speed_80m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_80m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_80m", wdir_deg))},
+        "lvl_040": {"label": "400 ft (Terminal Winds)", "speed_kt": round((upper.get("wind_speed_120m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_120m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_120m", wdir_deg))},
+        "lvl_060": {"label": "600 ft (Angin Ketinggian Jelajah)", "speed_kt": round((upper.get("wind_speed_180m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_180m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_180m", wdir_deg))},
         "gusts_kt": wgst_kt
     }
 
-    # PEMROSESAN TUTUPAN AWAN (OKTA DENGAN DESKRIPSI)
     clouds = metar.get("clouds", [])
     cloud_octa = "3-4/8 (SCT)"
     cloud_desc = "1,700 ft SCT Scattered clouds"
@@ -104,8 +104,8 @@ def translate_aws_payload(raw: dict) -> dict:
         "wind_profile": wind_levels,
         "clouds_precipitation": {
             "precipitation_mm": 0.0,
-            "cloud_cover_octa": cloud_octa,  # DI TAMPILAN ANGKANYA JADI OKTA
-            "cloud_desc": cloud_desc,        # KETERANGAN KECIL AERO BASE
+            "cloud_cover_octa": cloud_octa,
+            "cloud_desc": cloud_desc,
             "cloud_cover_low_pct": 20
         },
         "minutely_15": min15,

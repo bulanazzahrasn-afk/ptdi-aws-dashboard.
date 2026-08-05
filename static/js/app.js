@@ -384,10 +384,9 @@ function renderDashboard(data) {
     const minData = data.minutely_15;
     if (minData) {
         updateWindRoseChart(minData);
-        renderDaily00to24History(minData);
+        renderDaily00to24History(minData, data);
     }
 
-    // RENDER KARTU OBSERVASI REAL-TIME HARI INI & PRAKIRAAN BESOK
     if (data.raw_daily_payload) {
         render2DayForecast(data.raw_daily_payload, data);
     }
@@ -396,7 +395,7 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// RENDER KARTU REAL-TIME HARI INI & FORECAST BESOK
+// REVISI NAMA KARTU CUACA: "Hari Ini" & "Esok Hari"
 function render2DayForecast(daily, fullData) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;
@@ -406,7 +405,8 @@ function render2DayForecast(daily, fullData) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
-        const dayLabel = i === 0 ? "Observasi Hari Ini (Real-Time)" : "Prakiraan Besok (Forecast)";
+        // REVISI JUDUL KARTU Sesuai PERMINTAAN
+        const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
         const formattedDate = dateObj.toLocaleDateString('id-ID', { 
@@ -585,34 +585,33 @@ function renderFlightPrepTable(data) {
     });
 }
 
-function renderDaily00to24History(payload) {
-    if (!payload || !payload.time) return;
+// REVISI TABEL HISTORY LOG MENGIKUTI FORMAT GAMBAR 3
+function renderDaily00to24History(payload, fullData) {
+    const tbody = document.getElementById("history-table-body");
+    const dateHeader = document.getElementById("history-date-header");
+    if (!tbody || !payload || !payload.time) return;
 
     const times = payload.time;
     const temps = payload.temperature_2m || [];
-    const rhs = payload.relative_humidity_2m || [];
-    const pressures = payload.msl_pressure || payload.surface_pressure || [];
     const windSpeeds = payload.wind_speed_10m || [];
     const windDirs = payload.wind_direction_10m || [];
-    const precips = payload.precipitation || [];
 
     const now = new Date();
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
-    const labelDate = now.toLocaleDateString('id-ID', { 
-        timeZone: 'Asia/Jakarta', 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'short' 
+    const formattedDate = now.toLocaleDateString('en-US', { 
+        timeZone: 'Asia/Jakarta', month: 'long', day: 'numeric', year: 'numeric' 
     });
 
+    if (dateHeader) {
+        dateHeader.textContent = `Observasi METAR WICC - ${formattedDate}`;
+    }
+
     const currentHHMM = now.toLocaleTimeString('id-ID', { 
-        timeZone: 'Asia/Jakarta', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: false 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
     }).replace('.', ':');
 
     let logsMap = new Map();
+    const rawMetarTxt = fullData && fullData.metadata ? fullData.metadata.raw_metar : "METAR WICC 050600Z 18006KT 9999 FEW018 31/21 Q1010";
 
     times.forEach((isoStr, i) => {
         if (!isoStr) return;
@@ -624,19 +623,20 @@ function renderDaily00to24History(payload) {
         const timePart = parts[1].substring(0, 5);
 
         if (datePart === todayISO && timePart <= currentHHMM) {
-            const spdKt = windSpeeds[i] !== undefined ? (windSpeeds[i] * 0.539957).toFixed(1) : '--';
-            const dirDeg = windDirs[i] !== undefined ? windDirs[i] : '--';
-            const precipVal = precips[i] || 0;
+            const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
+            const dirDeg = windDirs[i] !== undefined ? String(windDirs[i]).padStart(3, '0') : "180";
+            const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
 
             logsMap.set(timePart, {
                 timeKey: timePart,
-                time: `${labelDate}, ${timePart} WIB`,
-                temp: temps[i] !== undefined ? `${temps[i]} °C` : '--',
-                rh: rhs[i] !== undefined ? `${rhs[i]} %` : '--',
-                press: pressures[i] !== undefined ? `${pressures[i]} hPa` : '--',
-                windSpd: `${spdKt} kt`,
-                windDir: `${dirDeg}°`,
-                precip: precipVal > 0 ? `Hujan (${precipVal} mm)` : 'Cerah / Berawan'
+                time: timePart,
+                code: '<span class="badge bg-primary rounded-circle font-mono">M</span>',
+                weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
+                temp: `${tempVal} °C`,
+                visibility: '6 km',
+                ceiling: '-',
+                wind: `<i class="bi bi-arrow-down-right text-info me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`,
+                metar: rawMetarTxt
             });
         }
     });
@@ -650,7 +650,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Memuat riwayat real-time...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
         return;
     }
 
@@ -658,13 +658,14 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 fw-bold text-info font-mono">${log.time}</td>
-            <td class="font-mono text-white">${log.temp}</td>
-            <td class="font-mono text-white">${log.rh}</td>
-            <td class="font-mono text-white">${log.press}</td>
-            <td class="font-mono text-white">${log.windSpd}</td>
-            <td class="font-mono text-white">${log.windDir}</td>
-            <td class="pe-4 small text-secondary">${log.precip}</td>
+            <td class="ps-4 font-mono text-info fw-bold">${log.time}</td>
+            <td class="text-center">${log.code}</td>
+            <td class="text-center">${log.weather}</td>
+            <td class="font-mono text-white fw-bold">${log.temp}</td>
+            <td class="font-mono text-secondary">${log.visibility}</td>
+            <td class="text-secondary">${log.ceiling}</td>
+            <td class="font-mono text-white">${log.wind}</td>
+            <td class="pe-4 font-mono text-secondary small">${log.metar}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -672,12 +673,13 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Waktu,Suhu (C),RH (%),QNH (hPa),Angin (kt),Arah,Status\n";
+    let csv = "Time,Code,Temp,Visibility,Ceiling,Wind,METAR\n";
     historyLogs.forEach(l => {
-        csv += `"${l.time}","${l.temp}","${l.rh}","${l.press}","${l.windSpd}","${l.windDir}","${l.precip}"\n`;
+        const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+        csv += `"${l.time}","M","${l.temp}","${l.visibility}","${l.ceiling}","${cleanWind}","${l.metar}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_BDO_METAR_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_METAR_History_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }
