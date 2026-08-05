@@ -5,7 +5,6 @@ const POLLING_INTERVAL = 30000;
 let historyLogs = [];
 let dashOffset = 0;
 
-// PLUGIN OVERLAY RUNWAY WITH ANIMATED CENTERLINE
 const runwayOverlayPlugin = {
     id: 'runwayOverlay',
     afterDraw: (chart) => {
@@ -64,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startRealtimeClock();
     fetchAWSData();
 
-    // Toggle Sidebar Collapsible Functionality
     const sidebarToggle = document.getElementById("sidebarToggle");
     const sidebar = document.getElementById("sidebar");
     const contentArea = document.getElementById("contentArea");
@@ -149,7 +147,7 @@ async function fetchAWSData() {
         renderDashboard(data);
 
     } catch (err) {
-        console.error("Gagal memuat data Open-Meteo AWS:", err);
+        console.error("Gagal memuat data METAR WICC AWS:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
     }
@@ -181,13 +179,18 @@ function renderDashboard(data) {
     const w = data.wind_profile || {};
     const c = data.clouds_precipitation || {};
 
+    if (data.metadata) {
+        safeSetText("raw-metar-text", data.metadata.raw_metar);
+        safeSetText("raw-taf-text", data.metadata.raw_taf);
+    }
+
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
-    safeSetText("m-cloud-pcts", `${c.cloud_cover_low_pct || 0}% / ${c.cloud_cover_mid_pct || 0}% / ${c.cloud_cover_high_pct || 0}%`);
+    safeSetText("m-cloud-pcts", c.cloud_cover_octa);
 
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
@@ -224,7 +227,7 @@ function renderDashboard(data) {
         }
     }
 
-    const minData = data.minutely_15 || data.raw_minutely_15_payload || data.raw_hourly_payload;
+    const minData = data.minutely_15;
     if (minData) {
         updateWindRoseChart(minData);
         renderDaily00to24History(minData);
@@ -462,14 +465,15 @@ function renderFlightPrepTable(data) {
     const c = data.clouds_precipitation || {};
 
     const flightParams = [
+        { name: "Raw METAR WICC", val: data.metadata ? data.metadata.raw_metar : '--', unit: "ICAO Standard", desc: "Observasi Mentah Cuaca Penerbangan WICC" },
+        { name: "Raw TAF WICC", val: data.metadata ? data.metadata.raw_taf : '--', unit: "ICAO Standard", desc: "Prakiraan Mentah Aerodrom WICC" },
         { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
         { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
         { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
         { name: "Maximum Wind Gust", val: w.gusts_kt, unit: "Knots", desc: "Potensi Kecepatan Hembusan Maksimum" },
-        { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "Okta", desc: "Jumlah Tutupan Awan Aerodrom" },
-        { name: "Precipitation Rate", val: c.precipitation_mm, unit: "mm", desc: "Intensitas Curah Hujan Aerodrom" }
+        { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "METAR Code", desc: "Tutupan & Tinggi Dasar Awan" }
     ];
 
     tbody.innerHTML = "";
@@ -578,6 +582,6 @@ function exportHistoryCSV() {
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_BDO_Realtime_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_METAR_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }

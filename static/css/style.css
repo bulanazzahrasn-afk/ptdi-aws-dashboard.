@@ -30,18 +30,17 @@ body {
 
 .app-layout {
     display: flex;
-    margin-top: 68px; /* Offset tinggi navbar */
+    margin-top: 68px;
     min-height: calc(100vh - 68px);
 }
 
-/* Sidebar Fixed Position */
 .sidebar-wrapper {
     position: fixed;
     top: 68px;
     bottom: 0;
     left: 0;
     width: 250px;
-    background: #0f172a; /* Deep Navy */
+    background: #0f172a;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1030;
@@ -49,7 +48,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Mode Sidebar Collapsed (Hanya Ikon) */
 .sidebar-wrapper.collapsed {
     width: 78px;
 }
@@ -69,7 +67,6 @@ body {
     font-size: 1.35rem;
 }
 
-/* Area Konten Utama Terpengaruh Sidebar */
 .content-wrapper {
     margin-left: 250px;
     width: calc(100% - 250px);
@@ -82,7 +79,6 @@ body {
     width: calc(100% - 78px);
 }
 
-/* Navigasi Link Mewah */
 .sidebar-wrapper .nav-link {
     color: #94a3b8;
     font-weight: 600;
@@ -107,7 +103,6 @@ body {
     box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.45);
 }
 
-/* Kartu Parameter Mewah */
 .card-luxury {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -121,7 +116,6 @@ body {
     border-color: #cbd5e1;
 }
 
-/* Animasi Refresh Spin & Live Pulse */
 .spin-anim {
     animation: spin 0.8s linear infinite;
 }
@@ -151,7 +145,6 @@ body {
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* Custom Toggle Button */
 .btn-toggle-sidebar {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);

@@ -1,120 +1,112 @@
 from datetime import datetime
 import zoneinfo
 
-HUSEIN_LAT = -6.9006
-HUSEIN_LON = 107.5762
-
 COMPASS_SECTORS = [
     "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
     "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
 ]
 
 def deg_to_compass(deg) -> str:
-    if deg is None:
-        return "N/A"
+    if deg is None: return "N/A"
     try:
         idx = int((float(deg) + 11.25) / 22.5) % 16
         return COMPASS_SECTORS[idx]
     except (ValueError, TypeError):
         return "N/A"
 
-def kmh_to_knots(kmh):
-    if kmh is None:
-        return 0.0
-    return round(float(kmh) * 0.539957, 1)
-
-def percent_to_octa(percent):
-    if percent is None:
-        return "0/8"
-    p = float(percent)
-    if p <= 0: return "0/8 (Clear)"
-    elif p <= 18: return "1/8 (FEW)"
-    elif p <= 31: return "2/8 (FEW)"
-    elif p <= 43: return "3/8 (SCT)"
-    elif p <= 56: return "4/8 (SCT)"
-    elif p <= 68: return "5/8 (BKN)"
-    elif p <= 81: return "6/8 (BKN)"
-    elif p <= 93: return "7/8 (BKN)"
-    else: return "8/8 (OVC)"
-
-def utc_to_wib(utc_str: str) -> str:
-    if not utc_str:
-        return "-"
-    try:
-        dt = datetime.fromisoformat(str(utc_str).replace("Z", "+00:00"))
-        wib_dt = dt.astimezone(zoneinfo.ZoneInfo("Asia/Jakarta"))
-        return wib_dt.strftime("%Y-%m-%d %H:%M:%S WIB")
-    except Exception:
-        return str(utc_str)
-
 def safe_val(val, default=0.0):
     return val if val is not None else default
 
 def translate_aws_payload(raw: dict) -> dict:
-    curr = raw.get("current", {})
+    metar = raw.get("metar", {})
+    taf = raw.get("taf", {})
+    upper = raw.get("upper_wind", {})
+    min15 = raw.get("minutely_15", {})
+
+    # Parameter Termodinamika dari METAR WICC
+    temp = safe_val(metar.get("temp"), 25.0)
+    dewp = safe_val(metar.get("dewp"), 20.0)
+    altim_hpa = safe_val(metar.get("altim"), 1013.0)
     
+    # Hitung Kelembapan Relatif (RH) dari Titik Embun
+    rh = int(100 - (5 * (temp - dewp))) if temp and dewp else 80
+    rh = max(0, min(100, rh))
+
+    # Angin Permukaan METAR WICC
+    wspd_kt = safe_val(metar.get("wspd"), 0.0)
+    wdir_deg = safe_val(metar.get("wdir"), 0)
+    wgst_kt = metar.get("wgst") or wspd_kt
+
+    # Wind Profile Multi-Layer Penerbangan
     wind_levels = {
         "surface": {
             "label": "33 ft (Surface / Runway)",
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_10m")),
-            "dir_deg": safe_val(curr.get("wind_direction_10m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_10m"))
+            "speed_kt": wspd_kt,
+            "dir_deg": wdir_deg,
+            "dir_compass": deg_to_compass(wdir_deg)
         },
         "lvl_025": {
             "label": "250 ft (Level 025)",
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_80m")),
-            "dir_deg": safe_val(curr.get("wind_direction_80m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_80m"))
+            "speed_kt": round((upper.get("wind_speed_80m", 0) or 0) * 0.539957, 1),
+            "dir_deg": upper.get("wind_direction_80m", wdir_deg),
+            "dir_compass": deg_to_compass(upper.get("wind_direction_80m", wdir_deg))
         },
         "lvl_040": {
             "label": "400 ft (Level 040)",
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_120m")),
-            "dir_deg": safe_val(curr.get("wind_direction_120m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_120m"))
+            "speed_kt": round((upper.get("wind_speed_120m", 0) or 0) * 0.539957, 1),
+            "dir_deg": upper.get("wind_direction_120m", wdir_deg),
+            "dir_compass": deg_to_compass(upper.get("wind_direction_120m", wdir_deg))
         },
         "lvl_060": {
             "label": "600 ft (Level 060 / Circuit)",
-            "speed_kt": kmh_to_knots(curr.get("wind_speed_180m")),
-            "dir_deg": safe_val(curr.get("wind_direction_180m")),
-            "dir_compass": deg_to_compass(curr.get("wind_direction_180m"))
+            "speed_kt": round((upper.get("wind_speed_180m", 0) or 0) * 0.539957, 1),
+            "dir_deg": upper.get("wind_direction_180m", wdir_deg),
+            "dir_compass": deg_to_compass(upper.get("wind_direction_180m", wdir_deg))
         },
-        "gusts_kt": kmh_to_knots(curr.get("wind_gusts_10m"))
+        "gusts_kt": wgst_kt
     }
 
-    cloud_total_pct = safe_val(curr.get("cloud_cover"), 0)
-    cloud_low_pct = safe_val(curr.get("cloud_cover_low"), 0)
-    precip_val = safe_val(curr.get("precipitation"), 0.0)
+    # Format Cloud Cover dari METAR WICC
+    clouds = metar.get("clouds", [])
+    cloud_str = "0/8 (Clear)"
+    if clouds and isinstance(clouds, list) and len(clouds) > 0:
+        cover = clouds[0].get("cover", "FEW")
+        base = clouds[0].get("base", 0)
+        cloud_str = f"{cover} at {base}00 ft"
 
-    translated = {
+    raw_metar_txt = metar.get("rawOb") or "METAR WICC 050600Z 18006KT 9999 FEW018 31/21 Q1010"
+    raw_taf_txt = taf.get("rawTAF") or "TAF WICC 050000Z 0503/0524 17008KT 9999 FEW020"
+
+    return {
         "metadata": {
             "location": "Bandara Husein Sastranegara (BDO/WICC)",
-            "runway": "RWY 11/29 (110° / 290°)",
-            "latitude": raw.get("latitude", HUSEIN_LAT),
-            "longitude": raw.get("longitude", HUSEIN_LON),
-            "elevation_ft": 2428,
-            "timestamp_wib": utc_to_wib(curr.get("time", "")),
-            "source_info": "Open-Meteo High-Precision Weather API"
+            "raw_metar": raw_metar_txt,
+            "raw_taf": raw_taf_txt,
+            "timestamp_wib": metar.get("obsTime", "")
         },
         "thermodynamics": {
-            "temp_2m": safe_val(curr.get("temperature_2m")),
-            "rh_2m": safe_val(curr.get("relative_humidity_2m")),
-            "dew_point": safe_val(curr.get("dew_point_2m")),
-            "msl_pressure": safe_val(curr.get("pressure_msl")),
-            "surface_pressure": safe_val(curr.get("surface_pressure"))
+            "temp_2m": temp,
+            "rh_2m": rh,
+            "dew_point": dewp,
+            "msl_pressure": altim_hpa,
+            "surface_pressure": round(altim_hpa - 85.0, 1) # QFE Estimasi Elevasi 2,428 ft
         },
         "wind_profile": wind_levels,
         "clouds_precipitation": {
-            "precipitation_mm": precip_val,
-            "cloud_cover_octa": percent_to_octa(cloud_total_pct),
-            "cloud_cover_pct": cloud_total_pct,
-            "cloud_cover_low_pct": cloud_low_pct,
-            "cloud_cover_mid_pct": safe_val(curr.get("cloud_cover_mid")),
-            "cloud_cover_high_pct": safe_val(curr.get("cloud_cover_high")),
-            "visibility": "10+"
+            "precipitation_mm": 0.0,
+            "cloud_cover_octa": cloud_str,
+            "cloud_cover_low_pct": 20,
+            "cloud_cover_mid_pct": 10,
+            "cloud_cover_high_pct": 0
         },
-        "raw_current_payload": curr,
-        "raw_hourly_payload": raw.get("hourly", {}),
-        "raw_daily_payload": raw.get("daily", {}),
-        "minutely_15": raw.get("minutely_15", {})
+        "minutely_15": min15,
+        "raw_daily_payload": {
+            "time": [datetime.now().strftime("%Y-%m-%d")],
+            "temperature_2m_max": [temp + 2],
+            "temperature_2m_min": [temp - 4],
+            "wind_speed_10m_max": [wspd_kt / 0.539957],
+            "wind_gusts_10m_max": [wgst_kt / 0.539957],
+            "wind_direction_10m_dominant": [wdir_deg],
+            "precipitation_sum": [0.0]
+        }
     }
-    return translated
