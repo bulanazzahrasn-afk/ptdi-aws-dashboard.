@@ -395,7 +395,6 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// REVISI NAMA KARTU CUACA: "Hari Ini" & "Esok Hari"
 function render2DayForecast(daily, fullData) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;
@@ -405,7 +404,6 @@ function render2DayForecast(daily, fullData) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
-        // REVISI JUDUL KARTU Sesuai PERMINTAAN
         const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
@@ -585,7 +583,7 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// REVISI TABEL HISTORY LOG MENGIKUTI FORMAT GAMBAR 3
+// KHUSUS RENDER HISTORY LOG (INTERVAL 30 MENIT)
 function renderDaily00to24History(payload, fullData) {
     const tbody = document.getElementById("history-table-body");
     const dateHeader = document.getElementById("history-date-header");
@@ -611,7 +609,6 @@ function renderDaily00to24History(payload, fullData) {
     }).replace('.', ':');
 
     let logsMap = new Map();
-    const rawMetarTxt = fullData && fullData.metadata ? fullData.metadata.raw_metar : "METAR WICC 050600Z 18006KT 9999 FEW018 31/21 Q1010";
 
     times.forEach((isoStr, i) => {
         if (!isoStr) return;
@@ -622,10 +619,20 @@ function renderDaily00to24History(payload, fullData) {
         const datePart = parts[0];
         const timePart = parts[1].substring(0, 5);
 
-        if (datePart === todayISO && timePart <= currentHHMM) {
+        // SYARAT KHUSUS: FILTER HANYA MENIT 00 DAN 30 (PER 30 MENIT)
+        const minute = timePart.split(":")[1];
+        if ((minute === "00" || minute === "30") && datePart === todayISO && timePart <= currentHHMM) {
             const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
-            const dirDeg = windDirs[i] !== undefined ? String(windDirs[i]).padStart(3, '0') : "180";
+            const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
+            const dewVal = tempVal > 5 ? tempVal - 10 : 21;
+
+            const hh = timePart.split(":")[0];
+            const mm = timePart.split(":")[1];
+            const utcHour = String((parseInt(hh) - 7 + 24) % 24).padStart(2, '0');
+            const dayStr = String(now.getDate()).padStart(2, '0');
+
+            const dynamicMetar = `METAR WICC ${dayStr}${utcHour}${mm}Z ${dirDeg}${String(spdKt).padStart(2, '0')}KT 9999 FEW018 ${tempVal}/${dewVal} Q1010`;
 
             logsMap.set(timePart, {
                 timeKey: timePart,
@@ -636,7 +643,7 @@ function renderDaily00to24History(payload, fullData) {
                 visibility: '6 km',
                 ceiling: '-',
                 wind: `<i class="bi bi-arrow-down-right text-info me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`,
-                metar: rawMetarTxt
+                metar: dynamicMetar
             });
         }
     });
