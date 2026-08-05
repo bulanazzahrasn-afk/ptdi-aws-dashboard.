@@ -1,30 +1,54 @@
 /* -----------------------------------------------------------------
-   STYLING ELEGAN & MEWAH (LUXURY GLASSMORPHISM) PTDI AVIATION AWS
+   LUXURY DARK NAVY & MODERN GLASSMORPHISM THEME (PTDI AVIATION AWS)
 ----------------------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-dark-midnight: #070d19;
+    --bg-card-glass: rgba(15, 23, 42, 0.75);
+    --bg-card-hover: rgba(30, 41, 59, 0.85);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-glow-blue: rgba(56, 189, 248, 0.35);
+    
+    --accent-cyan: #38bdf8;
+    --accent-blue: #3b82f6;
+    --accent-indigo: #6366f1;
+    --accent-amber: #f59e0b;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+}
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: #f8fafc;
-    color: #1e293b;
+    background-color: var(--bg-dark-midnight);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-primary);
     overflow-x: hidden;
 }
 
 .font-mono {
-    font-family: "JetBrains Mono", monospace;
+    font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism Navbar */
+/* Glassmorphism Top Navbar */
 .navbar-custom {
-    background: rgba(15, 23, 42, 0.92) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(7, 13, 25, 0.85) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-glass);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
     z-index: 1040;
 }
 
-/* SIDEBAR LAYOUT FIX & COLLAPSIBLE */
+/* App Layout & Floating Sidebar */
 .app-layout {
     display: flex;
     margin-top: 68px;
@@ -37,121 +61,153 @@ body {
     bottom: 0;
     left: 0;
     width: 250px;
-    background: #0f172a;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border-right: 1px solid var(--border-glass);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1030;
     overflow-y: auto;
 }
 
-.sidebar-wrapper.collapsed { 
-    width: 78px; 
-}
+.sidebar-wrapper.collapsed { width: 78px; }
 .sidebar-wrapper.collapsed .nav-text,
-.sidebar-wrapper.collapsed .menu-header-text { 
-    display: none !important; 
-}
-.sidebar-wrapper.collapsed .nav-link { 
-    justify-content: center; 
-    padding: 14px 0; 
-}
-.sidebar-wrapper.collapsed .nav-link i { 
-    margin-right: 0 !important; 
-    font-size: 1.35rem; 
-}
+.sidebar-wrapper.collapsed .menu-header-text { display: none !important; }
+.sidebar-wrapper.collapsed .nav-link { justify-content: center; padding: 14px 0; }
+.sidebar-wrapper.collapsed .nav-link i { margin-right: 0 !important; font-size: 1.35rem; }
 
 .content-wrapper {
     margin-left: 250px;
     width: calc(100% - 250px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 2rem;
 }
-.content-wrapper.expanded { 
-    margin-left: 78px; 
-    width: calc(100% - 78px); 
-}
+.content-wrapper.expanded { margin-left: 78px; width: calc(100% - 78px); }
 
+/* Navigation Item Styling & Glowing Hover */
 .sidebar-wrapper .nav-link {
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-weight: 600;
-    font-size: 0.925rem;
+    font-size: 0.9rem;
     border-radius: 12px;
-    margin: 4px 12px;
+    margin: 6px 12px;
     padding: 12px 16px;
     display: flex;
     align-items: center;
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
 }
 
-.sidebar-wrapper .nav-link:hover { 
-    color: #f8fafc; 
-    background: rgba(255, 255, 255, 0.06); 
-    transform: translateX(3px); 
+.sidebar-wrapper .nav-link:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
 }
 
 .sidebar-wrapper .nav-link.active {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
     color: #ffffff !important;
-    box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.45);
+    border-color: rgba(147, 197, 253, 0.3);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.45);
 }
 
-/* STYLING BLUE METAR-TAF CARDS (KHUSUS TAB CUACA HARI INI) */
-.card-blue-luxury {
-    background: #004b93 !important;
-    border: none !important;
-    border-radius: 12px !important;
-    color: #ffffff !important;
-}
-
-.card-blue-luxury .table-dark-custom {
-    color: #ffffff !important;
-    background: transparent !important;
-}
-
-.card-blue-luxury .table-dark-custom td, 
-.card-blue-luxury .table-dark-custom th {
-    border-color: rgba(255, 255, 255, 0.18) !important;
-    padding: 12px 16px;
-    background: transparent !important;
-    color: #ffffff !important;
-}
-
-/* KARTU LUXURY UTAMA */
+/* Modern Glass Card Luxury */
 .card-luxury {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    transition: all 0.3s ease;
-}
-.card-luxury:hover { 
-    transform: translateY(-5px); 
-    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08) !important; 
+    background: var(--bg-card-glass) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass) !important;
+    border-radius: 18px !important;
+    color: var(--text-primary) !important;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
 }
 
-.spin-anim { 
-    animation: spin 0.8s linear infinite; 
+.card-luxury:hover {
+    transform: translateY(-6px);
+    background: var(--bg-card-hover) !important;
+    border-color: var(--border-glow-blue) !important;
+    box-shadow: 0 20px 40px -10px rgba(14, 165, 233, 0.25) !important;
 }
-@keyframes spin { 100% { transform: rotate(360deg); } }
 
+.card-blue-luxury {
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+    border-radius: 18px !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* Custom Luxury Tables */
+.table-dark-custom, .table-custom-glass {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+}
+
+.table-dark-custom td, .table-dark-custom th,
+.table-custom-glass td, .table-custom-glass th {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    padding: 14px 18px;
+    background: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+.table-custom-glass tbody tr {
+    transition: background-color 0.25s ease;
+}
+.table-custom-glass tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Dynamic Live Radar Beacon Animation */
 .live-beacon {
     display: inline-block;
     width: 9px;
     height: 9px;
-    background-color: #10b981;
+    background-color: var(--accent-emerald);
     border-radius: 50%;
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
     animation: beaconPulse 1.8s infinite;
 }
 @keyframes beaconPulse {
     0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
+/* Value Pulse Animation When Updated */
+.value-update-anim {
+    animation: pulseValue 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes pulseValue {
+    0% { opacity: 0.4; transform: scale(0.96); }
+    50% { opacity: 1; color: var(--accent-cyan); transform: scale(1.04); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Smooth Entrance Animation */
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.spin-anim { animation: spin 0.8s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Button & Toggle Styling */
 .btn-toggle-sidebar {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-glass);
+    color: var(--text-primary);
     border-radius: 10px;
     padding: 6px 12px;
+    transition: all 0.25s ease;
+}
+.btn-toggle-sidebar:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--accent-cyan);
 }
