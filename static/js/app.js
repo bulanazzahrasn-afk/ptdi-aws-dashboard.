@@ -1,66 +1,13 @@
-let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
 const POLLING_INTERVAL = 30000;
 let historyLogs = [];
-let dashOffset = 0;
 
-// PLUGIN OVERLAY RUNWAY WITH ANIMATED CENTERLINE
-const runwayOverlayPlugin = {
-    id: 'runwayOverlay',
-    afterDraw: (chart) => {
-        const { ctx, scales } = chart;
-        const rScale = scales.r;
-        if (!rScale) return;
-
-        const centerX = rScale.xCenter;
-        const centerY = rScale.yCenter;
-        const radius = rScale.drawingArea;
-
-        const rad110 = (110 - 90) * (Math.PI / 180);
-        const rad290 = (290 - 90) * (Math.PI / 180);
-
-        ctx.save();
-
-        ctx.beginPath();
-        ctx.lineWidth = 7;
-        ctx.strokeStyle = '#1e293b'; 
-        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.95), centerY + Math.sin(rad290) * (radius * 0.95));
-        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
-        ctx.stroke();
-
-        dashOffset = (dashOffset + 0.3) % 8;
-        ctx.beginPath();
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([5, 3]);
-        ctx.lineDashOffset = -dashOffset;
-        ctx.strokeStyle = '#38bdf8';
-        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
-        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
-        ctx.fillStyle = '#ef4444';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const x11 = centerX + Math.cos(rad110) * (radius * 1.08);
-        const y11 = centerY + Math.sin(rad110) * (radius * 1.08);
-        ctx.fillText('RWY 11', x11, y11);
-
-        const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
-        const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
-        ctx.fillText('RWY 29', x29, y29);
-
-        ctx.restore();
-    }
-};
-
-Chart.register(runwayOverlayPlugin);
+let currentWindDir = 180;
+let currentWindSpd = 6.0;
+let currentCrosswind = 5.6;
 
 document.addEventListener("DOMContentLoaded", () => {
-    initWindRoseChart();
     startRealtimeClock();
     fetchAWSData();
 
@@ -79,7 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
         sidebarToggle.addEventListener("click", () => {
             sidebar.classList.toggle("collapsed");
             contentArea.classList.toggle("expanded");
-            setTimeout(drawDaylightCurve, 300);
+            setTimeout(() => {
+                drawDaylightCurve();
+                drawAviationCompass(currentWindDir);
+                drawSpeedometer(currentWindSpd);
+            }, 300);
         });
     }
 
@@ -111,9 +62,215 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    window.addEventListener("resize", drawDaylightCurve);
+    window.addEventListener("resize", () => {
+        drawDaylightCurve();
+        drawAviationCompass(currentWindDir);
+        drawSpeedometer(currentWindSpd);
+    });
+
     startAutoRefresh();
 });
+
+// FUNGSI 1: RENDER AVIATION COMPASS DIAL (KIRI)
+function drawAviationCompass(windDirDeg) {
+    const canvas = document.getElementById("compassCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const parentWidth = canvas.parentElement.clientWidth || 280;
+    
+    canvas.width = parentWidth;
+    canvas.height = 280;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const radius = Math.min(cx, cy) - 25;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Outer Ring Marks (Tick Marks 360 Deg)
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    for (let deg = 0; deg < 360; deg += 5) {
+        const rad = (deg - 90) * (Math.PI / 180);
+        const isMajor = deg % 30 === 0;
+        const tickLength = isMajor ? 10 : 5;
+
+        const x1 = Math.cos(rad) * (radius - tickLength);
+        const y1 = Math.sin(rad) * (radius - tickLength);
+        const x2 = Math.cos(rad) * radius;
+        const y2 = Math.sin(rad) * radius;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = isMajor ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = isMajor ? 1.8 : 1;
+        ctx.stroke();
+
+        // Direction / Heading Labels
+        if (isMajor) {
+            let label = (deg / 10).toString();
+            if (deg === 0) label = "N";
+            else if (deg === 90) label = "E";
+            else if (deg === 180) label = "S";
+            else if (deg === 270) label = "W";
+            else if (deg < 100) label = "0" + label;
+
+            const textX = Math.cos(rad) * (radius - 22);
+            const textY = Math.sin(rad) * (radius - 22);
+
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, textX, textY);
+        }
+    }
+    ctx.restore();
+
+    // 2. Runway 11/29 Strip Overlay (Angle 110 Deg)
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((110 - 90) * (Math.PI / 180));
+
+    const rwyLength = radius * 1.3;
+    const rwyWidth = 22;
+
+    // Black Runway Surface
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-rwyLength / 2, -rwyWidth / 2, rwyLength, rwyWidth);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-rwyLength / 2, -rwyWidth / 2, rwyLength, rwyWidth);
+
+    // Centerline Dashes
+    ctx.beginPath();
+    ctx.setLineDash([6, 4]);
+    ctx.moveTo(-rwyLength / 2 + 15, 0);
+    ctx.lineTo(rwyLength / 2 - 15, 0);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Runway Labels 11 & 29
+    ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.fillText('11', -rwyLength / 2 + 10, 0);
+    ctx.fillText('29', rwyLength / 2 - 10, 0);
+
+    ctx.restore();
+
+    // 3. Dynamic Wind Arrow (Panah Arah Angin)
+    ctx.save();
+    ctx.translate(cx, cy);
+    const windRad = (windDirDeg - 90) * (Math.PI / 180);
+
+    const arrowX = Math.cos(windRad) * (radius + 12);
+    const arrowY = Math.sin(windRad) * (radius + 12);
+
+    ctx.translate(arrowX, arrowY);
+    ctx.rotate(windRad + Math.PI / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-7, -14);
+    ctx.lineTo(7, -14);
+    ctx.closePath();
+    ctx.fillStyle = '#f59e0b'; // Amber Gold Arrow
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+// FUNGSI 2: RENDER ANALOG SPEEDOMETER KNOTS (KANAN)
+function drawSpeedometer(windSpeedKt) {
+    const canvas = document.getElementById("speedometerCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const parentWidth = canvas.parentElement.clientWidth || 200;
+
+    canvas.width = parentWidth;
+    canvas.height = 200;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2 + 10;
+    const radius = Math.min(cx, cy) - 20;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Scale 0 to 30 Knots
+    const minAngle = -140 * (Math.PI / 180);
+    const maxAngle = 40 * (Math.PI / 180);
+
+    // Dial Ticks
+    for (let spd = 0; spd <= 30; spd += 5) {
+        const pct = spd / 30;
+        const angle = minAngle + pct * (maxAngle - minAngle);
+
+        const x1 = cx + Math.cos(angle) * (radius - 8);
+        const y1 = cy + Math.sin(angle) * (radius - 8);
+        const x2 = cx + Math.cos(angle) * radius;
+        const y2 = cy + Math.sin(angle) * radius;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        const textX = cx + Math.cos(angle) * (radius - 20);
+        const textY = cy + Math.sin(angle) * (radius - 20);
+
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(spd.toString(), textX, textY);
+    }
+
+    // Unit Label "kt"
+    ctx.font = 'bold 12px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText("kt", cx, cy - radius / 2);
+
+    // Needle Jarum Penunjuk
+    const clampedSpeed = Math.min(Math.max(windSpeedKt, 0), 30);
+    const needlePct = clampedSpeed / 30;
+    const needleAngle = minAngle + needlePct * (maxAngle - minAngle);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(needleAngle);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(radius - 12, 0);
+    ctx.lineTo(0, 4);
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+}
 
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
@@ -306,18 +463,27 @@ function renderDashboard(data) {
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
     if (w.surface) {
+        currentWindDir = w.surface.dir_deg || 180;
+        currentWindSpd = w.surface.speed_kt || 6.0;
+        currentCrosswind = r.crosswind_kt || 5.6;
+
+        safeSetText("compass-status-text", `<i class="bi bi-arrow-right me-1"></i>Crosswind: ${currentCrosswind} kt`);
+
+        // Render Canvas Dials
+        drawAviationCompass(currentWindDir);
+        drawSpeedometer(currentWindSpd);
+
         const windDirInput = document.getElementById("calc-wind-dir");
         const windSpdInput = document.getElementById("calc-wind-spd");
         if (windDirInput && windSpdInput) {
-            windDirInput.value = w.surface.dir_deg;
-            windSpdInput.value = w.surface.speed_kt;
+            windDirInput.value = currentWindDir;
+            windSpdInput.value = currentWindSpd;
             calculatePopUpCrosswind();
         }
     }
 
     const minData = data.minutely_15;
     if (minData) {
-        updateWindRoseChart(minData);
         renderDaily00to24History(minData);
     }
 
@@ -360,73 +526,6 @@ function calculatePopUpCrosswind() {
             threatDesc.textContent = "AMAN: Komponen angin samping di bawah limitasi penerbangan normal.";
         }
     }
-}
-
-function initWindRoseChart() {
-    const canvas = document.getElementById("windRoseChart");
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const sectors = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-
-    windRoseInstance = new Chart(ctx, {
-        type: 'polarArea',
-        data: {
-            labels: sectors,
-            datasets: [
-                { label: 'Calm (<3 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(6, 182, 212, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
-                { label: 'Light (3-10 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(16, 185, 129, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
-                { label: 'Moderate (11-20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(245, 158, 11, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
-                { label: 'Strong (>20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ffffff', borderWidth: 1 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: 15 },
-            plugins: { legend: { display: false } },
-            scales: {
-                r: {
-                    startAngle: -11.25, // FIX KUNCI: Menyesuaikan rotasi -11.25° agar N tepat tegak di 12 o'clock & S tegak di 6 o'clock
-                    stacked: true,
-                    ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
-                    grid: { color: '#e2e8f0' },
-                    angleLines: { display: true, color: '#cbd5e1' },
-                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#1e293b' }
-                }
-            }
-        }
-    });
-}
-
-function updateWindRoseChart(payload) {
-    if (!windRoseInstance || !payload.wind_direction_10m || !payload.wind_speed_10m) return;
-
-    const dirs = payload.wind_direction_10m;
-    const speeds = payload.wind_speed_10m;
-
-    const catCalm = Array(16).fill(0);
-    const catLight = Array(16).fill(0);
-    const catMod = Array(16).fill(0);
-    const catStrong = Array(16).fill(0);
-
-    dirs.forEach((deg, i) => {
-        if (deg !== null && deg !== undefined && speeds[i] !== null && speeds[i] !== undefined) {
-            const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
-            const spdKt = parseFloat(speeds[i]) * 0.539957;
-
-            if (spdKt < 3.0) catCalm[idx] += 1;
-            else if (spdKt <= 10.0) catLight[idx] += 1;
-            else if (spdKt <= 20.0) catMod[idx] += 1;
-            else catStrong[idx] += 1;
-        }
-    });
-
-    windRoseInstance.data.datasets[0].data = catCalm;
-    windRoseInstance.data.datasets[1].data = catLight;
-    windRoseInstance.data.datasets[2].data = catMod;
-    windRoseInstance.data.datasets[3].data = catStrong;
-    windRoseInstance.update();
 }
 
 function renderFlightPrepTable(data) {
