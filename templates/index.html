@@ -57,7 +57,7 @@
     <!-- Main App Layout -->
     <div class="app-layout">
         
-        <!-- SIDEBAR -->
+        <!-- SIDEBAR NAVIGASI -->
         <aside class="sidebar-wrapper" id="sidebar">
             <div class="py-3">
                 <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.68rem; letter-spacing: 1px;">Navigasi Utama</div>
@@ -66,7 +66,6 @@
                         <i class="bi bi-speedometer2 me-3"></i>
                         <span class="nav-text">Ringkasan Utama</span>
                     </button>
-                    <!-- DIUBAH NAMA NYA MENJADI CUACA HARI INI -->
                     <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" title="Cuaca Hari Ini">
                         <i class="bi bi-sun me-3"></i>
                         <span class="nav-text">Cuaca Hari Ini</span>
@@ -186,38 +185,38 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: BAR CUACA HARI INI (BARU DENGAN SUNRISE/SUNSET & TABLES) -->
+                <!-- TAB 2: TAB CUACA HARI INI (STYLE BLUE METAR-TAF) -->
                 <div class="tab-pane fade" id="forecast" role="tabpanel">
                     
                     <!-- SECTION 1: DAYLIGHT PERIOD CANVAS CURVE -->
-                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
-                        <h4 class="fw-bold mb-3">Daylight period</h4>
-                        <div class="daylight-canvas-container text-center py-2">
-                            <canvas id="daylightCanvas" height="150"></canvas>
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
+                        <h4 class="fw-bold mb-3 text-white">Daylight period</h4>
+                        <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
+                            <canvas id="daylightCanvas"></canvas>
                         </div>
-                        <div class="d-flex justify-content-around text-center mt-2">
+                        <div class="d-flex justify-content-around text-center mt-3">
                             <div>
-                                <div class="small fw-bold text-light">Sunrise</div>
-                                <div class="fs-5 font-mono fw-bold" id="sun-sunrise-val">06:02</div>
+                                <div class="small fw-bold text-light opacity-75">Sunrise</div>
+                                <div class="fs-5 font-mono fw-bold text-white" id="sun-sunrise-val">06:02</div>
                             </div>
                             <div>
-                                <div class="small fw-bold text-light">Midday</div>
-                                <div class="fs-5 font-mono fw-bold" id="sun-midday-val">11:58</div>
+                                <div class="small fw-bold text-light opacity-75">Midday</div>
+                                <div class="fs-5 font-mono fw-bold text-white" id="sun-midday-val">11:58</div>
                             </div>
                             <div>
-                                <div class="small fw-bold text-light">Sunset</div>
-                                <div class="fs-5 font-mono fw-bold" id="sun-sunset-val">17:54 (4:08h)</div>
+                                <div class="small fw-bold text-light opacity-75">Sunset</div>
+                                <div class="fs-5 font-mono fw-bold text-white" id="sun-sunset-val">17:54 (4:08h)</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- SECTION 2: RUNWAYS TABLE -->
-                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
-                        <h4 class="fw-bold mb-3">Runways</h4>
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
+                        <h4 class="fw-bold mb-3 text-white">Runways</h4>
                         <div class="table-responsive">
                             <table class="table table-dark-custom align-middle mb-2">
                                 <thead>
-                                    <tr class="text-secondary small">
+                                    <tr class="text-light opacity-75 small">
                                         <th>1D</th>
                                         <th>Heading</th>
                                         <th>Crosswind</th>
@@ -227,7 +226,7 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td class="fw-bold font-mono text-info">11/29</td>
+                                        <td class="fw-bold font-mono text-warning">11/29</td>
                                         <td class="font-mono">110° - 290°</td>
                                         <td class="fw-bold text-warning font-mono" id="rwy-cross-val"><i class="bi bi-arrow-right me-1"></i>11 kt</td>
                                         <td class="font-mono" id="rwy-head-val">2 kt</td>
@@ -236,45 +235,45 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="extra-small text-secondary opacity-75">
+                        <div class="extra-small text-light opacity-75 mt-2">
                             <i class="bi bi-info-circle me-1"></i> The direction with the greatest headwind component is highlighted and used for crosswind calculation.
                         </div>
                     </div>
 
                     <!-- SECTION 3: CLOUDS TABLE -->
-                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
-                        <h4 class="fw-bold mb-3">Clouds</h4>
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
+                        <h4 class="fw-bold mb-3 text-white">Clouds</h4>
                         <div class="p-3 bg-white bg-opacity-10 rounded-3 d-flex align-items-center gap-3">
                             <span class="badge bg-light text-dark font-mono px-3 py-2 fs-6">1,700 ft</span>
                             <span class="badge bg-primary font-mono px-3 py-2 fs-6">SCT</span>
-                            <span class="fw-bold fs-6">Scattered clouds</span>
+                            <span class="fw-bold fs-6 text-white">Scattered clouds</span>
                         </div>
                     </div>
 
                     <!-- SECTION 4: TEMPERATURE & WEATHER TABLE -->
-                    <div class="card card-blue-luxury p-4 shadow-sm text-white">
-                        <h4 class="fw-bold mb-3">Temperature & Weather</h4>
+                    <div class="card card-blue-luxury p-4 shadow-sm">
+                        <h4 class="fw-bold mb-3 text-white">Temperature & Weather</h4>
                         <div class="table-responsive">
                             <table class="table table-dark-custom align-middle mb-0">
                                 <tbody>
                                     <tr>
-                                        <td class="w-25 text-secondary">Temperature</td>
+                                        <td class="w-25 text-light opacity-75">Temperature</td>
                                         <td class="fw-bold font-mono fs-5 text-warning" id="tbl-temp-val">34 °C</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-secondary">Dewpoint</td>
+                                        <td class="text-light opacity-75">Dewpoint</td>
                                         <td class="fw-bold font-mono" id="tbl-dew-val">21 °C</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-secondary">Rel. humidity</td>
+                                        <td class="text-light opacity-75">Rel. humidity</td>
                                         <td class="fw-bold font-mono" id="tbl-rh-val">47 %</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-secondary">Heat index</td>
-                                        <td class="fw-bold font-mono text-danger" id="tbl-heat-val">37 °C</td>
+                                        <td class="text-light opacity-75">Heat index</td>
+                                        <td class="fw-bold font-mono text-warning" id="tbl-heat-val">37 °C</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-secondary">Kp-Index</td>
+                                        <td class="text-light opacity-75">Kp-Index</td>
                                         <td class="fw-bold font-mono" id="tbl-kp-val">1 (0-9)</td>
                                     </tr>
                                 </tbody>

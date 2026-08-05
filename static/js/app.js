@@ -60,9 +60,16 @@ Chart.register(runwayOverlayPlugin);
 
 document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
-    drawDaylightCurve();
     startRealtimeClock();
     fetchAWSData();
+
+    // Event listener: Render ulang Kurva Matahari saat Tab Cuaca Hari Ini diklik
+    const forecastTabBtn = document.getElementById("forecast-tab");
+    if (forecastTabBtn) {
+        forecastTabBtn.addEventListener("shown.bs.tab", () => {
+            setTimeout(drawDaylightCurve, 100);
+        });
+    }
 
     const sidebarToggle = document.getElementById("sidebarToggle");
     const sidebar = document.getElementById("sidebar");
@@ -72,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sidebarToggle.addEventListener("click", () => {
             sidebar.classList.toggle("collapsed");
             contentArea.classList.toggle("expanded");
+            setTimeout(drawDaylightCurve, 300);
         });
     }
 
@@ -103,52 +111,75 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    window.addEventListener("resize", drawDaylightCurve);
     startAutoRefresh();
 });
 
+// FUNGSI RENDER DAYLIGHT CURVE CANVAS (DAYLIGHT PERIOD)
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
-    canvas.width = canvas.parentElement.clientWidth || 600;
-    canvas.height = 120;
+    const parentWidth = canvas.parentElement.clientWidth || 600;
+    
+    canvas.width = parentWidth;
+    canvas.height = 140;
 
     const w = canvas.width;
     const h = canvas.height;
-    const midY = h / 2 + 10;
+    const midY = h / 2 + 15;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Baseline
+    // 1. Garis Horizon Baseline (Putih Transparan)
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.lineWidth = 1.5;
-    ctx.moveTo(10, midY);
-    ctx.lineTo(w - 10, midY);
+    ctx.moveTo(20, midY);
+    ctx.lineTo(w - 20, midY);
     ctx.stroke();
 
-    // Sun Curve (Sine Wave)
+    // 2. Kurva Gelombang Sine Matahari
     ctx.beginPath();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 2.5;
-    for (let x = 10; x <= w - 10; x++) {
-        const rad = ((x - 10) / (w - 20)) * Math.PI * 2;
-        const y = midY - Math.sin(rad - Math.PI / 2) * 45;
-        if (x === 10) ctx.moveTo(x, y);
+    ctx.strokeStyle = '#38bdf8'; // Sky Blue Glow
+    ctx.lineWidth = 3;
+    for (let x = 20; x <= w - 20; x++) {
+        const rad = ((x - 20) / (w - 40)) * Math.PI * 2;
+        const y = midY - Math.sin(rad - Math.PI / 2) * 48;
+        if (x === 20) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Sun Icon at peak
-    const sunX = w / 2 + 30;
-    const sunY = midY - 42;
+    // 3. Ikon Matahari di Puncak Kurva
+    const sunX = w / 2;
+    const sunY = midY - 48;
+
+    // Lingkaran Luar Matahari
     ctx.beginPath();
-    ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
-    ctx.fillStyle = '#f59e0b';
+    ctx.arc(sunX, sunY, 11, 0, Math.PI * 2);
+    ctx.fillStyle = '#f59e0b'; // Amber Gold
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
+
+    // Sinar Matahari (Sun Rays)
+    for (let i = 0; i < 8; i++) {
+        const angle = (i * 45) * (Math.PI / 180);
+        const rayStartX = sunX + Math.cos(angle) * 14;
+        const rayStartY = sunY + Math.sin(angle) * 14;
+        const rayEndX = sunX + Math.cos(angle) * 19;
+        const rayEndY = sunY + Math.sin(angle) * 19;
+
+        ctx.beginPath();
+        ctx.moveTo(rayStartX, rayStartY);
+        ctx.lineTo(rayEndX, rayEndY);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
 }
 
 function startRealtimeClock() {
@@ -240,7 +271,7 @@ function renderDashboard(data) {
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-pcts", c.cloud_cover_octa);
 
-    // UPDATE TAB CUACA HARI INI
+    // Update Tab Cuaca Hari Ini (Metar-TAF Style)
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
     safeSetText("sun-sunset-val", `${dl.sunset} (${dl.duration})`);
@@ -297,6 +328,7 @@ function renderDashboard(data) {
     }
 
     renderFlightPrepTable(data);
+    drawDaylightCurve();
 }
 
 function calculatePopUpCrosswind() {
