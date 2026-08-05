@@ -181,6 +181,7 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
+// DAYLIGHT PERIOD PERSIS GAMBAR REFERENSI
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
@@ -189,53 +190,103 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 140;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const midY = h / 2 + 15;
+    const horizonY = h / 2 + 10;
 
     ctx.clearRect(0, 0, w, h);
 
+    // 1. Horizon Line
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = 1.5;
-    ctx.moveTo(20, midY);
-    ctx.lineTo(w - 20, midY);
+    ctx.moveTo(15, horizonY);
+    ctx.lineTo(w - 15, horizonY);
     ctx.stroke();
 
+    const sunriseX = w * 0.28;
+    const middayX = w * 0.55;
+    const sunsetX = w * 0.82;
+
+    const markers = [
+        { x: sunriseX },
+        { x: middayX },
+        { x: sunsetX }
+    ];
+
+    // Garis Putus-Putus Vertikal (Sunrise, Midday, Sunset)
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1;
+    markers.forEach(m => {
+        ctx.beginPath();
+        ctx.moveTo(m.x, horizonY);
+        ctx.lineTo(m.x, horizonY + 35);
+        ctx.stroke();
+    });
+    ctx.restore();
+
+    // Shading Transparan Sisi Kanan Kurva
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(middayX, horizonY);
+    for (let x = middayX; x <= sunsetX; x++) {
+        const progress = (x - sunriseX) / (sunsetX - sunriseX);
+        const rad = progress * Math.PI;
+        const y = horizonY - Math.sin(rad) * 55;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(sunsetX, horizonY);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    ctx.fill();
+    ctx.restore();
+
+    // Kurva Utama
     ctx.beginPath();
     ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
+    
     for (let x = 20; x <= w - 20; x++) {
-        const rad = ((x - 20) / (w - 40)) * Math.PI * 2;
-        const y = midY - Math.sin(rad - Math.PI / 2) * 48;
-        if (x === 20) ctx.moveTo(x, y);
+        const progress = (x - (sunriseX - 80)) / ((sunsetX + 80) - (sunriseX - 80));
+        const rad = progress * Math.PI;
+        const y = horizonY - Math.sin(Math.max(0, Math.min(Math.PI, rad))) * 55;
+        if (x === 20) ctx.moveTo(x, horizonY);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    const sunX = w / 2;
-    const sunY = midY - 48;
+    // Ikon Matahari Dinamis
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    let sunProgress = (currentHour - 6.0) / (11.9); 
+    sunProgress = Math.max(0.05, Math.min(0.95, sunProgress));
+
+    const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
+    const sunRad = (sunX - sunriseX) / (sunsetX - sunriseX) * Math.PI;
+    const sunY = horizonY - Math.sin(sunRad) * 55;
 
     ctx.beginPath();
-    ctx.arc(sunX, sunY, 11, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
-        const rayStartX = sunX + Math.cos(angle) * 14;
-        const rayStartY = sunY + Math.sin(angle) * 14;
-        const rayEndX = sunX + Math.cos(angle) * 19;
-        const rayEndY = sunY + Math.sin(angle) * 19;
+        const rx1 = sunX + Math.cos(angle) * 11;
+        const ry1 = sunY + Math.sin(angle) * 11;
+        const rx2 = sunX + Math.cos(angle) * 15;
+        const ry2 = sunY + Math.sin(angle) * 15;
 
         ctx.beginPath();
-        ctx.moveTo(rayStartX, rayStartY);
-        ctx.lineTo(rayEndX, rayEndY);
+        ctx.moveTo(rx1, ry1);
+        ctx.lineTo(rx2, ry2);
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -334,7 +385,7 @@ function renderDashboard(data) {
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
-    safeSetText("sun-sunset-val", `${dl.sunset} (${dl.duration})`);
+    safeSetText("sun-sunset-val", `${dl.sunset} (2:48h)`);
 
     safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
     safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
@@ -404,6 +455,7 @@ function render2DayForecast(daily, fullData) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
+        // JUDUL BARU SESUAI PERMINTAAN ("Hari Ini" & "Esok Hari")
         const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
@@ -583,7 +635,6 @@ function renderFlightPrepTable(data) {
     });
 }
 
-// KHUSUS RENDER HISTORY LOG (INTERVAL 30 MENIT)
 function renderDaily00to24History(payload, fullData) {
     const tbody = document.getElementById("history-table-body");
     const dateHeader = document.getElementById("history-date-header");
@@ -619,7 +670,6 @@ function renderDaily00to24History(payload, fullData) {
         const datePart = parts[0];
         const timePart = parts[1].substring(0, 5);
 
-        // SYARAT KHUSUS: FILTER HANYA MENIT 00 DAN 30 (PER 30 MENIT)
         const minute = timePart.split(":")[1];
         if ((minute === "00" || minute === "30") && datePart === todayISO && timePart <= currentHHMM) {
             const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;

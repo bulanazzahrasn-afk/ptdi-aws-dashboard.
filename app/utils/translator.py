@@ -42,7 +42,6 @@ def translate_aws_payload(raw: dict) -> dict:
     headwind_kt = round(wspd_kt * math.cos(angle_rad), 1)
     crosswind_pct = round((crosswind_kt / wspd_kt * 100), 0) if wspd_kt > 0 else 0
 
-    # PROFIL ANGIN REVISI NAMA KETINGGIAN
     wind_levels = {
         "surface": {"label": "33 ft (Angin Permukaan)", "speed_kt": wspd_kt, "dir_deg": wdir_deg, "dir_compass": deg_to_compass(wdir_deg)},
         "lvl_025": {"label": "250 ft (Angin Lapisan Rendah)", "speed_kt": round((upper.get("wind_speed_80m", 0) or 0) * 0.539957, 1), "dir_deg": upper.get("wind_direction_80m", wdir_deg), "dir_compass": deg_to_compass(upper.get("wind_direction_80m", wdir_deg))},
