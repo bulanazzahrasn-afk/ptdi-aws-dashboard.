@@ -21,24 +21,22 @@ def translate_aws_payload(raw: dict) -> dict:
     metar = raw.get("metar", {})
     taf = raw.get("taf", {})
     upper = raw.get("upper_wind", {})
-    daily_sun = raw.get("daily_sun", {})
+    daily_ext = raw.get("daily_ext", {})
     min15 = raw.get("minutely_15", {})
 
     temp = safe_val(metar.get("temp"), 31.0)
     dewp = safe_val(metar.get("dewp"), 21.0)
     altim_hpa = safe_val(metar.get("altim"), 1010.0)
     
-    rh = int(100 - (5 * (temp - dewp))) if temp and dewp else 47
+    rh = int(100 - (5 * (temp - dewp))) if temp and dewp else 50
     rh = max(0, min(100, rh))
 
-    # Calculate Heat Index
     heat_index = round(temp + (0.5555 * (6.11 * math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewp))) - 10)), 1) if dewp else temp + 2
 
     wspd_kt = safe_val(metar.get("wspd"), 6.0)
     wdir_deg = safe_val(metar.get("wdir"), 180)
     wgst_kt = metar.get("wgst") or wspd_kt
 
-    # Calculate Crosswind RWY 11/29 (110° / 290°)
     angle_rad = abs(wdir_deg - 110) * (math.pi / 180)
     crosswind_kt = round(abs(wspd_kt * math.sin(angle_rad)), 1)
     headwind_kt = round(wspd_kt * math.cos(angle_rad), 1)
@@ -52,9 +50,27 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # Sun Times
-    sunrise_str = daily_sun.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_sun.get("sunrise") else "06:02"
-    sunset_str = daily_sun.get("sunset", ["2026-08-05T17:54"])[0].split("T")[1][:5] if daily_sun.get("sunset") else "17:54"
+    # FORMASI OKTA UTAMA & DESKRIPSI KETERANGAN
+    clouds = metar.get("clouds", [])
+    cloud_octa = "3-4/8 (SCT)"
+    cloud_desc = "1,700 ft SCT Scattered clouds"
+    
+    if clouds and isinstance(clouds, list) and len(clouds) > 0:
+        cover = clouds[0].get("cover", "FEW")
+        base = clouds[0].get("base", 0)
+        
+        octa_map = {
+            "SKC": "0/8 (Clear)",
+            "FEW": "1-2/8 (FEW)",
+            "SCT": "3-4/8 (SCT)",
+            "BKN": "5-7/8 (BKN)",
+            "OVC": "8/8 (OVC)"
+        }
+        cloud_octa = octa_map.get(cover, "3-4/8 (SCT)")
+        cloud_desc = f"{base}00 ft {cover} Scattered clouds"
+
+    sunrise_str = daily_ext.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
+    sunset_str = daily_ext.get("sunset", ["2026-08-05T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
 
     return {
         "metadata": {
@@ -88,8 +104,10 @@ def translate_aws_payload(raw: dict) -> dict:
         "wind_profile": wind_levels,
         "clouds_precipitation": {
             "precipitation_mm": 0.0,
-            "cloud_cover_octa": "1,700 ft SCT Scattered clouds",
+            "cloud_cover_octa": cloud_octa,  # DITAMPILKAN DI NILAI UTAMA (OKTA)
+            "cloud_desc": cloud_desc,        # DITAMPILKAN DI KETERANGAN SUBTITLE
             "cloud_cover_low_pct": 20
         },
-        "minutely_15": min15
+        "minutely_15": min15,
+        "raw_daily_payload": daily_ext
     }

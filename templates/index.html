@@ -135,7 +135,9 @@
                             <div class="card card-luxury shadow-sm h-100">
                                 <div class="card-body p-4">
                                     <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN</div>
+                                    <!-- VALUE UTAMA BERVALUASI OKTA -->
                                     <div class="display-6 fw-extrabold text-dark my-2 font-mono" id="m-cloud-octa">--</div>
+                                    <!-- SUBTITLE METAR DESKRIPSI -->
                                     <div class="small text-muted">Aero Base: <span id="m-cloud-pcts" class="fw-bold font-mono">--</span></div>
                                 </div>
                             </div>
@@ -171,38 +173,34 @@
                             </div>
                         </div>
 
-                        <!-- AVIATION COMPASS DIAL & SPEEDOMETER GAUGE -->
+                        <!-- KEMBALIKAN WIND ROSE POLAR CHART DENGAN THRESHOLD THRESHOLD & FREKUENSI -->
                         <div class="col-lg-7">
-                            <div class="card card-blue-luxury shadow-sm h-100">
-                                <div class="card-header bg-transparent py-3 fw-bold d-flex justify-content-between align-items-center border-0 text-white">
-                                    <span><i class="bi bi-compass me-2 text-warning"></i>Aviation Compass & Wind Dial (RWY 11/29)</span>
-                                    <span class="badge bg-light text-dark font-mono">WICC Realtime</span>
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-header bg-white py-3 fw-bold d-flex justify-content-between align-items-center border-0">
+                                    <span><i class="bi bi-compass me-2 text-danger"></i>Wind Rose RWY 11/29 Alignment</span>
+                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">WICC Realtime</span>
                                 </div>
-                                <div class="card-body p-3 text-center">
-                                    <div class="row g-2 align-items-center">
-                                        <!-- Kompas Alignment (Kiri) -->
-                                        <div class="col-md-7">
-                                            <canvas id="compassCanvas" style="max-width: 100%; height: 280px;"></canvas>
-                                        </div>
-                                        <!-- Gauge Speedometer Knots (Kanan) -->
-                                        <div class="col-md-5">
-                                            <canvas id="speedometerCanvas" style="max-width: 100%; height: 220px;"></canvas>
-                                            <div class="mt-2 text-center">
-                                                <div class="badge bg-white bg-opacity-10 text-white font-mono px-3 py-1.5 border border-white border-opacity-25" id="compass-status-text">
-                                                    <i class="bi bi-arrow-right me-1"></i>Crosswind: 5.6 kt
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="card-body text-center p-2" style="position: relative; height: 320px;">
+                                    <canvas id="windRoseChart"></canvas>
+                                </div>
+                                <div class="card-footer bg-white small text-muted d-flex justify-content-around py-2">
+                                    <span><i class="bi bi-square-fill text-info me-1"></i>Calm (&lt;3 kt)</span>
+                                    <span><i class="bi bi-square-fill me-1" style="color:#10b981;"></i>Light (3-10 kt)</span>
+                                    <span><i class="bi bi-square-fill me-1" style="color:#f59e0b;"></i>Moderate (11-20 kt)</span>
+                                    <span><i class="bi bi-square-fill text-danger me-1"></i>Strong (&gt;20 kt)</span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
-                <!-- TAB 2: TAB CUACA HARI INI -->
+                <!-- TAB 2: TAB CUACA HARI INI (GABUNGAN PRAKIRAAN HARIAN + METAR-TAF STYLE) -->
                 <div class="tab-pane fade" id="forecast" role="tabpanel">
+                    
+                    <!-- KARTU PRAKIRAAN CUACA HARIAN (HARI INI & BESOK) DIKEMBALIKAN UTUH -->
+                    <div class="row g-4 mb-4" id="daily-forecast-cards"></div>
+
+                    <!-- FITUR DAYLIGHT PERIOD -->
                     <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-white">Daylight period</h4>
                         <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
@@ -224,6 +222,7 @@
                         </div>
                     </div>
 
+                    <!-- FITUR RUNWAYS -->
                     <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-white">Runways</h4>
                         <div class="table-responsive">
@@ -241,7 +240,7 @@
                                     <tr>
                                         <td class="fw-bold font-mono text-warning">11/29</td>
                                         <td class="font-mono">110° - 290°</td>
-                                        <td class="fw-bold text-warning font-mono" id="rwy-cross-val"><i class="bi bi-arrow-right me-1"></i>11 kt</td>
+                                        <td class="fw-bold text-warning font-mono" id="rwy-cross-val">11 kt</td>
                                         <td class="font-mono" id="rwy-head-val">2 kt</td>
                                         <td class="fw-bold font-mono" id="rwy-pct-val">98 %</td>
                                     </tr>
@@ -253,6 +252,7 @@
                         </div>
                     </div>
 
+                    <!-- FITUR CLOUDS -->
                     <div class="card card-blue-luxury p-4 mb-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-white">Clouds</h4>
                         <div class="p-3 bg-white bg-opacity-10 rounded-3 d-flex align-items-center gap-3">
@@ -262,6 +262,7 @@
                         </div>
                     </div>
 
+                    <!-- FITUR TEMPERATURE & WEATHER -->
                     <div class="card card-blue-luxury p-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-white">Temperature & Weather</h4>
                         <div class="table-responsive">

@@ -1,13 +1,69 @@
+let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
 const POLLING_INTERVAL = 30000;
 let historyLogs = [];
+let dashOffset = 0;
 
-let currentWindDir = 180;
-let currentWindSpd = 6.0;
-let currentCrosswind = 5.6;
+// OVERLAY RUNWAY THRESHOLD DENGAN ROTASI SERTA TEXT ANIMATED CENTERLINE
+const runwayOverlayPlugin = {
+    id: 'runwayOverlay',
+    afterDraw: (chart) => {
+        const { ctx, scales } = chart;
+        const rScale = scales.r;
+        if (!rScale) return;
+
+        const centerX = rScale.xCenter;
+        const centerY = rScale.yCenter;
+        const radius = rScale.drawingArea;
+
+        const rad110 = (110 - 90) * (Math.PI / 180);
+        const rad290 = (290 - 90) * (Math.PI / 180);
+
+        ctx.save();
+
+        // Strip Runway Surface
+        ctx.beginPath();
+        ctx.lineWidth = 7;
+        ctx.strokeStyle = '#1e293b'; 
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.95), centerY + Math.sin(rad290) * (radius * 0.95));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
+
+        // Centerline Dash Animation
+        dashOffset = (dashOffset + 0.3) % 8;
+        ctx.beginPath();
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([5, 3]);
+        ctx.lineDashOffset = -dashOffset;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Label Threshold RWY 11 & RWY 29
+        ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+        ctx.fillStyle = '#ef4444';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const x11 = centerX + Math.cos(rad110) * (radius * 1.08);
+        const y11 = centerY + Math.sin(rad110) * (radius * 1.08);
+        ctx.fillText('RWY 11', x11, y11);
+
+        const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
+        const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
+        ctx.fillText('RWY 29', x29, y29);
+
+        ctx.restore();
+    }
+};
+
+Chart.register(runwayOverlayPlugin);
 
 document.addEventListener("DOMContentLoaded", () => {
+    initWindRoseChart();
     startRealtimeClock();
     fetchAWSData();
 
@@ -26,11 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sidebarToggle.addEventListener("click", () => {
             sidebar.classList.toggle("collapsed");
             contentArea.classList.toggle("expanded");
-            setTimeout(() => {
-                drawDaylightCurve();
-                drawAviationCompass(currentWindDir);
-                drawSpeedometer(currentWindSpd);
-            }, 300);
+            setTimeout(drawDaylightCurve, 300);
         });
     }
 
@@ -62,214 +114,76 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    window.addEventListener("resize", () => {
-        drawDaylightCurve();
-        drawAviationCompass(currentWindDir);
-        drawSpeedometer(currentWindSpd);
-    });
-
+    window.addEventListener("resize", drawDaylightCurve);
     startAutoRefresh();
 });
 
-// FUNGSI 1: RENDER AVIATION COMPASS DIAL (KIRI)
-function drawAviationCompass(windDirDeg) {
-    const canvas = document.getElementById("compassCanvas");
+// POLAR WIND ROSE CHART DENGAN FREKUENSI & KATEGORI KECEPATAN
+function initWindRoseChart() {
+    const canvas = document.getElementById("windRoseChart");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const parentWidth = canvas.parentElement.clientWidth || 280;
-    
-    canvas.width = parentWidth;
-    canvas.height = 280;
+    const sectors = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const radius = Math.min(cx, cy) - 25;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 1. Outer Ring Marks (Tick Marks 360 Deg)
-    ctx.save();
-    ctx.translate(cx, cy);
-
-    for (let deg = 0; deg < 360; deg += 5) {
-        const rad = (deg - 90) * (Math.PI / 180);
-        const isMajor = deg % 30 === 0;
-        const tickLength = isMajor ? 10 : 5;
-
-        const x1 = Math.cos(rad) * (radius - tickLength);
-        const y1 = Math.sin(rad) * (radius - tickLength);
-        const x2 = Math.cos(rad) * radius;
-        const y2 = Math.sin(rad) * radius;
-
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = isMajor ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = isMajor ? 1.8 : 1;
-        ctx.stroke();
-
-        // Direction / Heading Labels
-        if (isMajor) {
-            let label = (deg / 10).toString();
-            if (deg === 0) label = "N";
-            else if (deg === 90) label = "E";
-            else if (deg === 180) label = "S";
-            else if (deg === 270) label = "W";
-            else if (deg < 100) label = "0" + label;
-
-            const textX = Math.cos(rad) * (radius - 22);
-            const textY = Math.sin(rad) * (radius - 22);
-
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(label, textX, textY);
+    windRoseInstance = new Chart(ctx, {
+        type: 'polarArea',
+        data: {
+            labels: sectors,
+            datasets: [
+                { label: 'Calm (<3 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(6, 182, 212, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Light (3-10 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(16, 185, 129, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Moderate (11-20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(245, 158, 11, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Strong (>20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ffffff', borderWidth: 1 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: 15 },
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    startAngle: -11.25, // FIX KUNCI: ROTASI -11.25 DEGREES AGAR N TEGAK LURUS JAM 12
+                    stacked: true,
+                    ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { display: true, color: '#cbd5e1' },
+                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#1e293b' }
+                }
+            }
         }
-    }
-    ctx.restore();
-
-    // 2. Runway 11/29 Strip Overlay (Angle 110 Deg)
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((110 - 90) * (Math.PI / 180));
-
-    const rwyLength = radius * 1.3;
-    const rwyWidth = 22;
-
-    // Black Runway Surface
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-rwyLength / 2, -rwyWidth / 2, rwyLength, rwyWidth);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(-rwyLength / 2, -rwyWidth / 2, rwyLength, rwyWidth);
-
-    // Centerline Dashes
-    ctx.beginPath();
-    ctx.setLineDash([6, 4]);
-    ctx.moveTo(-rwyLength / 2 + 15, 0);
-    ctx.lineTo(rwyLength / 2 - 15, 0);
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Runway Labels 11 & 29
-    ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    ctx.fillText('11', -rwyLength / 2 + 10, 0);
-    ctx.fillText('29', rwyLength / 2 - 10, 0);
-
-    ctx.restore();
-
-    // 3. Dynamic Wind Arrow (Panah Arah Angin)
-    ctx.save();
-    ctx.translate(cx, cy);
-    const windRad = (windDirDeg - 90) * (Math.PI / 180);
-
-    const arrowX = Math.cos(windRad) * (radius + 12);
-    const arrowY = Math.sin(windRad) * (radius + 12);
-
-    ctx.translate(arrowX, arrowY);
-    ctx.rotate(windRad + Math.PI / 2);
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-7, -14);
-    ctx.lineTo(7, -14);
-    ctx.closePath();
-    ctx.fillStyle = '#f59e0b'; // Amber Gold Arrow
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.restore();
+    });
 }
 
-// FUNGSI 2: RENDER ANALOG SPEEDOMETER KNOTS (KANAN)
-function drawSpeedometer(windSpeedKt) {
-    const canvas = document.getElementById("speedometerCanvas");
-    if (!canvas) return;
+function updateWindRoseChart(payload) {
+    if (!windRoseInstance || !payload.wind_direction_10m || !payload.wind_speed_10m) return;
 
-    const ctx = canvas.getContext("2d");
-    const parentWidth = canvas.parentElement.clientWidth || 200;
+    const dirs = payload.wind_direction_10m;
+    const speeds = payload.wind_speed_10m;
 
-    canvas.width = parentWidth;
-    canvas.height = 200;
+    const catCalm = Array(16).fill(0);
+    const catLight = Array(16).fill(0);
+    const catMod = Array(16).fill(0);
+    const catStrong = Array(16).fill(0);
 
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2 + 10;
-    const radius = Math.min(cx, cy) - 20;
+    dirs.forEach((deg, i) => {
+        if (deg !== null && deg !== undefined && speeds[i] !== null && speeds[i] !== undefined) {
+            const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
+            const spdKt = parseFloat(speeds[i]) * 0.539957;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (spdKt < 3.0) catCalm[idx] += 1;
+            else if (spdKt <= 10.0) catLight[idx] += 1;
+            else if (spdKt <= 20.0) catMod[idx] += 1;
+            else catStrong[idx] += 1;
+        }
+    });
 
-    // Scale 0 to 30 Knots
-    const minAngle = -140 * (Math.PI / 180);
-    const maxAngle = 40 * (Math.PI / 180);
-
-    // Dial Ticks
-    for (let spd = 0; spd <= 30; spd += 5) {
-        const pct = spd / 30;
-        const angle = minAngle + pct * (maxAngle - minAngle);
-
-        const x1 = cx + Math.cos(angle) * (radius - 8);
-        const y1 = cy + Math.sin(angle) * (radius - 8);
-        const x2 = cx + Math.cos(angle) * radius;
-        const y2 = cy + Math.sin(angle) * radius;
-
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        const textX = cx + Math.cos(angle) * (radius - 20);
-        const textY = cy + Math.sin(angle) * (radius - 20);
-
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(spd.toString(), textX, textY);
-    }
-
-    // Unit Label "kt"
-    ctx.font = 'bold 12px "JetBrains Mono", monospace';
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillText("kt", cx, cy - radius / 2);
-
-    // Needle Jarum Penunjuk
-    const clampedSpeed = Math.min(Math.max(windSpeedKt, 0), 30);
-    const needlePct = clampedSpeed / 30;
-    const needleAngle = minAngle + needlePct * (maxAngle - minAngle);
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(needleAngle);
-
-    ctx.beginPath();
-    ctx.moveTo(0, -4);
-    ctx.lineTo(radius - 12, 0);
-    ctx.lineTo(0, 4);
-    ctx.closePath();
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#1e293b';
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.restore();
+    windRoseInstance.data.datasets[0].data = catCalm;
+    windRoseInstance.data.datasets[1].data = catLight;
+    windRoseInstance.data.datasets[2].data = catMod;
+    windRoseInstance.data.datasets[3].data = catStrong;
+    windRoseInstance.update();
 }
 
 function drawDaylightCurve() {
@@ -420,6 +334,7 @@ function renderDashboard(data) {
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     
+    // RENDER OKTA UTAMA & DESKRIPSI KETERANGAN
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-pcts", c.cloud_desc || c.cloud_cover_octa);
 
@@ -463,32 +378,142 @@ function renderDashboard(data) {
     safeSetText("wgust-spd", w.gusts_kt, "kt");
 
     if (w.surface) {
-        currentWindDir = w.surface.dir_deg || 180;
-        currentWindSpd = w.surface.speed_kt || 6.0;
-        currentCrosswind = r.crosswind_kt || 5.6;
-
-        safeSetText("compass-status-text", `<i class="bi bi-arrow-right me-1"></i>Crosswind: ${currentCrosswind} kt`);
-
-        // Render Canvas Dials
-        drawAviationCompass(currentWindDir);
-        drawSpeedometer(currentWindSpd);
-
         const windDirInput = document.getElementById("calc-wind-dir");
         const windSpdInput = document.getElementById("calc-wind-spd");
         if (windDirInput && windSpdInput) {
-            windDirInput.value = currentWindDir;
-            windSpdInput.value = currentWindSpd;
+            windDirInput.value = w.surface.dir_deg;
+            windSpdInput.value = w.surface.speed_kt;
             calculatePopUpCrosswind();
         }
     }
 
     const minData = data.minutely_15;
     if (minData) {
+        updateWindRoseChart(minData);
         renderDaily00to24History(minData);
+    }
+
+    // RENDER KARTU PRAKIRAAN 2 HARI
+    if (data.raw_daily_payload) {
+        render2DayForecast(data.raw_daily_payload);
     }
 
     renderFlightPrepTable(data);
     drawDaylightCurve();
+}
+
+// FUNGSI RENDER KARTU PRAKIRAAN CUACA 2 HARI (HARI INI & BESOK)
+function render2DayForecast(daily) {
+    const container = document.getElementById("daily-forecast-cards");
+    if (!container || !daily.time) return;
+
+    container.innerHTML = "";
+    const dates = daily.time.slice(0, 2);
+
+    dates.forEach((dStr, i) => {
+        const dateObj = new Date(dStr);
+        const dayLabel = i === 0 ? "Prakiraan Hari Ini (Today)" : "Prakiraan Besok (Tomorrow)";
+        const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
+        });
+
+        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+        
+        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+        
+        const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+        const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+        
+        const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+        const domDirCompass = degToCompassShort(domDirDeg);
+        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+
+        let flightCategory = "VFR";
+        let categoryBadge = "bg-success";
+        let weatherIcon = "bi-sun-fill text-warning";
+        let weatherText = "Kondisi visual operasional optimal.";
+
+        if (precipSum > 10.0) {
+            flightCategory = "IFR / Severe";
+            categoryBadge = "bg-danger";
+            weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
+            weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
+        } else if (precipSum > 1.0 || windMaxKt > 15.0) {
+            flightCategory = "MVFR";
+            categoryBadge = "bg-warning text-dark";
+            weatherIcon = "bi-cloud-rain-heavy-fill text-info";
+            weatherText = "Waspada presipitasi lokal / angin kencang.";
+        } else if (windMaxKt <= 10.0) {
+            weatherIcon = "bi-cloud-sun-fill text-warning";
+        }
+
+        const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
+        const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
+
+        const card = document.createElement("div");
+        card.className = "col-md-6";
+        card.innerHTML = `
+            <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
+                        <h4 class="fw-bold mb-0">${dayLabel}</h4>
+                        <div class="small text-secondary font-mono">${formattedDate}</div>
+                    </div>
+                    <div class="text-end">
+                        <i class="bi ${weatherIcon} display-4"></i>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 bg-white">
+                    <div class="d-flex align-items-baseline gap-3 mb-3">
+                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
+                        <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
+                        <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
+                                <div class="fw-bold fs-5 text-dark font-mono">${windMaxKt} kt</div>
+                                <div class="small text-muted font-mono">${domDirDeg}° (${domDirCompass})</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
+                                <div class="fw-bold fs-5 text-danger font-mono">${gustsMaxKt} kt</div>
+                                <div class="small text-muted">Peak Surface Gust</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
+                                <div class="fw-bold fs-5 text-warning font-mono">${crosswindKt} kt</div>
+                                <div class="small text-muted">Runway Component</div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
+                                <div class="fw-bold fs-5 text-info font-mono">${precipSum} mm</div>
+                                <div class="small text-muted">Total Harian</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
 function calculatePopUpCrosswind() {
