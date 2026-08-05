@@ -11,7 +11,7 @@
 </head>
 <body>
 
-    <!-- Header Navbar Glassmorphism -->
+    <!-- Header Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-3 py-2 fixed-top">
         <div class="container-fluid">
             <div class="d-flex align-items-center gap-3">
@@ -38,7 +38,7 @@
                 <div class="vr bg-secondary mx-1 my-1 opacity-25"></div>
 
                 <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1.5 rounded-3 border border-secondary border-opacity-25">
-                    <span class="live-beacon" title="Live Stream Active"></span>
+                    <span class="live-beacon"></span>
                     <span class="text-light font-mono small" id="last-update">--:--:-- WIB</span>
                 </div>
 
@@ -57,7 +57,7 @@
     <!-- Main App Layout -->
     <div class="app-layout">
         
-        <!-- SIDEBAR FIX & COLLAPSIBLE -->
+        <!-- SIDEBAR -->
         <aside class="sidebar-wrapper" id="sidebar">
             <div class="py-3">
                 <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.68rem; letter-spacing: 1px;">Navigasi Utama</div>
@@ -66,9 +66,10 @@
                         <i class="bi bi-speedometer2 me-3"></i>
                         <span class="nav-text">Ringkasan Utama</span>
                     </button>
-                    <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" title="Prakiraan Cuaca">
-                        <i class="bi bi-calendar2-week me-3"></i>
-                        <span class="nav-text">Prakiraan Cuaca</span>
+                    <!-- DIUBAH NAMA NYA MENJADI CUACA HARI INI -->
+                    <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" title="Cuaca Hari Ini">
+                        <i class="bi bi-sun me-3"></i>
+                        <span class="nav-text">Cuaca Hari Ini</span>
                     </button>
                     <button class="nav-link" id="master-tab" data-bs-toggle="tab" data-bs-target="#master" type="button" title="Master Table">
                         <i class="bi bi-card-checklist me-3"></i>
@@ -88,8 +89,6 @@
                 
                 <!-- TAB 1: RINGKASAN UTAMA -->
                 <div class="tab-pane fade show active" id="summary" role="tabpanel">
-                    
-                    <!-- BANNER RAW METAR & TAF WICC RESMI -->
                     <div class="card card-luxury shadow-sm mb-4 border-primary border-opacity-25">
                         <div class="card-body p-3 bg-primary bg-opacity-10 rounded-3">
                             <div class="d-flex align-items-center gap-2 mb-2">
@@ -103,7 +102,6 @@
                         </div>
                     </div>
 
-                    <!-- RINGKASAN KARTU PARAMETER UTAMA -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-3">
                             <div class="card card-luxury shadow-sm h-100">
@@ -137,7 +135,7 @@
                         <div class="col-md-3">
                             <div class="card card-luxury shadow-sm h-100">
                                 <div class="card-body p-4">
-                                    <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN (METAR)</div>
+                                    <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN</div>
                                     <div class="display-6 fw-extrabold text-dark my-2" id="m-cloud-octa">--</div>
                                     <div class="small text-muted">Aero Base: <span id="m-cloud-pcts" class="fw-bold font-mono">--</span></div>
                                 </div>
@@ -145,7 +143,6 @@
                         </div>
                     </div>
 
-                    <!-- PROFIL ANGIN & WIND ROSE -->
                     <div class="row g-3">
                         <div class="col-lg-5">
                             <div class="card card-luxury shadow-sm h-100">
@@ -164,35 +161,11 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">33 ft (Surface)</td>
-                                                <td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td>
-                                                <td class="font-mono" id="w33-dir">--°</td>
-                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">250 ft (Lvl 025)</td>
-                                                <td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td>
-                                                <td class="font-mono" id="w250-dir">--°</td>
-                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">400 ft (Lvl 040)</td>
-                                                <td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td>
-                                                <td class="font-mono" id="w400-dir">--°</td>
-                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">600 ft (Lvl 060)</td>
-                                                <td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td>
-                                                <td class="font-mono" id="w600-dir">--°</td>
-                                                <td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td>
-                                            </tr>
-                                            <tr class="table-warning border-0">
-                                                <td class="ps-4 fw-bold">Peak Gust</td>
-                                                <td class="fw-bold text-danger font-mono" id="wgust-spd">-- kt</td>
-                                                <td colspan="2" class="pe-4 small text-muted">Max Gust METAR</td>
-                                            </tr>
+                                            <tr><td class="ps-4 fw-bold">33 ft (Surface)</td><td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td><td class="font-mono" id="w33-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td></tr>
+                                            <tr><td class="ps-4 fw-bold">250 ft (Lvl 025)</td><td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td><td class="font-mono" id="w250-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td></tr>
+                                            <tr><td class="ps-4 fw-bold">400 ft (Lvl 040)</td><td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td><td class="font-mono" id="w400-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td></tr>
+                                            <tr><td class="ps-4 fw-bold">600 ft (Lvl 060)</td><td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td><td class="font-mono" id="w600-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td></tr>
+                                            <tr class="table-warning border-0"><td class="ps-4 fw-bold">Peak Gust</td><td class="fw-bold text-danger font-mono" id="wgust-spd">-- kt</td><td colspan="2" class="pe-4 small text-muted">Max Gust METAR</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -213,9 +186,102 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: PRAKIRAAN CUACA -->
+                <!-- TAB 2: BAR CUACA HARI INI (BARU DENGAN SUNRISE/SUNSET & TABLES) -->
                 <div class="tab-pane fade" id="forecast" role="tabpanel">
-                    <div class="row g-4" id="daily-forecast-cards"></div>
+                    
+                    <!-- SECTION 1: DAYLIGHT PERIOD CANVAS CURVE -->
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
+                        <h4 class="fw-bold mb-3">Daylight period</h4>
+                        <div class="daylight-canvas-container text-center py-2">
+                            <canvas id="daylightCanvas" height="150"></canvas>
+                        </div>
+                        <div class="d-flex justify-content-around text-center mt-2">
+                            <div>
+                                <div class="small fw-bold text-light">Sunrise</div>
+                                <div class="fs-5 font-mono fw-bold" id="sun-sunrise-val">06:02</div>
+                            </div>
+                            <div>
+                                <div class="small fw-bold text-light">Midday</div>
+                                <div class="fs-5 font-mono fw-bold" id="sun-midday-val">11:58</div>
+                            </div>
+                            <div>
+                                <div class="small fw-bold text-light">Sunset</div>
+                                <div class="fs-5 font-mono fw-bold" id="sun-sunset-val">17:54 (4:08h)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: RUNWAYS TABLE -->
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
+                        <h4 class="fw-bold mb-3">Runways</h4>
+                        <div class="table-responsive">
+                            <table class="table table-dark-custom align-middle mb-2">
+                                <thead>
+                                    <tr class="text-secondary small">
+                                        <th>1D</th>
+                                        <th>Heading</th>
+                                        <th>Crosswind</th>
+                                        <th>Headwind</th>
+                                        <th>Crosswind %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold font-mono text-info">11/29</td>
+                                        <td class="font-mono">110° - 290°</td>
+                                        <td class="fw-bold text-warning font-mono" id="rwy-cross-val"><i class="bi bi-arrow-right me-1"></i>11 kt</td>
+                                        <td class="font-mono" id="rwy-head-val">2 kt</td>
+                                        <td class="fw-bold font-mono" id="rwy-pct-val">98 %</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="extra-small text-secondary opacity-75">
+                            <i class="bi bi-info-circle me-1"></i> The direction with the greatest headwind component is highlighted and used for crosswind calculation.
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: CLOUDS TABLE -->
+                    <div class="card card-blue-luxury p-4 mb-4 shadow-sm text-white">
+                        <h4 class="fw-bold mb-3">Clouds</h4>
+                        <div class="p-3 bg-white bg-opacity-10 rounded-3 d-flex align-items-center gap-3">
+                            <span class="badge bg-light text-dark font-mono px-3 py-2 fs-6">1,700 ft</span>
+                            <span class="badge bg-primary font-mono px-3 py-2 fs-6">SCT</span>
+                            <span class="fw-bold fs-6">Scattered clouds</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: TEMPERATURE & WEATHER TABLE -->
+                    <div class="card card-blue-luxury p-4 shadow-sm text-white">
+                        <h4 class="fw-bold mb-3">Temperature & Weather</h4>
+                        <div class="table-responsive">
+                            <table class="table table-dark-custom align-middle mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="w-25 text-secondary">Temperature</td>
+                                        <td class="fw-bold font-mono fs-5 text-warning" id="tbl-temp-val">34 °C</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-secondary">Dewpoint</td>
+                                        <td class="fw-bold font-mono" id="tbl-dew-val">21 °C</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-secondary">Rel. humidity</td>
+                                        <td class="fw-bold font-mono" id="tbl-rh-val">47 %</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-secondary">Heat index</td>
+                                        <td class="fw-bold font-mono text-danger" id="tbl-heat-val">37 °C</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-secondary">Kp-Index</td>
+                                        <td class="fw-bold font-mono" id="tbl-kp-val">1 (0-9)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- TAB 3: MASTER TABLE -->
@@ -279,9 +345,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-dark text-white p-4 border-0">
-                    <h5 class="modal-title fw-bold" id="crosswindModalLabel">
-                        <i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind Calculator
-                    </h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind Calculator</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">

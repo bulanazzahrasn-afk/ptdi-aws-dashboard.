@@ -60,6 +60,7 @@ Chart.register(runwayOverlayPlugin);
 
 document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
+    drawDaylightCurve();
     startRealtimeClock();
     fetchAWSData();
 
@@ -104,6 +105,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
     startAutoRefresh();
 });
+
+function drawDaylightCurve() {
+    const canvas = document.getElementById("daylightCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = canvas.parentElement.clientWidth || 600;
+    canvas.height = 120;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const midY = h / 2 + 10;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Baseline
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(10, midY);
+    ctx.lineTo(w - 10, midY);
+    ctx.stroke();
+
+    // Sun Curve (Sine Wave)
+    ctx.beginPath();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    for (let x = 10; x <= w - 10; x++) {
+        const rad = ((x - 10) / (w - 20)) * Math.PI * 2;
+        const y = midY - Math.sin(rad - Math.PI / 2) * 45;
+        if (x === 10) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Sun Icon at peak
+    const sunX = w / 2 + 30;
+    const sunY = midY - 42;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
 
 function startRealtimeClock() {
     updateClockDisplay();
@@ -178,6 +224,8 @@ function renderDashboard(data) {
     const t = data.thermodynamics || {};
     const w = data.wind_profile || {};
     const c = data.clouds_precipitation || {};
+    const r = data.runways || {};
+    const dl = data.daylight || {};
 
     if (data.metadata) {
         safeSetText("raw-metar-text", data.metadata.raw_metar);
@@ -191,6 +239,21 @@ function renderDashboard(data) {
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-pcts", c.cloud_cover_octa);
+
+    // UPDATE TAB CUACA HARI INI
+    safeSetText("sun-sunrise-val", dl.sunrise);
+    safeSetText("sun-midday-val", dl.midday);
+    safeSetText("sun-sunset-val", `${dl.sunset} (${dl.duration})`);
+
+    safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
+    safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
+    safeSetText("rwy-pct-val", `${r.crosswind_pct} %`);
+
+    safeSetText("tbl-temp-val", `${t.temp_2m} °C`);
+    safeSetText("tbl-dew-val", `${t.dew_point} °C`);
+    safeSetText("tbl-rh-val", `${t.rh_2m} %`);
+    safeSetText("tbl-heat-val", `${t.heat_index} °C`);
+    safeSetText("tbl-kp-val", t.kp_index);
 
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
@@ -231,10 +294,6 @@ function renderDashboard(data) {
     if (minData) {
         updateWindRoseChart(minData);
         renderDaily00to24History(minData);
-    }
-
-    if (data.raw_daily_payload) {
-        render2DayForecast(data.raw_daily_payload);
     }
 
     renderFlightPrepTable(data);
@@ -343,119 +402,6 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-function render2DayForecast(daily) {
-    const container = document.getElementById("daily-forecast-cards");
-    if (!container || !daily.time) return;
-
-    container.innerHTML = "";
-    const dates = daily.time.slice(0, 2);
-
-    dates.forEach((dStr, i) => {
-        const dateObj = new Date(dStr);
-        const dayLabel = i === 0 ? "Hari Ini (Today)" : "Besok (Tomorrow)";
-        const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
-        });
-
-        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
-        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
-        
-        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
-        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
-        
-        const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
-        const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
-        
-        const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
-        const domDirCompass = degToCompassShort(domDirDeg);
-        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
-
-        let flightCategory = "VFR";
-        let categoryBadge = "bg-success";
-        let weatherIcon = "bi-sun-fill text-warning";
-        let weatherText = "Kondisi visual operasional optimal.";
-
-        if (precipSum > 10.0) {
-            flightCategory = "IFR / Severe";
-            categoryBadge = "bg-danger";
-            weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
-            weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
-        } else if (precipSum > 1.0 || windMaxKt > 15.0) {
-            flightCategory = "MVFR";
-            categoryBadge = "bg-warning text-dark";
-            weatherIcon = "bi-cloud-rain-heavy-fill text-info";
-            weatherText = "Waspada presipitasi lokal / angin kencang.";
-        } else if (windMaxKt <= 10.0) {
-            weatherIcon = "bi-cloud-sun-fill text-warning";
-        }
-
-        const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
-        const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
-
-        const card = document.createElement("div");
-        card.className = "col-md-6";
-        card.innerHTML = `
-            <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
-                <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
-                        <h4 class="fw-bold mb-0">${dayLabel}</h4>
-                        <div class="small text-secondary font-mono">${formattedDate}</div>
-                    </div>
-                    <div class="text-end">
-                        <i class="bi ${weatherIcon} display-4"></i>
-                    </div>
-                </div>
-
-                <div class="card-body p-4 bg-white">
-                    <div class="d-flex align-items-baseline gap-3 mb-3">
-                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
-                        <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
-                        <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
-                    </div>
-
-                    <hr class="my-3">
-
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
-                                <div class="fw-bold fs-5 text-dark font-mono">${windMaxKt} kt</div>
-                                <div class="small text-muted font-mono">${domDirDeg}° (${domDirCompass})</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
-                                <div class="fw-bold fs-5 text-danger font-mono">${gustsMaxKt} kt</div>
-                                <div class="small text-muted">Peak Surface Gust</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
-                                <div class="fw-bold fs-5 text-warning font-mono">${crosswindKt} kt</div>
-                                <div class="small text-muted">Runway Component</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
-                                <div class="fw-bold fs-5 text-info font-mono">${precipSum} mm</div>
-                                <div class="small text-muted">Total Harian</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
 function renderFlightPrepTable(data) {
     const tbody = document.getElementById("flight-prep-table-body");
     if (!tbody) return;
@@ -471,8 +417,8 @@ function renderFlightPrepTable(data) {
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
         { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
+        { name: "Heat Index", val: t.heat_index, unit: "°C", desc: "Indeks Sensasi Suhu Terasa" },
         { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
-        { name: "Maximum Wind Gust", val: w.gusts_kt, unit: "Knots", desc: "Potensi Kecepatan Hembusan Maksimum" },
         { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "METAR Code", desc: "Tutupan & Tinggi Dasar Awan" }
     ];
 
