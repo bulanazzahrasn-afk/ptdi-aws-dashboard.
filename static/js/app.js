@@ -181,7 +181,7 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// DAYLIGHT PERIOD PERSIS GAMBAR REFERENSI
+// PERBAIKAN PRESISI: GARIS PUTUS-PUTUS & KURVA DIJAMIN LURUS PAS
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
@@ -198,7 +198,7 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Horizon Line
+    // 1. Garis Horizon Utama
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = 1.5;
@@ -206,20 +206,22 @@ function drawDaylightCurve() {
     ctx.lineTo(w - 15, horizonY);
     ctx.stroke();
 
-    const sunriseX = w * 0.28;
-    const middayX = w * 0.55;
-    const sunsetX = w * 0.82;
+    // 2. Titik Koordinat Presisi untuk Sunrise, Midday, dan Sunset
+    const sunriseX = w * 0.25;
+    const middayX = w * 0.50;
+    const sunsetX = w * 0.75;
+    const curveRadiusY = 55;
 
+    // Garis Putus-Putus Vertikal Tepat di Titik Sunrise, Midday, Sunset
     const markers = [
         { x: sunriseX },
         { x: middayX },
         { x: sunsetX }
     ];
 
-    // Garis Putus-Putus Vertikal (Sunrise, Midday, Sunset)
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
     ctx.lineWidth = 1;
     markers.forEach(m => {
         ctx.beginPath();
@@ -229,14 +231,14 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // Shading Transparan Sisi Kanan Kurva
+    // 3. Shading Transparan Sisi Kanan Kurva (Matahari Turun)
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(middayX, horizonY);
     for (let x = middayX; x <= sunsetX; x++) {
         const progress = (x - sunriseX) / (sunsetX - sunriseX);
         const rad = progress * Math.PI;
-        const y = horizonY - Math.sin(rad) * 55;
+        const y = horizonY - Math.sin(rad) * curveRadiusY;
         ctx.lineTo(x, y);
     }
     ctx.lineTo(sunsetX, horizonY);
@@ -245,30 +247,47 @@ function drawDaylightCurve() {
     ctx.fill();
     ctx.restore();
 
-    // Kurva Utama
+    // 4. Kurva Lengkung Sempurna (Full Sine Arch dari Sunrise ke Sunset + Ekor Kurva)
     ctx.beginPath();
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2.5;
     
-    for (let x = 20; x <= w - 20; x++) {
-        const progress = (x - (sunriseX - 80)) / ((sunsetX + 80) - (sunriseX - 80));
-        const rad = progress * Math.PI;
-        const y = horizonY - Math.sin(Math.max(0, Math.min(Math.PI, rad))) * 55;
-        if (x === 20) ctx.moveTo(x, horizonY);
+    for (let x = 15; x <= w - 15; x++) {
+        // Pemetaan rentang X agar kurva dimulai dari 0 di sunriseX dan berakhir 0 di sunsetX
+        const totalSpan = sunsetX - sunriseX;
+        const normalizedProgress = (x - sunriseX) / totalSpan;
+        const rad = normalizedProgress * Math.PI;
+
+        let y;
+        if (x >= sunriseX && x <= sunsetX) {
+            y = horizonY - Math.sin(rad) * curveRadiusY;
+        } else if (x < sunriseX) {
+            // Ekor kurva sebelum sunrise (di bawah horizon)
+            const extProgress = (sunriseX - x) / totalSpan;
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+        } else {
+            // Ekor kurva setelah sunset (di bawah horizon)
+            const extProgress = (x - sunsetX) / totalSpan;
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+        }
+
+        if (x === 15) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
 
-    // Ikon Matahari Dinamis
+    // 5. Posisi Ikon Matahari Dinamis Real-Time di Atas Kurva
     const now = new Date();
     const currentHour = now.getHours() + now.getMinutes() / 60;
-    let sunProgress = (currentHour - 6.0) / (11.9); 
-    sunProgress = Math.max(0.05, Math.min(0.95, sunProgress));
+    // Asumsi durasi siang dari jam 06:00 sampai 17:50 (11.83 jam)
+    let sunProgress = (currentHour - 6.0) / 11.83; 
+    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress));
 
     const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
-    const sunRad = (sunX - sunriseX) / (sunsetX - sunriseX) * Math.PI;
-    const sunY = horizonY - Math.sin(sunRad) * 55;
+    const sunRad = sunProgress * Math.PI;
+    const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
+    // Lingkaran Matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -277,6 +296,7 @@ function drawDaylightCurve() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    // Sinar Matahari (Rays)
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
         const rx1 = sunX + Math.cos(angle) * 11;
@@ -455,7 +475,6 @@ function render2DayForecast(daily, fullData) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
-        // JUDUL BARU SESUAI PERMINTAAN ("Hari Ini" & "Esok Hari")
         const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
