@@ -5,7 +5,7 @@ const POLLING_INTERVAL = 30000;
 let historyLogs = [];
 let dashOffset = 0;
 
-// OVERLAY RUNWAY THRESHOLD DENGAN ROTASI SERTA TEXT ANIMATED CENTERLINE
+// OVERLAY RUNWAY DENGAN TEKS THRESHOLD BERANIMASI
 const runwayOverlayPlugin = {
     id: 'runwayOverlay',
     afterDraw: (chart) => {
@@ -22,7 +22,6 @@ const runwayOverlayPlugin = {
 
         ctx.save();
 
-        // Strip Runway Surface
         ctx.beginPath();
         ctx.lineWidth = 7;
         ctx.strokeStyle = '#1e293b'; 
@@ -30,7 +29,6 @@ const runwayOverlayPlugin = {
         ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
         ctx.stroke();
 
-        // Centerline Dash Animation
         dashOffset = (dashOffset + 0.3) % 8;
         ctx.beginPath();
         ctx.lineWidth = 1.8;
@@ -42,7 +40,6 @@ const runwayOverlayPlugin = {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Label Threshold RWY 11 & RWY 29
         ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
@@ -144,7 +141,7 @@ function initWindRoseChart() {
             plugins: { legend: { display: false } },
             scales: {
                 r: {
-                    startAngle: -11.25, // FIX KUNCI: ROTASI -11.25 DEGREES AGAR N TEGAK LURUS JAM 12
+                    startAngle: -11.25, // ROTASI -11.25 AGAR N TEGAK DI JAM 12 & S DI JAM 6
                     stacked: true,
                     ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
                     grid: { color: '#e2e8f0' },
@@ -393,7 +390,7 @@ function renderDashboard(data) {
         renderDaily00to24History(minData);
     }
 
-    // RENDER KARTU PRAKIRAAN 2 HARI
+    // RENDER KARTU PRAKIRAAN CUACA HARIAN (HARI INI & BESOK)
     if (data.raw_daily_payload) {
         render2DayForecast(data.raw_daily_payload);
     }
@@ -402,7 +399,7 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// FUNGSI RENDER KARTU PRAKIRAAN CUACA 2 HARI (HARI INI & BESOK)
+// RENDER KARTU PRAKIRAAN 2 HARI
 function render2DayForecast(daily) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;

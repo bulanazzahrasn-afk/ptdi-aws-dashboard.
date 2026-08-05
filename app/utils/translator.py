@@ -50,7 +50,7 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # FORMASI OKTA UTAMA & DESKRIPSI KETERANGAN
+    # PEMROSESAN TUTUPAN AWAN (OKTA DENGAN DESKRIPSI)
     clouds = metar.get("clouds", [])
     cloud_octa = "3-4/8 (SCT)"
     cloud_desc = "1,700 ft SCT Scattered clouds"
@@ -104,8 +104,8 @@ def translate_aws_payload(raw: dict) -> dict:
         "wind_profile": wind_levels,
         "clouds_precipitation": {
             "precipitation_mm": 0.0,
-            "cloud_cover_octa": cloud_octa,  # DITAMPILKAN DI NILAI UTAMA (OKTA)
-            "cloud_desc": cloud_desc,        # DITAMPILKAN DI KETERANGAN SUBTITLE
+            "cloud_cover_octa": cloud_octa,  # DI TAMPILAN ANGKANYA JADI OKTA
+            "cloud_desc": cloud_desc,        # KETERANGAN KECIL AERO BASE
             "cloud_cover_low_pct": 20
         },
         "minutely_15": min15,
