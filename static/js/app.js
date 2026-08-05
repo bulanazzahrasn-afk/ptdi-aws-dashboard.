@@ -5,7 +5,6 @@ const POLLING_INTERVAL = 30000;
 let historyLogs = [];
 let dashOffset = 0;
 
-// OVERLAY RUNWAY DENGAN TEKS THRESHOLD BERANIMASI
 const runwayOverlayPlugin = {
     id: 'runwayOverlay',
     afterDraw: (chart) => {
@@ -115,7 +114,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startAutoRefresh();
 });
 
-// POLAR WIND ROSE CHART DENGAN FREKUENSI & KATEGORI KECEPATAN
 function initWindRoseChart() {
     const canvas = document.getElementById("windRoseChart");
     if (!canvas) return;
@@ -141,12 +139,12 @@ function initWindRoseChart() {
             plugins: { legend: { display: false } },
             scales: {
                 r: {
-                    startAngle: -11.25, // ROTASI -11.25 AGAR N TEGAK DI JAM 12 & S DI JAM 6
+                    startAngle: -11.25,
                     stacked: true,
-                    ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', font: { size: 9 } },
-                    grid: { color: '#e2e8f0' },
-                    angleLines: { display: true, color: '#cbd5e1' },
-                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#1e293b' }
+                    ticks: { display: true, backdropColor: 'rgba(30, 41, 59, 0.85)', color: '#94a3b8', font: { size: 9 } },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    angleLines: { display: true, color: 'rgba(255, 255, 255, 0.15)' },
+                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#f8fafc' }
                 }
             }
         }
@@ -200,7 +198,7 @@ function drawDaylightCurve() {
     ctx.clearRect(0, 0, w, h);
 
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1.5;
     ctx.moveTo(20, midY);
     ctx.lineTo(w - 20, midY);
@@ -331,7 +329,6 @@ function renderDashboard(data) {
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     
-    // RENDER OKTA UTAMA & DESKRIPSI KETERANGAN
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-pcts", c.cloud_desc || c.cloud_cover_octa);
 
@@ -390,17 +387,17 @@ function renderDashboard(data) {
         renderDaily00to24History(minData);
     }
 
-    // RENDER KARTU PRAKIRAAN CUACA HARIAN (HARI INI & BESOK)
+    // RENDER KARTU OBSERVASI REAL-TIME HARI INI & PRAKIRAAN BESOK
     if (data.raw_daily_payload) {
-        render2DayForecast(data.raw_daily_payload);
+        render2DayForecast(data.raw_daily_payload, data);
     }
 
     renderFlightPrepTable(data);
     drawDaylightCurve();
 }
 
-// RENDER KARTU PRAKIRAAN 2 HARI
-function render2DayForecast(daily) {
+// RENDER KARTU REAL-TIME HARI INI & FORECAST BESOK
+function render2DayForecast(daily, fullData) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;
 
@@ -409,7 +406,9 @@ function render2DayForecast(daily) {
 
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
-        const dayLabel = i === 0 ? "Prakiraan Hari Ini (Today)" : "Prakiraan Besok (Tomorrow)";
+        const dayLabel = i === 0 ? "Observasi Hari Ini (Real-Time)" : "Prakiraan Besok (Forecast)";
+        const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
+        
         const formattedDate = dateObj.toLocaleDateString('id-ID', { 
             weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
         });
@@ -453,56 +452,59 @@ function render2DayForecast(daily) {
         card.className = "col-md-6";
         card.innerHTML = `
             <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
-                <div class="card-header bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-dark bg-opacity-50 text-white p-4 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="badge ${categoryBadge} px-3 py-1 mb-2 font-mono fs-6">${flightCategory}</span>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
+                            <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1 font-mono extra-small">${badgeText}</span>
+                        </div>
                         <h4 class="fw-bold mb-0">${dayLabel}</h4>
-                        <div class="small text-secondary font-mono">${formattedDate}</div>
+                        <div class="small text-secondary font-mono mt-1">${formattedDate}</div>
                     </div>
                     <div class="text-end">
                         <i class="bi ${weatherIcon} display-4"></i>
                     </div>
                 </div>
 
-                <div class="card-body p-4 bg-white">
+                <div class="card-body p-4">
                     <div class="d-flex align-items-baseline gap-3 mb-3">
-                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
+                        <div class="display-5 fw-bold text-white font-mono">${tempMax}</div>
                         <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
-                        <div class="ms-auto text-end text-muted small fw-medium">${weatherText}</div>
+                        <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
                     </div>
 
-                    <hr class="my-3">
+                    <hr class="border-secondary border-opacity-25 my-3">
 
                     <div class="row g-3">
                         <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
-                                <div class="fw-bold fs-5 text-dark font-mono">${windMaxKt} kt</div>
-                                <div class="small text-muted font-mono">${domDirDeg}° (${domDirCompass})</div>
+                            <div class="p-3 sub-card-dark">
+                                <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-info"></i>MAX WIND</div>
+                                <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
+                                <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
                             </div>
                         </div>
 
                         <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
-                                <div class="fw-bold fs-5 text-danger font-mono">${gustsMaxKt} kt</div>
-                                <div class="small text-muted">Peak Surface Gust</div>
+                            <div class="p-3 sub-card-dark">
+                                <div class="sub-card-label mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
+                                <div class="fs-5 sub-card-value text-danger">${gustsMaxKt} kt</div>
+                                <div class="sub-card-desc">Peak Surface Gust</div>
                             </div>
                         </div>
 
                         <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
-                                <div class="fw-bold fs-5 text-warning font-mono">${crosswindKt} kt</div>
-                                <div class="small text-muted">Runway Component</div>
+                            <div class="p-3 sub-card-dark">
+                                <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
+                                <div class="fs-5 sub-card-value text-warning">${crosswindKt} kt</div>
+                                <div class="sub-card-desc">Runway Component</div>
                             </div>
                         </div>
 
                         <div class="col-6">
-                            <div class="p-3 bg-light rounded-3">
-                                <div class="text-secondary extra-small fw-bold mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
-                                <div class="fw-bold fs-5 text-info font-mono">${precipSum} mm</div>
-                                <div class="small text-muted">Total Harian</div>
+                            <div class="p-3 sub-card-dark">
+                                <div class="sub-card-label mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
+                                <div class="fs-5 sub-card-value text-info">${precipSum} mm</div>
+                                <div class="sub-card-desc">Total Harian</div>
                             </div>
                         </div>
                     </div>
@@ -574,8 +576,8 @@ function renderFlightPrepTable(data) {
     flightParams.forEach(p => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 fw-bold text-primary">${p.name}</td>
-            <td><code class="px-2 py-1 bg-light text-dark rounded border fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
+            <td class="ps-4 fw-bold text-info">${p.name}</td>
+            <td><code class="px-2 py-1 bg-dark text-white rounded border border-secondary border-opacity-25 fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
             <td class="text-secondary">${p.unit}</td>
             <td class="pe-4 small text-muted">${p.desc}</td>
         `;
@@ -656,12 +658,12 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 fw-bold text-primary font-mono">${log.time}</td>
-            <td class="font-mono">${log.temp}</td>
-            <td class="font-mono">${log.rh}</td>
-            <td class="font-mono">${log.press}</td>
-            <td class="font-mono">${log.windSpd}</td>
-            <td class="font-mono">${log.windDir}</td>
+            <td class="ps-4 fw-bold text-info font-mono">${log.time}</td>
+            <td class="font-mono text-white">${log.temp}</td>
+            <td class="font-mono text-white">${log.rh}</td>
+            <td class="font-mono text-white">${log.press}</td>
+            <td class="font-mono text-white">${log.windSpd}</td>
+            <td class="font-mono text-white">${log.windDir}</td>
             <td class="pe-4 small text-secondary">${log.precip}</td>
         `;
         tbody.appendChild(tr);
