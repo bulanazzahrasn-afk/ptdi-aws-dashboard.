@@ -895,6 +895,93 @@ function renderDaily00to24History(payload, fullData) {
     renderHistoryTable();
 }
 
+function renderDaily00to24History(payload, fullData) {
+    const tbody = document.getElementById("history-table-body");
+    const dateHeader = document.getElementById("history-date-header");
+    if (!tbody || !payload || !payload.time) return;
+
+    const times = payload.time;
+    const temps = payload.temperature_2m || [];
+    const dews = payload.relative_humidity_2m || [];
+    const windSpeeds = payload.wind_speed_10m || [];
+    const windDirs = payload.wind_direction_10m || [];
+    const precips = payload.precipitation || [];
+
+    const now = new Date();
+    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const formattedDate = now.toLocaleDateString('en-US', { 
+        timeZone: 'Asia/Jakarta', month: 'long', day: 'numeric', year: 'numeric' 
+    });
+
+    if (dateHeader) {
+        dateHeader.textContent = `History & Log Observasi (WIB / UTC) - ${formattedDate}`;
+    }
+
+    const currentHHMM = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
+    }).replace('.', ':');
+
+    let logsMap = new Map();
+
+    times.forEach((isoStr, i) => {
+        if (!isoStr) return;
+
+        const parts = isoStr.split("T");
+        if (parts.length < 2) return;
+
+        const datePart = parts[0];
+        const timePartWIB = parts[1].substring(0, 5); // Waktu dalam string data diasumsikan lokal/WIB
+
+        // Konversi jam WIB ke UTC (WIB dikurangi 7 jam)
+        const [hStr, mStr] = timePartWIB.split(":");
+        let hUTC = parseInt(hStr) - 7;
+        if (hUTC < 0) hUTC += 24;
+        const timePartUTC = `${String(hUTC).padStart(2, '0')}:${mStr}`;
+
+        const minute = timePartWIB.split(":")[1];
+        if ((minute === "00" || minute === "30") && datePart === todayISO && timePartWIB <= currentHHMM) {
+            const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
+            const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
+            const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
+            const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
+            const precipVal = precips[i] !== undefined ? precips[i] : 0.0;
+            const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
+            const heatVal = tempVal + 2;
+            const kpVal = "1 (0-9)";
+
+            let weatherCode = '<i class="bi bi-cloud-sun-fill text-warning fs-5" title="SCT / SKC"></i>';
+            let visVal = "10 km (9999)";
+            
+            if (precipVal > 0.5) {
+                weatherCode = '<span class="badge bg-danger font-mono" title="Rain (RA)">+RA</span>';
+                visVal = "4 km (4000)";
+            } else if (rhVal > 85) {
+                weatherCode = '<span class="badge bg-secondary font-mono" title="Fog (FG)">FG</span>';
+                visVal = "2 km (2000)";
+            } else if (rhVal > 75 || tempVal >= 28) {
+                weatherCode = '<span class="badge bg-warning text-dark font-mono" title="Haze (HZ)">HZ</span>';
+                visVal = "4 km (4000)";
+            }
+
+            logsMap.set(timePartWIB, {
+                timeKey: timePartWIB,
+                timeDisplay: `${timePartWIB} WIB<br><span class="text-secondary extra-small font-mono">(${timePartUTC} Z)</span>`,
+                weather: weatherCode,
+                temp: `${tempVal} °C`,
+                dewpoint: `${dewpVal} °C`,
+                rh: `${rhVal} %`,
+                heat: `${heatVal} °C`,
+                kp: kpVal,
+                visibility: visVal,
+                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
+            });
+        }
+    });
+
+    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
+    renderHistoryTable();
+}
+
 function renderHistoryTable() {
     const tbody = document.getElementById("history-table-body");
     if (!tbody) return;
@@ -908,7 +995,7 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
+            <td class="ps-4 font-mono text-primary fw-bold lh-sm">${log.timeDisplay}</td>
             <td class="text-center">${log.weather}</td>
             <td class="font-mono text-dark fw-bold">${log.temp}</td>
             <td class="font-mono text-secondary">${log.dewpoint}</td>
