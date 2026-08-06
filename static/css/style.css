@@ -1,14 +1,14 @@
 /* -----------------------------------------------------------------
-   LIGHT AVIATION SKY THEME (CLEAN, ELEGANT, NON-WHITE)
+   LUXURY BROKEN WHITE AVIATION THEME (CLEAN & ELEGANT)
 ----------------------------------------------------------------- */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-light-sky: #f1f5f9;              /* Abu-abu langit muda yang lembut */
-    --bg-card-white: #ffffff;            /* Kartu putih bersih */
-    --bg-card-inner: #f8fafc;            /* Inner sub-card */
-    --border-glass: #cbd5e1;             /* Garis batas kartu tipis jelas */
+    --bg-light-sky: #f1f5f9;              /* Latar belakang web abu-abu langit lembut */
+    --bg-card-broken-white: #fcfcfc;      /* Kartu Luxury Broken White */
+    --bg-card-inner: #f1f5f9;             /* Inner sub-card */
+    --border-glass: #e2e8f0;              /* Garis batas kartu halus */
     --border-glow-blue: rgba(37, 99, 235, 0.25);
     
     --accent-cyan: #0284c7;
@@ -37,9 +37,9 @@ body {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* Navbar Terang Elegan */
+/* Navbar Tetap Gelap Eksklusif */
 .navbar-custom {
-    background: #0f172a !important; /* Navbar tetap gelap eksklusif untuk kontras header */
+    background: #0f172a !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -105,9 +105,9 @@ body {
     box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.35);
 }
 
-/* CARD TERANG BERSIH */
+/* CARD LUXURY BROKEN WHITE */
 .card-luxury {
-    background: var(--bg-card-white) !important;
+    background: var(--bg-card-broken-white) !important;
     border: 1px solid var(--border-glass) !important;
     border-radius: 18px !important;
     color: var(--text-primary) !important;
@@ -130,7 +130,7 @@ body {
 }
 
 .sub-card-dark {
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 12px;
 }
@@ -173,7 +173,7 @@ body {
 }
 
 .table-custom-glass tbody tr:hover {
-    background-color: #f8fafc !important;
+    background-color: #f1f5f9 !important;
 }
 
 .live-beacon {
