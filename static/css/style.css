@@ -1,33 +1,33 @@
 /* -----------------------------------------------------------------
-   LUXURY MODERN DARK NAVY THEME - HIGH CONTRAST (PTDI AVIATION AWS)
+   LIGHT AVIATION SKY THEME (CLEAN, ELEGANT, NON-WHITE)
 ----------------------------------------------------------------- */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-dark-midnight: #0b1329;
-    --bg-card-slate: #1e293b;
-    --bg-card-inner: rgba(15, 23, 42, 0.65);
-    --border-glass: rgba(255, 255, 255, 0.12);
-    --border-glow-blue: rgba(56, 189, 248, 0.4);
+    --bg-light-sky: #f1f5f9;              /* Abu-abu langit muda yang lembut */
+    --bg-card-white: #ffffff;            /* Kartu putih bersih */
+    --bg-card-inner: #f8fafc;            /* Inner sub-card */
+    --border-glass: #cbd5e1;             /* Garis batas kartu tipis jelas */
+    --border-glow-blue: rgba(37, 99, 235, 0.25);
     
-    --accent-cyan: #38bdf8;
-    --accent-blue: #3b82f6;
-    --accent-amber: #f59e0b;
-    --accent-emerald: #10b981;
-    --accent-rose: #f43f5e;
+    --accent-cyan: #0284c7;
+    --accent-blue: #2563eb;
+    --accent-amber: #d97706;
+    --accent-emerald: #059669;
+    --accent-rose: #e11d48;
 
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
+    --text-primary: #0f172a;             /* Teks utama gelap kontras */
+    --text-secondary: #475569;           /* Teks sekunder */
+    --text-muted: #64748b;               /* Teks muted */
 }
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: var(--bg-dark-midnight);
+    background-color: var(--bg-light-sky);
     background-image: 
-        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.08) 0px, transparent 50%);
     background-attachment: fixed;
     color: var(--text-primary);
     overflow-x: hidden;
@@ -37,12 +37,13 @@ body {
     font-family: 'JetBrains Mono', monospace;
 }
 
+/* Navbar Terang Elegan */
 .navbar-custom {
-    background: rgba(11, 19, 41, 0.92) !important;
+    background: #0f172a !important; /* Navbar tetap gelap eksklusif untuk kontras header */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border-glass);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
     z-index: 1040;
 }
 
@@ -59,7 +60,7 @@ body {
     left: 0;
     width: 250px;
     background: #0f172a;
-    border-right: 1px solid var(--border-glass);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1030;
     overflow-y: auto;
@@ -80,7 +81,7 @@ body {
 .content-wrapper.expanded { margin-left: 78px; width: calc(100% - 78px); }
 
 .sidebar-wrapper .nav-link {
-    color: var(--text-secondary);
+    color: #94a3b8;
     font-weight: 600;
     font-size: 0.9rem;
     border-radius: 12px;
@@ -93,63 +94,62 @@ body {
 }
 
 .sidebar-wrapper .nav-link:hover {
-    color: var(--text-primary);
+    color: #f8fafc;
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
     transform: translateX(4px);
 }
 
 .sidebar-wrapper .nav-link.active {
     background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%) !important;
     color: #ffffff !important;
-    border-color: rgba(147, 197, 253, 0.4);
-    box-shadow: 0 0 20px rgba(37, 99, 235, 0.45);
+    box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.35);
 }
 
+/* CARD TERANG BERSIH */
 .card-luxury {
-    background: var(--bg-card-slate) !important;
+    background: var(--bg-card-white) !important;
     border: 1px solid var(--border-glass) !important;
     border-radius: 18px !important;
     color: var(--text-primary) !important;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06);
 }
 
 .card-luxury:hover {
-    transform: translateY(-5px);
-    border-color: var(--border-glow-blue) !important;
-    box-shadow: 0 20px 35px -10px rgba(14, 165, 233, 0.25) !important;
+    transform: translateY(-4px);
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 20px 35px -10px rgba(37, 99, 235, 0.15) !important;
 }
 
 .card-blue-luxury {
-    background: #1e293b !important;
-    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    background: #0284c7 !important; /* Biru Penerbangan Elegan untuk Tab Cuaca Hari Ini */
+    border: none !important;
     border-radius: 18px !important;
     color: #ffffff !important;
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.3);
 }
 
 .sub-card-dark {
-    background: var(--bg-card-inner) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 12px;
 }
 
 .sub-card-label {
-    color: var(--text-secondary) !important;
+    color: #64748b !important;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
 
 .sub-card-value {
-    color: #ffffff !important;
+    color: #0f172a !important;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
 }
 
 .sub-card-desc {
-    color: var(--text-muted) !important;
+    color: #64748b !important;
     font-size: 0.78rem;
 }
 
@@ -158,16 +158,22 @@ body {
     background: transparent !important;
 }
 
-.table-dark-custom td, .table-dark-custom th,
+.table-dark-custom td, .table-dark-custom th {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    padding: 14px 18px;
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
 .table-custom-glass td, .table-custom-glass th {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: #e2e8f0 !important;
     padding: 14px 18px;
     background: transparent !important;
     color: var(--text-primary) !important;
 }
 
 .table-custom-glass tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
+    background-color: #f8fafc !important;
 }
 
 .live-beacon {
@@ -176,13 +182,13 @@ body {
     height: 9px;
     background-color: var(--accent-emerald);
     border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7);
     animation: beaconPulse 1.8s infinite;
 }
 @keyframes beaconPulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(5, 150, 105, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
 }
 
 .value-update-anim {
@@ -190,7 +196,7 @@ body {
 }
 @keyframes pulseValue {
     0% { opacity: 0.4; transform: scale(0.96); }
-    50% { opacity: 1; color: var(--accent-cyan); transform: scale(1.04); }
+    50% { opacity: 1; color: var(--accent-blue); transform: scale(1.04); }
     100% { opacity: 1; transform: scale(1); }
 }
 
@@ -207,13 +213,13 @@ body {
 
 .btn-toggle-sidebar {
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid var(--border-glass);
-    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
     border-radius: 10px;
     padding: 6px 12px;
     transition: all 0.25s ease;
 }
 .btn-toggle-sidebar:hover {
-    background: rgba(255, 255, 255, 0.18);
-    color: var(--accent-cyan);
+    background: rgba(255, 255, 255, 0.2);
+    color: #38bdf8;
 }

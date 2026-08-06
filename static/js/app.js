@@ -141,10 +141,10 @@ function initWindRoseChart() {
                 r: {
                     startAngle: -11.25,
                     stacked: true,
-                    ticks: { display: true, backdropColor: 'rgba(30, 41, 59, 0.85)', color: '#94a3b8', font: { size: 9 } },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                    angleLines: { display: true, color: 'rgba(255, 255, 255, 0.15)' },
-                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#f8fafc' }
+                    ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', color: '#475569', font: { size: 9 } },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { display: true, color: '#cbd5e1' },
+                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#0f172a' }
                 }
             }
         }
@@ -181,7 +181,7 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// PERBAIKAN PRESISI: GARIS PUTUS-PUTUS & KURVA DIJAMIN LURUS PAS
+// DAYLIGHT PERIOD PRESISI ALIGNMENT DENGAN GARIS UTAMA & SHADING
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
@@ -198,30 +198,29 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Garis Horizon Utama
+    // 1. Horizon Line
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.lineWidth = 1.5;
     ctx.moveTo(15, horizonY);
     ctx.lineTo(w - 15, horizonY);
     ctx.stroke();
 
-    // 2. Titik Koordinat Presisi untuk Sunrise, Midday, dan Sunset
     const sunriseX = w * 0.25;
     const middayX = w * 0.50;
     const sunsetX = w * 0.75;
     const curveRadiusY = 55;
 
-    // Garis Putus-Putus Vertikal Tepat di Titik Sunrise, Midday, Sunset
     const markers = [
         { x: sunriseX },
         { x: middayX },
         { x: sunsetX }
     ];
 
+    // Garis Putus-Putus Vertikal
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.lineWidth = 1;
     markers.forEach(m => {
         ctx.beginPath();
@@ -231,7 +230,7 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // 3. Shading Transparan Sisi Kanan Kurva (Matahari Turun)
+    // Shading Sisi Kanan Kurva
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(middayX, horizonY);
@@ -243,17 +242,16 @@ function drawDaylightCurve() {
     }
     ctx.lineTo(sunsetX, horizonY);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.fill();
     ctx.restore();
 
-    // 4. Kurva Lengkung Sempurna (Full Sine Arch dari Sunrise ke Sunset + Ekor Kurva)
+    // Kurva Utama
     ctx.beginPath();
-    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
     
     for (let x = 15; x <= w - 15; x++) {
-        // Pemetaan rentang X agar kurva dimulai dari 0 di sunriseX dan berakhir 0 di sunsetX
         const totalSpan = sunsetX - sunriseX;
         const normalizedProgress = (x - sunriseX) / totalSpan;
         const rad = normalizedProgress * Math.PI;
@@ -262,11 +260,9 @@ function drawDaylightCurve() {
         if (x >= sunriseX && x <= sunsetX) {
             y = horizonY - Math.sin(rad) * curveRadiusY;
         } else if (x < sunriseX) {
-            // Ekor kurva sebelum sunrise (di bawah horizon)
             const extProgress = (sunriseX - x) / totalSpan;
             y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
         } else {
-            // Ekor kurva setelah sunset (di bawah horizon)
             const extProgress = (x - sunsetX) / totalSpan;
             y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
         }
@@ -276,10 +272,9 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // 5. Posisi Ikon Matahari Dinamis Real-Time di Atas Kurva
+    // Ikon Matahari Dinamis
     const now = new Date();
     const currentHour = now.getHours() + now.getMinutes() / 60;
-    // Asumsi durasi siang dari jam 06:00 sampai 17:50 (11.83 jam)
     let sunProgress = (currentHour - 6.0) / 11.83; 
     sunProgress = Math.max(0.0, Math.min(1.0, sunProgress));
 
@@ -287,7 +282,6 @@ function drawDaylightCurve() {
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
-    // Lingkaran Matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -296,7 +290,6 @@ function drawDaylightCurve() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Sinar Matahari (Rays)
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
         const rx1 = sunX + Math.cos(angle) * 11;
@@ -521,7 +514,7 @@ function render2DayForecast(daily, fullData) {
         card.className = "col-md-6";
         card.innerHTML = `
             <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
-                <div class="card-header bg-dark bg-opacity-50 text-white p-4 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-dark text-white p-4 border-bottom d-flex justify-content-between align-items-center">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
@@ -537,7 +530,7 @@ function render2DayForecast(daily, fullData) {
 
                 <div class="card-body p-4">
                     <div class="d-flex align-items-baseline gap-3 mb-3">
-                        <div class="display-5 fw-bold text-white font-mono">${tempMax}</div>
+                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
                         <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
                         <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
                     </div>
@@ -547,7 +540,7 @@ function render2DayForecast(daily, fullData) {
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="p-3 sub-card-dark">
-                                <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-info"></i>MAX WIND</div>
+                                <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
                                 <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
                                 <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
                             </div>
@@ -645,8 +638,8 @@ function renderFlightPrepTable(data) {
     flightParams.forEach(p => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 fw-bold text-info">${p.name}</td>
-            <td><code class="px-2 py-1 bg-dark text-white rounded border border-secondary border-opacity-25 fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
+            <td class="ps-4 fw-bold text-primary">${p.name}</td>
+            <td><code class="px-2 py-1 bg-light text-dark rounded border fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
             <td class="text-secondary">${p.unit}</td>
             <td class="pe-4 small text-muted">${p.desc}</td>
         `;
@@ -711,7 +704,7 @@ function renderDaily00to24History(payload, fullData) {
                 temp: `${tempVal} °C`,
                 visibility: '6 km',
                 ceiling: '-',
-                wind: `<i class="bi bi-arrow-down-right text-info me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`,
+                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`,
                 metar: dynamicMetar
             });
         }
@@ -734,13 +727,13 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 font-mono text-info fw-bold">${log.time}</td>
+            <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
             <td class="text-center">${log.code}</td>
             <td class="text-center">${log.weather}</td>
-            <td class="font-mono text-white fw-bold">${log.temp}</td>
+            <td class="font-mono text-dark fw-bold">${log.temp}</td>
             <td class="font-mono text-secondary">${log.visibility}</td>
             <td class="text-secondary">${log.ceiling}</td>
-            <td class="font-mono text-white">${log.wind}</td>
+            <td class="font-mono text-dark">${log.wind}</td>
             <td class="pe-4 font-mono text-secondary small">${log.metar}</td>
         `;
         tbody.appendChild(tr);
