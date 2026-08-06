@@ -131,7 +131,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- KARTU TUTUPAN AWAN INTERAKTIF & GRAFIK VISUAL PRESISI -->
                         <div class="col-md-3">
                             <div class="card card-luxury shadow-sm h-100 card-clickable" id="cloudCardBtn" data-bs-toggle="modal" data-bs-target="#cloudDetailModal" title="Klik untuk melihat detail lengkap awan">
                                 <div class="card-body p-3 d-flex flex-column justify-content-between">
@@ -200,7 +199,7 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: CUACA HARI INI -->
+                <!-- TAB 2: CUACA HARI INI (CLOUDS & TEMP/WEATHER CARDS DIHAPUS) -->
                 <div class="tab-pane fade fade-in-up" id="forecast" role="tabpanel">
                     <div class="row g-4 mb-4" id="daily-forecast-cards"></div>
 
@@ -250,45 +249,6 @@
                             </table>
                         </div>
                     </div>
-
-                    <div class="card card-luxury p-4 mb-4 shadow-sm">
-                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-clouds me-2 text-primary"></i>Clouds</h4>
-                        <div class="p-3 bg-light rounded-3 border d-flex align-items-center gap-3">
-                            <span class="badge bg-dark text-white font-mono px-3 py-2 fs-6">1,700 ft</span>
-                            <span class="badge bg-primary font-mono px-3 py-2 fs-6">SCT</span>
-                            <span class="fw-bold fs-6 text-dark">Scattered clouds</span>
-                        </div>
-                    </div>
-
-                    <div class="card card-luxury p-4 shadow-sm">
-                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-thermometer-half me-2 text-warning"></i>Temperature & Weather</h4>
-                        <div class="table-responsive">
-                            <table class="table table-custom-glass align-middle mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td class="w-25 text-muted">Temperature</td>
-                                        <td class="fw-bold font-mono fs-5 text-primary" id="tbl-temp-val">34 °C</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Dewpoint</td>
-                                        <td class="fw-bold font-mono" id="tbl-dew-val">21 °C</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Rel. humidity</td>
-                                        <td class="fw-bold font-mono text-info" id="tbl-rh-val">47 %</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Heat index</td>
-                                        <td class="fw-bold font-mono text-warning" id="tbl-heat-val">37 °C</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Kp-Index</td>
-                                        <td class="fw-bold font-mono text-dark" id="tbl-kp-val">1 (0-9)</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- TAB 3: MASTER TABLE -->
@@ -315,7 +275,7 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: HISTORY LOG -->
+                <!-- TAB 4: HISTORY LOG (INFORMASI LENGKAP SUHU, DEWPOINT, RH, HEAT INDEX, KOP-INDEX DIPINDAHKAN KE SINI) -->
                 <div class="tab-pane fade fade-in-up" id="history" role="tabpanel">
                     <div class="card card-luxury shadow-sm">
                         <div class="card-header bg-transparent py-3 fw-bold d-flex justify-content-between align-items-center border-bottom">
@@ -332,6 +292,10 @@
                                             <th class="ps-4">Time</th>
                                             <th class="text-center">Weather</th>
                                             <th>Temp.</th>
+                                            <th>Dewpoint</th>
+                                            <th>Rel. Hum</th>
+                                            <th>Heat Index</th>
+                                            <th>Kp-Index</th>
                                             <th>Visibility</th>
                                             <th class="pe-4">Wind</th>
                                         </tr>
@@ -347,7 +311,7 @@
         </main>
     </div>
 
-    <!-- POP-UP MODAL DETAIL AWAN LENGKAP -->
+    <!-- POP-UP MODAL DETAIL AWAN -->
     <div class="modal fade" id="cloudDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content card-luxury border-0 shadow-lg">

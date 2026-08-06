@@ -96,7 +96,7 @@ body {
     box-shadow: 0 6px 15px -3px rgba(37, 99, 235, 0.4);
 }
 
-/* COMPACT PRECISE CARDS & CLICKABLE EFFECT */
+/* CARDS */
 .card-luxury {
     background: var(--bg-card-broken-white) !important;
     border: 1px solid var(--border-glass) !important;
@@ -149,13 +149,13 @@ body {
     font-size: 0.74rem;
 }
 
-/* COMPACT TABLE PADDING */
+/* TABLE PADDING */
 .table-custom-glass td, .table-custom-glass th {
     border-color: #edf2f7 !important;
-    padding: 10px 16px !important;
+    padding: 10px 14px !important;
     background: transparent !important;
     color: var(--text-primary) !important;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
 }
 
 .table-custom-glass tbody tr:hover {

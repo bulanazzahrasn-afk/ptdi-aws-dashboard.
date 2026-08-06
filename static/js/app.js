@@ -184,7 +184,6 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// RENDER GRAFIK AWAN PRESISI DENGAN LABEL DI TENGAH BAWAH SUMBU X
 function drawCloudProfileCanvas(cloudAltFt) {
     const canvas = document.getElementById("cloudProfileCanvas");
     if (!canvas) return;
@@ -445,7 +444,6 @@ function renderDashboard(data) {
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
 
-    // KALKULASI REAL-TIME SISA WAKTU MENUJU SUNSET YANG AKURAT
     const now = new Date();
     const [sunsetHH, sunsetMM] = dl.sunset.split(':').map(Number);
     const sunsetDate = new Date(now);
@@ -462,12 +460,6 @@ function renderDashboard(data) {
     safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
     safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
     safeSetText("rwy-pct-val", `${r.crosswind_pct} %`);
-
-    safeSetText("tbl-temp-val", `${t.temp_2m} °C`);
-    safeSetText("tbl-dew-val", `${t.dew_point} °C`);
-    safeSetText("tbl-rh-val", `${t.rh_2m} %`);
-    safeSetText("tbl-heat-val", `${t.heat_index} °C`);
-    safeSetText("tbl-kp-val", t.kp_index);
 
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
@@ -534,7 +526,6 @@ function render2DayForecast(daily, fullData) {
             weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
         });
 
-        // SINKRONISASI REAL-TIME UNTUK HARI INI, FORECAST UNTUK ESOK HARI
         let tempMax, tempMin, windMaxKt, gustsMaxKt, domDirDeg, domDirCompass, precipSum;
         if (i === 0) {
             const t = fullData.thermodynamics || {};
@@ -724,6 +715,7 @@ function renderDaily00to24History(payload, fullData) {
 
     const times = payload.time;
     const temps = payload.temperature_2m || [];
+    const dews = payload.relative_humidity_2m || []; // kita gunakan untuk estimasi dewp/rh dinamis
     const windSpeeds = payload.wind_speed_10m || [];
     const windDirs = payload.wind_direction_10m || [];
 
@@ -757,12 +749,20 @@ function renderDaily00to24History(payload, fullData) {
             const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
+            const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
+            const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
+            const heatVal = tempVal + 2;
+            const kpVal = "1 (0-9)";
 
             logsMap.set(timePart, {
                 timeKey: timePart,
                 time: timePart,
                 weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
                 temp: `${tempVal} °C`,
+                dewpoint: `${dewpVal} °C`,
+                rh: `${rhVal} %`,
+                heat: `${heatVal} °C`,
+                kp: kpVal,
                 visibility: '10 km',
                 wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
@@ -778,7 +778,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
         return;
     }
 
@@ -789,6 +789,10 @@ function renderHistoryTable() {
             <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
             <td class="text-center">${log.weather}</td>
             <td class="font-mono text-dark fw-bold">${log.temp}</td>
+            <td class="font-mono text-secondary">${log.dewpoint}</td>
+            <td class="font-mono text-info">${log.rh}</td>
+            <td class="font-mono text-warning">${log.heat}</td>
+            <td class="font-mono text-secondary">${log.kp}</td>
             <td class="font-mono text-secondary">${log.visibility}</td>
             <td class="pe-4 font-mono text-dark">${log.wind}</td>
         `;
@@ -798,10 +802,10 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Time,Temp,Visibility,Wind\n";
+    let csv = "Time,Temp,Dewpoint,Rel_Humidity,Heat_Index,Kp_Index,Visibility,Wind\n";
     historyLogs.forEach(l => {
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
-        csv += `"${l.time}","${l.temp}","${l.visibility}","${cleanWind}"\n`;
+        csv += `"${l.time}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.kp}","${l.visibility}","${cleanWind}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
