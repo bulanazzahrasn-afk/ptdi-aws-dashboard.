@@ -110,7 +110,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    window.addEventListener("resize", drawDaylightCurve);
+    window.addEventListener("resize", () => {
+        drawDaylightCurve();
+        drawCloudProfileCanvas(1800);
+    });
     startAutoRefresh();
 });
 
@@ -179,6 +182,56 @@ function updateWindRoseChart(payload) {
     windRoseInstance.data.datasets[2].data = catMod;
     windRoseInstance.data.datasets[3].data = catStrong;
     windRoseInstance.update();
+}
+
+// RENDER GRAFIK AWAN REAL-TIME DENGAN JARAK SPACING (1CM / ~10px) DI BAWAH SUMBU X
+function drawCloudProfileCanvas(cloudAltFt) {
+    const canvas = document.getElementById("cloudProfileCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const parentW = canvas.parentElement.clientWidth || 250;
+    canvas.width = parentW;
+    canvas.height = 65;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Garis sumbu dasar (X-axis) dengan jarak margin bawah
+    const baselineY = canvas.height - 12;
+    ctx.beginPath();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.moveTo(10, baselineY);
+    ctx.lineTo(canvas.width - 10, baselineY);
+    ctx.stroke();
+
+    // Gambar ikon awan sederhana di tengah sumbu X
+    const cloudX = canvas.width / 2 - 25;
+    const cloudY = baselineY - 32;
+
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(cloudX + 12, cloudY + 12, 12, 0, Math.PI * 2);
+    ctx.arc(cloudX + 25, cloudY + 8, 15, 0, Math.PI * 2);
+    ctx.arc(cloudX + 38, cloudY + 14, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Badge Teks Keterangan di Tengah Bawah Sumbu X (Berjarak sesuai permintaan)
+    const badgeText = `SCT ${cloudAltFt.toLocaleString()} ft`;
+    ctx.font = 'bold 11px "Inter", sans-serif';
+    const textWidth = ctx.measureText(badgeText).width;
+
+    const badgeX = (canvas.width / 2) - (textWidth / 2) - 8;
+    const badgeY = baselineY + 2;
+
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, textWidth + 16, 16, 4);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(badgeText, canvas.width / 2, badgeY + 12);
 }
 
 function drawDaylightCurve() {
@@ -384,6 +437,8 @@ function renderDashboard(data) {
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
+    safeSetText("m-cloud-alt", "1,800 ft");
+    drawCloudProfileCanvas(1800);
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
@@ -677,7 +732,6 @@ function renderDaily00to24History(payload, fullData) {
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
 
-            // REVISI: Tampilan visibility ringkas & padat tanpa berlebihan
             logsMap.set(timePart, {
                 timeKey: timePart,
                 time: timePart,
