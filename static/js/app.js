@@ -384,7 +384,6 @@ function renderDashboard(data) {
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
-    safeSetText("m-cloud-pcts", c.cloud_desc || c.cloud_cover_octa);
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);

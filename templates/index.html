@@ -96,7 +96,7 @@
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="badge bg-secondary font-mono fw-bold">RAW TAF WICC</span>
-                                <code class="small text-muted font-mono" id="raw-taf-text">Loading TAF WICC...</code>
+                                <code class="small text-muted font-mono" id="raw-taf-text" style="white-space: pre-wrap;">Loading TAF WICC...</code>
                             </div>
                         </div>
                     </div>
@@ -135,9 +135,8 @@
                             <div class="card card-luxury shadow-sm h-100">
                                 <div class="card-body p-4">
                                     <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN</div>
-                                    <!-- AERO BASE DIHAPUS, LANGSUNG OKTA -->
+                                    <!-- AERO BASE DIHAPUS TOTAL -->
                                     <div class="display-6 fw-extrabold text-dark my-2 font-mono" id="m-cloud-octa">--</div>
-                                    <div class="small text-muted">Aero Base: <span id="m-cloud-pcts" class="fw-bold font-mono text-primary">--</span></div>
                                 </div>
                             </div>
                         </div>
@@ -192,11 +191,11 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: CUACA HARI INI (SEMUA CARD DISERAGAMKAN JADI LUXURY BROKEN WHITE) -->
+                <!-- TAB 2: CUACA HARI INI (SEMUA KARTU DISERAGAMKAN JADI LUXURY BROKEN WHITE) -->
                 <div class="tab-pane fade fade-in-up" id="forecast" role="tabpanel">
                     <div class="row g-4 mb-4" id="daily-forecast-cards"></div>
 
-                    <!-- DAYLIGHT PERIOD (SERAGAM CARD-LUXURY) -->
+                    <!-- DAYLIGHT PERIOD -->
                     <div class="card card-luxury p-4 mb-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
                         <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 150px;">
