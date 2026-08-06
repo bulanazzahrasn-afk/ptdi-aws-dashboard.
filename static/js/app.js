@@ -1,7 +1,7 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 30000;
+const POLLING_INTERVAL = 15000; // Dipercepat menjadi setiap 15 detik untuk update real-time yang responsif
 let historyLogs = [];
 let dashOffset = 0;
 
@@ -354,12 +354,10 @@ function startRealtimeClock() {
 function updateClockDisplay() {
     const now = new Date();
     
-    // Format WIB
     const wibStr = now.toLocaleTimeString('id-ID', { 
         timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
     }).replace(/\./g, ' : ');
 
-    // Format UTC
     const utcStr = now.toLocaleTimeString('id-ID', { 
         timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
     }).replace(/\./g, ' : ');
@@ -535,7 +533,6 @@ function renderEsokHariForecast(daily, fullData) {
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    // HANYA RENDER CARD ESOK HARI (INDEX 1) DI SEBELAH KIRI
     if (daily.time.length < 2) return;
     const i = 1;
 
