@@ -141,7 +141,7 @@ function initWindRoseChart() {
                 r: {
                     startAngle: -11.25,
                     stacked: true,
-                    ticks: { display: true, backdropColor: 'rgba(255, 255, 255, 0.85)', color: '#475569', font: { size: 9 } },
+                    ticks: { display: true, backdropColor: 'rgba(252, 252, 252, 0.85)', color: '#475569', font: { size: 9 } },
                     grid: { color: '#e2e8f0' },
                     angleLines: { display: true, color: '#cbd5e1' },
                     pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#0f172a' }
@@ -181,7 +181,6 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// DAYLIGHT PERIOD PRESISI ALIGNMENT DENGAN GARIS UTAMA & SHADING
 function drawDaylightCurve() {
     const canvas = document.getElementById("daylightCanvas");
     if (!canvas) return;
@@ -198,9 +197,8 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Horizon Line
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.3)';
     ctx.lineWidth = 1.5;
     ctx.moveTo(15, horizonY);
     ctx.lineTo(w - 15, horizonY);
@@ -211,16 +209,11 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 55;
 
-    const markers = [
-        { x: sunriseX },
-        { x: middayX },
-        { x: sunsetX }
-    ];
+    const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
 
-    // Garis Putus-Putus Vertikal
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
     ctx.lineWidth = 1;
     markers.forEach(m => {
         ctx.beginPath();
@@ -230,7 +223,6 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // Shading Sisi Kanan Kurva
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(middayX, horizonY);
@@ -242,13 +234,12 @@ function drawDaylightCurve() {
     }
     ctx.lineTo(sunsetX, horizonY);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.08)';
     ctx.fill();
     ctx.restore();
 
-    // Kurva Utama
     ctx.beginPath();
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
     
     for (let x = 15; x <= w - 15; x++) {
@@ -272,7 +263,6 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // Ikon Matahari Dinamis
     const now = new Date();
     const currentHour = now.getHours() + now.getMinutes() / 60;
     let sunProgress = (currentHour - 6.0) / 11.83; 

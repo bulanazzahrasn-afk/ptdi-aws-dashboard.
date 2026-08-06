@@ -50,14 +50,12 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
+    # PEMROSESAN TUTUPAN AWAN (AERO BASE DIHAPUS)
     clouds = metar.get("clouds", [])
     cloud_octa = "3-4/8 (SCT)"
-    cloud_desc = "1,700 ft SCT Scattered clouds"
     
     if clouds and isinstance(clouds, list) and len(clouds) > 0:
         cover = clouds[0].get("cover", "FEW")
-        base = clouds[0].get("base", 0)
-        
         octa_map = {
             "SKC": "0/8 (Clear)",
             "FEW": "1-2/8 (FEW)",
@@ -66,7 +64,13 @@ def translate_aws_payload(raw: dict) -> dict:
             "OVC": "8/8 (OVC)"
         }
         cloud_octa = octa_map.get(cover, "3-4/8 (SCT)")
-        cloud_desc = f"{base}00 ft {cover} Scattered clouds"
+
+    # PENYUSUNAN FORMAT TAF STANDAR PENERBANGAN RESMI
+    raw_taf_api = taf.get("rawTAF")
+    if raw_taf_api and "FTID40" not in raw_taf_api:
+        formatted_taf = f"FTID40 WICC 052300\n{raw_taf_api}"
+    else:
+        formatted_taf = raw_taf_api or "FTID40 WICC 052300\nTAF WICC 052300Z 0600/0700 14004KT 3000 HZ SCT018 BECMG 0602/0604 08012KT 8000 FEW020 BECMG 0608/0610 33008KT="
 
     sunrise_str = daily_ext.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
     sunset_str = daily_ext.get("sunset", ["2026-08-05T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
@@ -75,7 +79,7 @@ def translate_aws_payload(raw: dict) -> dict:
         "metadata": {
             "location": "Bandara Husein Sastranegara (BDO/WICC)",
             "raw_metar": metar.get("rawOb") or "METAR WICC 050600Z 18006KT 9999 FEW018 31/21 Q1010",
-            "raw_taf": taf.get("rawTAF") or "TAF WICC 050000Z 0503/0524 17008KT 9999 FEW020",
+            "raw_taf": formatted_taf,
             "timestamp_wib": metar.get("obsTime", "")
         },
         "thermodynamics": {
@@ -104,7 +108,6 @@ def translate_aws_payload(raw: dict) -> dict:
         "clouds_precipitation": {
             "precipitation_mm": 0.0,
             "cloud_cover_octa": cloud_octa,
-            "cloud_desc": cloud_desc,
             "cloud_cover_low_pct": 20
         },
         "minutely_15": min15,

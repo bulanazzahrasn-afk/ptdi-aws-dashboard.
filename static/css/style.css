@@ -1,15 +1,14 @@
 /* -----------------------------------------------------------------
-   LUXURY BROKEN WHITE AVIATION THEME (CLEAN & ELEGANT)
+   LUXURY BROKEN WHITE AVIATION THEME - UNIFIED CARDS & ANIMATIONS
 ----------------------------------------------------------------- */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-light-sky: #f1f5f9;              /* Latar belakang web abu-abu langit lembut */
-    --bg-card-broken-white: #fcfcfc;      /* Kartu Luxury Broken White */
-    --bg-card-inner: #f1f5f9;             /* Inner sub-card */
-    --border-glass: #e2e8f0;              /* Garis batas kartu halus */
-    --border-glow-blue: rgba(37, 99, 235, 0.25);
+    --bg-light-sky: #f1f5f9;
+    --bg-card-broken-white: #fcfcfc;
+    --bg-card-inner: #f8fafc;
+    --border-glass: #e2e8f0;
     
     --accent-cyan: #0284c7;
     --accent-blue: #2563eb;
@@ -17,9 +16,9 @@
     --accent-emerald: #059669;
     --accent-rose: #e11d48;
 
-    --text-primary: #0f172a;             /* Teks utama gelap kontras */
-    --text-secondary: #475569;           /* Teks sekunder */
-    --text-muted: #64748b;               /* Teks muted */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
 }
 
 body {
@@ -105,34 +104,32 @@ body {
     box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.35);
 }
 
-/* CARD LUXURY BROKEN WHITE */
+/* KARTU SERAGAM LUXURY BROKEN WHITE DENGAN ANIMASI INTERAKTIF HALUS */
 .card-luxury {
     background: var(--bg-card-broken-white) !important;
     border: 1px solid var(--border-glass) !important;
     border-radius: 18px !important;
     color: var(--text-primary) !important;
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
 }
 
 .card-luxury:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.005);
     border-color: var(--accent-blue) !important;
-    box-shadow: 0 20px 35px -10px rgba(37, 99, 235, 0.15) !important;
-}
-
-.card-blue-luxury {
-    background: #0284c7 !important; /* Biru Penerbangan Elegan untuk Tab Cuaca Hari Ini */
-    border: none !important;
-    border-radius: 18px !important;
-    color: #ffffff !important;
-    box-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.3);
+    box-shadow: 0 22px 40px -10px rgba(37, 99, 235, 0.15) !important;
 }
 
 .sub-card-dark {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 12px;
+    transition: all 0.3s ease;
+}
+.sub-card-dark:hover {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    transform: translateY(-2px);
 }
 
 .sub-card-label {
@@ -153,29 +150,19 @@ body {
     font-size: 0.78rem;
 }
 
-.table-dark-custom, .table-custom-glass {
-    color: var(--text-primary) !important;
-    background: transparent !important;
-}
-
-.table-dark-custom td, .table-dark-custom th {
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    padding: 14px 18px;
-    background: transparent !important;
-    color: #ffffff !important;
-}
-
 .table-custom-glass td, .table-custom-glass th {
     border-color: #e2e8f0 !important;
     padding: 14px 18px;
     background: transparent !important;
     color: var(--text-primary) !important;
+    transition: background-color 0.2s ease;
 }
 
 .table-custom-glass tbody tr:hover {
     background-color: #f1f5f9 !important;
 }
 
+/* INTERACTIVE ANIMATIONS & MICRO-INTERACTIONS */
 .live-beacon {
     display: inline-block;
     width: 9px;
@@ -201,10 +188,10 @@ body {
 }
 
 .fade-in-up {
-    animation: fadeInUp 0.5s ease-out forwards;
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(15px); }
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -222,4 +209,5 @@ body {
 .btn-toggle-sidebar:hover {
     background: rgba(255, 255, 255, 0.2);
     color: #38bdf8;
+    transform: scale(1.05);
 }
