@@ -246,8 +246,9 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
+    // Garis Horizon Dasar
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.3)';
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
     ctx.lineWidth = 1.5;
     ctx.moveTo(15, horizonY);
     ctx.lineTo(w - 15, horizonY);
@@ -258,11 +259,11 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 55;
 
+    // Garis Putus-putus Marker (Sunrise, Midday, Sunset)
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
-
     ctx.save();
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.35)';
     ctx.lineWidth = 1;
     markers.forEach(m => {
         ctx.beginPath();
@@ -272,10 +273,11 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
+    // Area Arsir Biru di Bawah Kurva Siang Hari
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(middayX, horizonY);
-    for (let x = middayX; x <= sunsetX; x++) {
+    ctx.moveTo(sunriseX, horizonY);
+    for (let x = sunriseX; x <= sunsetX; x++) {
         const progress = (x - sunriseX) / (sunsetX - sunriseX);
         const rad = progress * Math.PI;
         const y = horizonY - Math.sin(rad) * curveRadiusY;
@@ -283,10 +285,11 @@ function drawDaylightCurve() {
     }
     ctx.lineTo(sunsetX, horizonY);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(37, 99, 235, 0.08)';
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.07)';
     ctx.fill();
     ctx.restore();
 
+    // Gambar Kurva Utama Sinusoidal Daylight
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -301,10 +304,10 @@ function drawDaylightCurve() {
             y = horizonY - Math.sin(rad) * curveRadiusY;
         } else if (x < sunriseX) {
             const extProgress = (sunriseX - x) / totalSpan;
-            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.5);
         } else {
             const extProgress = (x - sunsetX) / totalSpan;
-            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.5);
         }
 
         if (x === 15) ctx.moveTo(x, y);
@@ -312,15 +315,25 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
+    // KALKULASI POSISI MATAHARI BERDASARKAN WAKTU LOKAL REAL-TIME (JAM SEKARANG)
     const now = new Date();
-    const currentHour = now.getHours() + now.getMinutes() / 60;
-    let sunProgress = (currentHour - 6.0) / 11.83; 
-    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress));
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentSeconds = now.getSeconds();
+    const currentTotalHours = currentHours + currentMinutes / 60 + currentSeconds / 3600;
+
+    // Asumsi durasi siang standar dari pukul 06.00 (6.0) hingga 17:54 (17.9)
+    const daylightStart = 6.0;
+    const daylightEnd = 17.9;
+    
+    let sunProgress = (currentTotalHours - daylightStart) / (daylightEnd - daylightStart);
+    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress)); // Batasi di rentang kurva
 
     const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
+    // Render Ikon Matahari Bergerak di Atas Kurva
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -329,6 +342,7 @@ function drawDaylightCurve() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    // Sinar Matahari (Ray Effects)
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
         const rx1 = sunX + Math.cos(angle) * 11;
