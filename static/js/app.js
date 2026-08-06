@@ -440,6 +440,9 @@ function renderDashboard(data) {
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
     
+    const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
+    safeSetText("m-precip", precipVal, "mm");
+
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-alt", "1,800 ft");
     drawCloudProfileCanvas(1800);
@@ -776,6 +779,7 @@ function renderFlightPrepTable(data) {
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
         { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
+        { name: "Curah Hujan (Precipitation)", val: c.precipitation_mm, unit: "mm", desc: "Akumulasi Intensitas Presipitasi" },
         { name: "Heat Index", val: t.heat_index, unit: "°C", desc: "Indeks Sensasi Suhu Terasa" },
         { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
         { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "METAR Code", desc: "Tutupan & Tinggi Dasar Awan" }
