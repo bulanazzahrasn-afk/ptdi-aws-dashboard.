@@ -653,7 +653,6 @@ function renderDaily00to24History(payload, fullData) {
     });
 
     if (dateHeader) {
-        // REVISI: Header History disesuaikan menjadi "History - [Tanggal]"
         dateHeader.textContent = `History - ${formattedDate}`;
     }
 
@@ -678,13 +677,13 @@ function renderDaily00to24History(payload, fullData) {
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
 
-            // REVISI: Visibility disamakan secara dinamis menjadi 9999 (10 km) mengikuti standar METAR real-time
+            // REVISI: Tampilan visibility ringkas & padat tanpa berlebihan
             logsMap.set(timePart, {
                 timeKey: timePart,
                 time: timePart,
                 weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
                 temp: `${tempVal} °C`,
-                visibility: '10 km (9999)',
+                visibility: '10 km',
                 wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
         }
