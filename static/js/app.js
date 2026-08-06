@@ -458,6 +458,7 @@ function render2DayForecast(daily, fullData) {
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
         const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
+        // REVISI: Hari ini real-time, esok hari forecast
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
         const formattedDate = dateObj.toLocaleDateString('id-ID', { 
@@ -653,7 +654,8 @@ function renderDaily00to24History(payload, fullData) {
     });
 
     if (dateHeader) {
-        dateHeader.textContent = `Observasi METAR WICC - ${formattedDate}`;
+        // REVISI: Format Header History menjadi "History - [Tanggal Hari Ini]"
+        dateHeader.textContent = `History - ${formattedDate}`;
     }
 
     const currentHHMM = now.toLocaleTimeString('id-ID', { 
@@ -683,7 +685,6 @@ function renderDaily00to24History(payload, fullData) {
                 weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
                 temp: `${tempVal} °C`,
                 visibility: '6 km',
-                ceiling: '-',
                 wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
         }
@@ -698,7 +699,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
         return;
     }
 
@@ -710,7 +711,6 @@ function renderHistoryTable() {
             <td class="text-center">${log.weather}</td>
             <td class="font-mono text-dark fw-bold">${log.temp}</td>
             <td class="font-mono text-secondary">${log.visibility}</td>
-            <td class="text-secondary">${log.ceiling}</td>
             <td class="pe-4 font-mono text-dark">${log.wind}</td>
         `;
         tbody.appendChild(tr);
@@ -719,13 +719,13 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Time,Temp,Visibility,Ceiling,Wind\n";
+    let csv = "Time,Temp,Visibility,Wind\n";
     historyLogs.forEach(l => {
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
-        csv += `"${l.time}","${l.temp}","${l.visibility}","${l.ceiling}","${cleanWind}"\n`;
+        csv += `"${l.time}","${l.temp}","${l.visibility}","${cleanWind}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = `Aviation_AWS_BDO_METAR_History_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Aviation_AWS_BDO_History_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
 }

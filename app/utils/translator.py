@@ -52,13 +52,14 @@ def translate_aws_payload(raw: dict) -> dict:
     now_utc = datetime.utcnow()
     day_z = now_utc.strftime("%d")
     hour_z = now_utc.strftime("%H")
-    min_z = "00" if int(now_utc.strftime("%M")) < 30 else "30"
+    min_z = "30" if int(now_utc.strftime("%M")) >= 30 else "00"
     
     wind_str = f"{str(wdir_deg).zfill(3)}{str(int(wspd_kt)).zfill(2)}KT"
     qnh_str = f"Q{int(altim_hpa)}"
     temp_dew_str = f"{int(temp):02d}/{int(dewp):02d}"
 
-    synth_metar = f"METAR WICC {day_z}{hour_z}{min_z}Z {wind_str} 9999 SCT018 {temp_dew_str} {qnh_str}"
+    # FORMAT STANDAR RESMI ICAO & BMKG INDONESIA
+    synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} 9999 SCT018 {temp_dew_str} {qnh_str} NOSIG="
     synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} 4000 HZ SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
 
     sunrise_str = daily_ext.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
