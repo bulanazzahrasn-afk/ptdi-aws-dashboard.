@@ -39,7 +39,7 @@ const runwayOverlayPlugin = {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+        ctx.font = 'bold 10px "Inter", sans-serif';
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -676,25 +676,15 @@ function renderDaily00to24History(payload, fullData) {
             const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
-            const dewVal = tempVal > 5 ? tempVal - 10 : 21;
-
-            const hh = timePart.split(":")[0];
-            const mm = timePart.split(":")[1];
-            const utcHour = String((parseInt(hh) - 7 + 24) % 24).padStart(2, '0');
-            const dayStr = String(now.getDate()).padStart(2, '0');
-
-            const dynamicMetar = `METAR WICC ${dayStr}${utcHour}${mm}Z ${dirDeg}${String(spdKt).padStart(2, '0')}KT 9999 FEW018 ${tempVal}/${dewVal} Q1010`;
 
             logsMap.set(timePart, {
                 timeKey: timePart,
                 time: timePart,
-                code: '<span class="badge bg-primary rounded-circle font-mono">M</span>',
                 weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
                 temp: `${tempVal} °C`,
                 visibility: '6 km',
                 ceiling: '-',
-                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`,
-                metar: dynamicMetar
+                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
         }
     });
@@ -708,7 +698,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
         return;
     }
 
@@ -717,13 +707,11 @@ function renderHistoryTable() {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
-            <td class="text-center">${log.code}</td>
             <td class="text-center">${log.weather}</td>
             <td class="font-mono text-dark fw-bold">${log.temp}</td>
             <td class="font-mono text-secondary">${log.visibility}</td>
             <td class="text-secondary">${log.ceiling}</td>
-            <td class="font-mono text-dark">${log.wind}</td>
-            <td class="pe-4 font-mono text-secondary small">${log.metar}</td>
+            <td class="pe-4 font-mono text-dark">${log.wind}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -731,10 +719,10 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Time,Code,Temp,Visibility,Ceiling,Wind,METAR\n";
+    let csv = "Time,Temp,Visibility,Ceiling,Wind\n";
     historyLogs.forEach(l => {
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
-        csv += `"${l.time}","M","${l.temp}","${l.visibility}","${l.ceiling}","${cleanWind}","${l.metar}"\n`;
+        csv += `"${l.time}","${l.temp}","${l.visibility}","${l.ceiling}","${cleanWind}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);

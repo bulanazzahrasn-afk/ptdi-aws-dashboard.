@@ -30,9 +30,8 @@ def translate_aws_payload(raw: dict) -> dict:
 
     heat_index = round(temp + (0.5555 * (6.11 * math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewp))) - 10)), 1) if dewp else temp + 2
 
-    # Konversi wind speed dari km/h atau m/s ke Knots jika diperlukan (Open-Meteo default knots jika diset atau dihitung)
-    wspd_ms = safe_val(current.get("wind_speed_10m"), 3.0) # Asumsi km/h atau m/s, kita konversi ke kt
-    wspd_kt = round(wspd_ms * 0.539957, 1) if wspd_ms > 10 else round(wspd_ms, 1) # Jika API sudah knots atau km/h
+    wspd_ms = safe_val(current.get("wind_speed_10m"), 3.0)
+    wspd_kt = round(wspd_ms * 0.539957, 1) if wspd_ms > 10 else round(wspd_ms, 1)
     wdir_deg = int(safe_val(current.get("wind_direction_10m"), 180))
     wgst_ms = safe_val(current.get("wind_gusts_10m"), wspd_ms * 1.3)
     wgst_kt = round(wgst_ms * 0.539957, 1) if wgst_ms > 10 else round(wgst_ms, 1)
@@ -42,7 +41,6 @@ def translate_aws_payload(raw: dict) -> dict:
     headwind_kt = round(wspd_kt * math.cos(angle_rad), 1)
     crosswind_pct = round((crosswind_kt / wspd_kt * 100), 0) if wspd_kt > 0 else 0
 
-    # Profil Angin Berdasarkan Open-Meteo
     wind_levels = {
         "surface": {"label": "33 ft (Angin Permukaan)", "speed_kt": wspd_kt, "dir_deg": wdir_deg, "dir_compass": deg_to_compass(wdir_deg)},
         "lvl_025": {"label": "250 ft (Angin Lapisan Rendah)", "speed_kt": round(safe_val(current.get("wind_speed_80m"), wspd_ms) * 0.539957, 1), "dir_deg": current.get("wind_direction_80m", wdir_deg), "dir_compass": deg_to_compass(current.get("wind_direction_80m", wdir_deg))},
@@ -51,20 +49,17 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # Sintesis METAR & TAF Real-Time dari Open-Meteo
     now_utc = datetime.utcnow()
     day_z = now_utc.strftime("%d")
     hour_z = now_utc.strftime("%H")
     min_z = "00" if int(now_utc.strftime("%M")) < 30 else "30"
     
-    wind_str = f"{str(wdir_deg).padStart(3, '0') if 'padStart' in dir() else str(wdir_deg).zfill(3)}{str(int(wspd_kt)).zfill(2)}KT"
+    wind_str = f"{str(wdir_deg).zfill(3)}{str(int(wspd_kt)).zfill(2)}KT"
     qnh_str = f"Q{int(altim_hpa)}"
     temp_dew_str = f"{int(temp):02d}/{int(dewp):02d}"
 
     synth_metar = f"METAR WICC {day_z}{hour_z}{min_z}Z {wind_str} 9999 SCT018 {temp_dew_str} {qnh_str}"
     synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} 4000 HZ SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
-
-    cloud_octa = "3-4/8 (SCT)"
 
     sunrise_str = daily_ext.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
     sunset_str = daily_ext.get("sunset", ["2026-08-05T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
@@ -101,7 +96,7 @@ def translate_aws_payload(raw: dict) -> dict:
         "wind_profile": wind_levels,
         "clouds_precipitation": {
             "precipitation_mm": current.get("precipitation", 0.0),
-            "cloud_cover_octa": cloud_octa,
+            "cloud_cover_octa": "3-4/8 (SCT)",
             "cloud_cover_low_pct": 20
         },
         "minutely_15": min15,
