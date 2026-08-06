@@ -51,7 +51,6 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # VISIBILITAS & CUACA DINAMIS BERDASARKAN PARAMETER AKTUAL
     vis_code = "9999"
     vis_km_str = "10 km"
     weather_qualifier = ""

@@ -37,7 +37,6 @@
 
                 <div class="vr bg-secondary mx-1 my-1 opacity-25"></div>
 
-                <!-- WIDGET WAKTU REAL-TIME (WIB / UTC) -->
                 <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1.5 rounded-3 border border-secondary border-opacity-25">
                     <span class="live-beacon"></span>
                     <span class="text-light font-mono small" id="utc-wib-clock">STANDAR WAKTU INDONESIA -- : -- : -- / -- : -- : -- UTC</span>
@@ -90,21 +89,31 @@
                 <!-- TAB 1: RINGKASAN UTAMA -->
                 <div class="tab-pane fade show active fade-in-up" id="summary" role="tabpanel">
                     
-                    <div class="card card-luxury shadow-sm mb-3">
-                        <div class="card-body p-3 bg-white rounded-3 border">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-primary font-mono fw-bold px-2 py-1">RAW METAR</span>
+                    <!-- DUA CARD BERDAMPINGAN (SEBELAHAN, KIRI & KANAN) UNTUK RAW METAR DAN RAW TAF -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-3 bg-white rounded-3 border h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-primary font-mono fw-bold px-2 py-1">RAW METAR</span>
+                                        </div>
+                                        <code class="small text-dark font-mono fw-bold d-block" id="raw-metar-text" style="white-space: pre-wrap;">Loading METAR WICC...</code>
+                                    </div>
+                                </div>
                             </div>
-                            <code class="small text-dark font-mono fw-bold d-block" id="raw-metar-text" style="white-space: pre-wrap;">Loading METAR WICC...</code>
                         </div>
-                    </div>
-
-                    <div class="card card-luxury shadow-sm mb-3">
-                        <div class="card-body p-3 bg-white rounded-3 border">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-secondary font-mono fw-bold px-2 py-1">RAW TAF</span>
+                        <div class="col-md-6">
+                            <div class="card card-luxury shadow-sm h-100">
+                                <div class="card-body p-3 bg-white rounded-3 border h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-secondary font-mono fw-bold px-2 py-1">RAW TAF</span>
+                                        </div>
+                                        <code class="small text-muted font-mono d-block" id="raw-taf-text" style="white-space: pre-wrap; line-height: 1.5;">Loading TAF WICC...</code>
+                                    </div>
+                                </div>
                             </div>
-                            <code class="small text-muted font-mono d-block" id="raw-taf-text" style="white-space: pre-wrap; line-height: 1.5;">Loading TAF WICC...</code>
                         </div>
                     </div>
 
@@ -206,10 +215,9 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: CUACA HARI INI (TAMPILAN UTAMA + ESOK HARI DI KIRI & DAYLIGHT DI KANAN) -->
+                <!-- TAB 2: CUACA HARI INI -->
                 <div class="tab-pane fade fade-in-up" id="forecast" role="tabpanel">
                     
-                    <!-- KARTU UTAMA REAL-TIME (TANPA TEKS LIVE REAL-TIME DI KANAN ATAS) -->
                     <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
                         <div class="border-bottom pb-3 mb-4">
                             <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
@@ -258,11 +266,8 @@
                         </div>
                     </div>
 
-                    <!-- CARD ESOK HARI DI KIRI & DAYLIGHT PERIOD DI KANAN (TIDAK DOBEL/BOROS) -->
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-5" id="daily-forecast-cards">
-                            <!-- Diisi via JS untuk card Esok Hari -->
-                        </div>
+                        <div class="col-lg-5" id="daily-forecast-cards"></div>
 
                         <div class="col-lg-7">
                             <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">

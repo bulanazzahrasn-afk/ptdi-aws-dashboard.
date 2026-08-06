@@ -1,497 +1,820 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PTDI Aviation AWS Dashboard - BDO/WICC</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
+let windRoseInstance = null;
+let clockTimer = null;
+let autoRefreshTimer = null;
+const POLLING_INTERVAL = 15000;
+let historyLogs = [];
+let dashOffset = 0;
 
-    <!-- Header Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-3 py-2 fixed-top">
-        <div class="container-fluid">
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-toggle-sidebar" id="sidebarToggle" title="Buka/Tutup Sidebar">
-                    <i class="bi bi-list fs-5"></i>
-                </button>
-                <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="#">
-                    <i class="bi bi-airplane-engines-fill text-info fs-3"></i>
-                    <div>
-                        <div class="fw-bold fs-6 text-white tracking-wide">PT. DIRGANTARA INDONESIA</div>
-                        <div class="text-secondary extra-small" style="font-size: 0.72rem;">Aviation Weather System - WICC/BDO</div>
-                    </div>
-                </a>
-            </div>
+const runwayOverlayPlugin = {
+    id: 'runwayOverlay',
+    afterDraw: (chart) => {
+        const { ctx, scales } = chart;
+        const rScale = scales.r;
+        if (!rScale) return;
 
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-warning btn-sm fw-semibold rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#crosswindModal">
-                    <i class="bi bi-calculator me-1"></i>Crosswind
-                </button>
-                <button class="btn btn-outline-info btn-sm fw-semibold rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
-                    <i class="bi bi-info-circle me-1"></i>Info WICC
-                </button>
+        const centerX = rScale.xCenter;
+        const centerY = rScale.yCenter;
+        const radius = rScale.drawingArea;
 
-                <div class="vr bg-secondary mx-1 my-1 opacity-25"></div>
+        const rad110 = (110 - 90) * (Math.PI / 180);
+        const rad290 = (290 - 90) * (Math.PI / 180);
 
-                <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1.5 rounded-3 border border-secondary border-opacity-25">
-                    <span class="live-beacon"></span>
-                    <span class="text-light font-mono small" id="utc-wib-clock">STANDAR WAKTU INDONESIA -- : -- : -- / -- : -- : -- UTC</span>
-                </div>
+        ctx.save();
 
-                <div class="form-check form-switch text-white mb-0 ms-2">
-                    <input class="form-check-input" type="checkbox" id="autoRefreshSwitch" checked>
-                    <label class="form-check-label small text-secondary" for="autoRefreshSwitch">Auto</label>
-                </div>
+        ctx.beginPath();
+        ctx.lineWidth = 7;
+        ctx.strokeStyle = '#1e293b'; 
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.95), centerY + Math.sin(rad290) * (radius * 0.95));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
 
-                <button class="btn btn-primary btn-sm px-3 fw-semibold rounded-3" id="manualRefreshBtn">
-                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
-                </button>
-            </div>
-        </div>
-    </nav>
+        dashOffset = (dashOffset + 0.3) % 8;
+        ctx.beginPath();
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([5, 3]);
+        ctx.lineDashOffset = -dashOffset;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.moveTo(centerX + Math.cos(rad290) * (radius * 0.92), centerY + Math.sin(rad290) * (radius * 0.92));
+        ctx.lineTo(centerX + Math.cos(rad110) * (radius * 0.95), centerY + Math.sin(rad110) * (radius * 0.95));
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-    <!-- Main App Layout -->
-    <div class="app-layout">
+        ctx.font = 'bold 10px "Inter", sans-serif';
+        ctx.fillStyle = '#ef4444';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const x11 = centerX + Math.cos(rad110) * (radius * 1.08);
+        const y11 = centerY + Math.sin(rad110) * (radius * 1.08);
+        ctx.fillText('RWY 11', x11, y11);
+
+        const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
+        const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
+        ctx.fillText('RWY 29', x29, y29);
+
+        ctx.restore();
+    }
+};
+
+Chart.register(runwayOverlayPlugin);
+
+document.addEventListener("DOMContentLoaded", () => {
+    initWindRoseChart();
+    startRealtimeClock();
+    fetchAWSData();
+
+    const forecastTabBtn = document.getElementById("forecast-tab");
+    if (forecastTabBtn) {
+        forecastTabBtn.addEventListener("shown.bs.tab", () => {
+            setTimeout(drawDaylightCurve, 100);
+        });
+    }
+
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    const sidebar = document.getElementById("sidebar");
+    const contentArea = document.getElementById("contentArea");
+
+    if (sidebarToggle && sidebar && contentArea) {
+        sidebarToggle.addEventListener("click", () => {
+            sidebar.classList.toggle("collapsed");
+            contentArea.classList.toggle("expanded");
+            setTimeout(drawDaylightCurve, 300);
+        });
+    }
+
+    const autoSwitch = document.getElementById("autoRefreshSwitch");
+    if (autoSwitch) {
+        autoSwitch.addEventListener("change", (e) => {
+            if (e.target.checked) startAutoRefresh();
+            else stopAutoRefresh();
+        });
+    }
+
+    const refreshBtn = document.getElementById("manualRefreshBtn");
+    if (refreshBtn) {
+        refreshBtn.addEventListener("click", () => fetchAWSData());
+    }
+
+    const exportBtn = document.getElementById("exportHistoryBtn");
+    if (exportBtn) {
+        exportBtn.addEventListener("click", exportHistoryCSV);
+    }
+
+    const rwySelect = document.getElementById("calc-rwy-heading");
+    const windDirInput = document.getElementById("calc-wind-dir");
+    const windSpdInput = document.getElementById("calc-wind-spd");
+
+    if (rwySelect && windDirInput && windSpdInput) {
+        [rwySelect, windDirInput, windSpdInput].forEach(el => {
+            el.addEventListener("input", calculatePopUpCrosswind);
+        });
+    }
+
+    window.addEventListener("resize", () => {
+        drawDaylightCurve();
+        drawCloudProfileCanvas(1800);
+    });
+    startAutoRefresh();
+});
+
+function initWindRoseChart() {
+    const canvas = document.getElementById("windRoseChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const sectors = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+    windRoseInstance = new Chart(ctx, {
+        type: 'polarArea',
+        data: {
+            labels: sectors,
+            datasets: [
+                { label: 'Calm (<3 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(6, 182, 212, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Light (3-10 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(16, 185, 129, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Moderate (11-20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(245, 158, 11, 0.75)', borderColor: '#ffffff', borderWidth: 1 },
+                { label: 'Strong (>20 kt)', data: Array(16).fill(0), backgroundColor: 'rgba(239, 68, 68, 0.75)', borderColor: '#ffffff', borderWidth: 1 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: 15 },
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    startAngle: -11.25,
+                    stacked: true,
+                    ticks: { display: true, backdropColor: 'rgba(252, 252, 252, 0.85)', color: '#475569', font: { size: 9 } },
+                    grid: { color: '#e2e8f0' },
+                    angleLines: { display: true, color: '#cbd5e1' },
+                    pointLabels: { display: true, centerPointLabels: true, font: { size: 11, weight: 'bold' }, color: '#0f172a' }
+                }
+            }
+        }
+    });
+}
+
+function updateWindRoseChart(payload) {
+    if (!windRoseInstance || !payload.wind_direction_10m || !payload.wind_speed_10m) return;
+
+    const dirs = payload.wind_direction_10m;
+    const speeds = payload.wind_speed_10m;
+
+    const catCalm = Array(16).fill(0);
+    const catLight = Array(16).fill(0);
+    const catMod = Array(16).fill(0);
+    const catStrong = Array(16).fill(0);
+
+    dirs.forEach((deg, i) => {
+        if (deg !== null && deg !== undefined && speeds[i] !== null && speeds[i] !== undefined) {
+            const idx = Math.floor((parseFloat(deg) + 11.25) / 22.5) % 16;
+            const spdKt = parseFloat(speeds[i]) * 0.539957;
+
+            if (spdKt < 3.0) catCalm[idx] += 1;
+            else if (spdKt <= 10.0) catLight[idx] += 1;
+            else if (spdKt <= 20.0) catMod[idx] += 1;
+            else catStrong[idx] += 1;
+        }
+    });
+
+    windRoseInstance.data.datasets[0].data = catCalm;
+    windRoseInstance.data.datasets[1].data = catLight;
+    windRoseInstance.data.datasets[2].data = catMod;
+    windRoseInstance.data.datasets[3].data = catStrong;
+    windRoseInstance.update();
+}
+
+function drawCloudProfileCanvas(cloudAltFt) {
+    const canvas = document.getElementById("cloudProfileCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const parentW = canvas.parentElement.clientWidth || 250;
+    canvas.width = parentW;
+    canvas.height = 65;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const baselineY = canvas.height - 14;
+    ctx.beginPath();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.moveTo(10, baselineY);
+    ctx.lineTo(canvas.width - 10, baselineY);
+    ctx.stroke();
+
+    const cloudX = canvas.width / 2 - 22;
+    const cloudY = baselineY - 30;
+
+    ctx.fillStyle = '#2563eb';
+    ctx.beginPath();
+    ctx.arc(cloudX + 10, cloudY + 10, 10, 0, Math.PI * 2);
+    ctx.arc(cloudX + 22, cloudY + 6, 13, 0, Math.PI * 2);
+    ctx.arc(cloudX + 34, cloudY + 12, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    const badgeText = `SCT ${cloudAltFt.toLocaleString()}`;
+    ctx.font = 'bold 10px "Inter", sans-serif';
+    const textWidth = ctx.measureText(badgeText).width;
+
+    const badgeX = (canvas.width / 2) - (textWidth / 2) - 6;
+    const badgeY = baselineY + 2;
+
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, textWidth + 12, 15, 3);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(badgeText, canvas.width / 2, badgeY + 11);
+}
+
+function drawDaylightCurve() {
+    const canvas = document.getElementById("daylightCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const parentWidth = canvas.parentElement.clientWidth || 600;
+    
+    canvas.width = parentWidth;
+    canvas.height = 150;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const horizonY = h / 2 + 10;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(15, horizonY);
+    ctx.lineTo(w - 15, horizonY);
+    ctx.stroke();
+
+    const sunriseX = w * 0.25;
+    const middayX = w * 0.50;
+    const sunsetX = w * 0.75;
+    const curveRadiusY = 55;
+
+    const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
+
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.4)';
+    ctx.lineWidth = 1;
+    markers.forEach(m => {
+        ctx.beginPath();
+        ctx.moveTo(m.x, horizonY);
+        ctx.lineTo(m.x, horizonY + 35);
+        ctx.stroke();
+    });
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(middayX, horizonY);
+    for (let x = middayX; x <= sunsetX; x++) {
+        const progress = (x - sunriseX) / (sunsetX - sunriseX);
+        const rad = progress * Math.PI;
+        const y = horizonY - Math.sin(rad) * curveRadiusY;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(sunsetX, horizonY);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.08)';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2.5;
+    
+    for (let x = 15; x <= w - 15; x++) {
+        const totalSpan = sunsetX - sunriseX;
+        const normalizedProgress = (x - sunriseX) / totalSpan;
+        const rad = normalizedProgress * Math.PI;
+
+        let y;
+        if (x >= sunriseX && x <= sunsetX) {
+            y = horizonY - Math.sin(rad) * curveRadiusY;
+        } else if (x < sunriseX) {
+            const extProgress = (sunriseX - x) / totalSpan;
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+        } else {
+            const extProgress = (x - sunsetX) / totalSpan;
+            y = horizonY + Math.sin(extProgress * Math.PI * 0.5) * (curveRadiusY * 0.6);
+        }
+
+        if (x === 15) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    let sunProgress = (currentHour - 6.0) / 11.83; 
+    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress));
+
+    const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
+    const sunRad = sunProgress * Math.PI;
+    const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
+
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    for (let i = 0; i < 8; i++) {
+        const angle = (i * 45) * (Math.PI / 180);
+        const rx1 = sunX + Math.cos(angle) * 11;
+        const ry1 = sunY + Math.sin(angle) * 11;
+        const rx2 = sunX + Math.cos(angle) * 15;
+        const ry2 = sunY + Math.sin(angle) * 15;
+
+        ctx.beginPath();
+        ctx.moveTo(rx1, ry1);
+        ctx.lineTo(rx2, ry2);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+function startRealtimeClock() {
+    updateClockDisplay();
+    if (clockTimer) clearInterval(clockTimer);
+    clockTimer = setInterval(updateClockDisplay, 1000);
+}
+
+function updateClockDisplay() {
+    const now = new Date();
+    
+    const wibStr = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    }).replace(/\./g, ' : ');
+
+    const utcStr = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    }).replace(/\./g, ' : ');
+
+    const clockEl = document.getElementById("utc-wib-clock");
+    if (clockEl) {
+        clockEl.innerHTML = `STANDAR WAKTU INDONESIA &nbsp; <span class="text-success fw-bold">${wibStr}</span> &nbsp; / &nbsp; <span class="text-info fw-bold">${utcStr} UTC</span>`;
+    }
+
+    const lastUpdate = document.getElementById("last-update");
+    if (lastUpdate) {
+        const fullDateStr = now.toLocaleDateString('id-ID', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+        });
+        lastUpdate.textContent = `${fullDateStr} - ${wibStr} WIB`;
+    }
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(fetchAWSData, POLLING_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+}
+
+async function fetchAWSData() {
+    const icon = document.getElementById("refreshIcon");
+    if (icon) icon.classList.add("spin-anim");
+
+    try {
+        const response = await fetch(`/api/v1/aws-translated?_t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
         
-        <!-- SIDEBAR NAVIGASI -->
-        <aside class="sidebar-wrapper" id="sidebar">
-            <div class="py-3">
-                <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.65rem; letter-spacing: 1px;">Navigasi Utama</div>
-                <div class="nav flex-column nav-pills" id="mainTab" role="tablist">
-                    <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" title="Ringkasan Utama">
-                        <i class="bi bi-speedometer2 me-3 fs-5"></i>
-                        <span class="nav-text">Ringkasan Utama</span>
-                    </button>
-                    <button class="nav-link" id="forecast-tab" data-bs-toggle="tab" data-bs-target="#forecast" type="button" title="Cuaca Hari Ini">
-                        <i class="bi bi-sun me-3 fs-5"></i>
-                        <span class="nav-text">Cuaca Hari Ini</span>
-                    </button>
-                    <button class="nav-link" id="master-tab" data-bs-toggle="tab" data-bs-target="#master" type="button" title="Master Table">
-                        <i class="bi bi-card-checklist me-3 fs-5"></i>
-                        <span class="nav-text">Master Table</span>
-                    </button>
-                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" title="History Log">
-                        <i class="bi bi-clock-history me-3 fs-5"></i>
-                        <span class="nav-text">History Log</span>
-                    </button>
+        const data = await response.json();
+        renderDashboard(data);
+
+    } catch (err) {
+        console.error("Gagal memuat data METAR WICC AWS:", err);
+    } finally {
+        if (icon) icon.classList.remove("spin-anim");
+    }
+}
+
+function safeSetText(id, value, suffix = "") {
+    const el = document.getElementById(id);
+    if (el) {
+        const newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
+        if (el.textContent !== newText) {
+            el.textContent = newText;
+            el.classList.remove("value-update-anim");
+            void el.offsetWidth;
+            el.classList.add("value-update-anim");
+        }
+    }
+}
+
+function degToCompassShort(deg) {
+    if (deg === null || deg === undefined) return "";
+    const sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
+}
+
+function renderDashboard(data) {
+    if (!data) return;
+
+    const t = data.thermodynamics || {};
+    const w = data.wind_profile || {};
+    const c = data.clouds_precipitation || {};
+    const r = data.runways || {};
+    const dl = data.daylight || {};
+
+    if (data.metadata) {
+        safeSetText("raw-metar-text", data.metadata.raw_metar);
+        safeSetText("raw-taf-text", data.metadata.raw_taf);
+    }
+
+    safeSetText("m-temp", t.temp_2m, "°C");
+    safeSetText("m-dew", t.dew_point, "°C");
+    safeSetText("m-rh", t.rh_2m, "%");
+    safeSetText("m-press", t.msl_pressure, "hPa");
+    safeSetText("m-surf-press", t.surface_pressure, "hPa");
+    
+    safeSetText("m-cloud-octa", c.cloud_cover_octa);
+    safeSetText("m-cloud-alt", "1,800 ft");
+    drawCloudProfileCanvas(1800);
+
+    const modalOcta = document.getElementById("modal-cloud-octa");
+    const modalBase = document.getElementById("modal-cloud-base");
+    if (modalOcta) modalOcta.textContent = `SCT (${c.cloud_cover_octa})`;
+    if (modalBase) modalBase.textContent = "1,800 ft MSL";
+
+    const now = new Date();
+    const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+    safeSetText("current-forecast-date-label", dateLabelStr);
+    safeSetText("fc-temp", t.temp_2m, "°C");
+    safeSetText("fc-vis", t.visibility_km || "10 km");
+    safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
+    safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
+    safeSetText("fc-press", t.msl_pressure, "hPa");
+
+    safeSetText("sun-sunrise-val", dl.sunrise);
+    safeSetText("sun-midday-val", dl.midday);
+
+    const [sunsetHH, sunsetMM] = dl.sunset.split(':').map(Number);
+    const sunsetDate = new Date(now);
+    sunsetDate.setHours(sunsetHH, sunsetMM, 0);
+    const diffMs = sunsetDate - now;
+    let sunsetText = dl.sunset;
+    if (diffMs > 0) {
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        sunsetText = `${dl.sunset} (${diffHrs}h ${diffMins}m)`;
+    }
+    safeSetText("sun-sunset-val", sunsetText);
+
+    safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
+    safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
+    safeSetText("rwy-pct-val", `${r.crosswind_pct} %`);
+
+    const barRh = document.getElementById("bar-rh");
+    if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
+
+    const levels = [
+        { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
+        { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
+        { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
+    ];
+
+    levels.forEach(lvl => {
+        const item = w[lvl.key];
+        if (item) {
+            safeSetText(lvl.spdId, item.speed_kt, "kt");
+            safeSetText(lvl.dirId, `${item.dir_deg}° (${item.dir_compass})`);
+            
+            const arrow = document.getElementById(lvl.arrowId);
+            if (arrow && item.dir_deg !== undefined) {
+                arrow.style.transform = `rotate(${item.dir_deg}deg)`;
+            }
+        }
+    });
+
+    safeSetText("wgust-spd", w.gusts_kt, "kt");
+
+    if (w.surface) {
+        const windDirInput = document.getElementById("calc-wind-dir");
+        const windSpdInput = document.getElementById("calc-wind-spd");
+        if (windDirInput && windSpdInput) {
+            windDirInput.value = w.surface.dir_deg;
+            windSpdInput.value = w.surface.speed_kt;
+            calculatePopUpCrosswind();
+        }
+    }
+
+    const minData = data.minutely_15;
+    if (minData) {
+        updateWindRoseChart(minData);
+        renderDaily00to24History(minData, data);
+    }
+
+    if (data.raw_daily_payload) {
+        renderEsokHariForecast(data.raw_daily_payload, data);
+    }
+
+    renderFlightPrepTable(data);
+    drawDaylightCurve();
+}
+
+function renderEsokHariForecast(daily, fullData) {
+    const container = document.getElementById("daily-forecast-cards");
+    if (!container || !daily.time) return;
+
+    container.innerHTML = "";
+    if (daily.time.length < 2) return;
+    const i = 1;
+
+    const dateObj = new Date(daily.time[i]);
+    const dayLabel = "Esok Hari";
+    const badgeText = "FORECAST";
+    
+    const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+        weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
+    });
+
+    const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+    const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+    
+    const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+    const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+    
+    const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+    const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+    
+    const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+    const domDirCompass = degToCompassShort(domDirDeg);
+    const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+
+    let flightCategory = "VFR";
+    let categoryBadge = "bg-success";
+    let weatherIcon = "bi-sun-fill text-warning";
+    let weatherText = "Kondisi visual operasional optimal.";
+
+    if (precipSum > 10.0) {
+        flightCategory = "IFR / Severe";
+        categoryBadge = "bg-danger";
+        weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
+        weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
+    } else if (precipSum > 1.0 || windMaxKt > 15.0) {
+        flightCategory = "MVFR";
+        categoryBadge = "bg-warning text-dark";
+        weatherIcon = "bi-cloud-rain-heavy-fill text-info";
+        weatherText = "Waspada presipitasi lokal / angin kencang.";
+    } else if (windMaxKt <= 10.0) {
+        weatherIcon = "bi-cloud-sun-fill text-warning";
+    }
+
+    const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
+    const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
+
+    const card = document.createElement("div");
+    card.className = "card card-luxury shadow-sm rounded-4 overflow-hidden h-100";
+    card.innerHTML = `
+        <div class="card-header bg-dark text-white p-4 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1 font-mono extra-small">${badgeText}</span>
                 </div>
+                <h4 class="fw-bold mb-0">${dayLabel}</h4>
+                <div class="small text-secondary font-mono mt-1">${formattedDate}</div>
             </div>
-        </aside>
-
-        <!-- KONTEN UTAMA -->
-        <main class="content-wrapper" id="contentArea">
-            <div class="tab-content" id="mainTabContent">
-                
-                <!-- TAB 1: RINGKASAN UTAMA -->
-                <div class="tab-pane fade show active fade-in-up" id="summary" role="tabpanel">
-                    
-                    <!-- DUA CARD BERDAMPINGAN (SEBELAHAN) UNTUK METAR DAN TAF -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-body p-3 bg-white rounded-3 border h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <span class="badge bg-primary font-mono fw-bold px-2 py-1">RAW METAR</span>
-                                        </div>
-                                        <code class="small text-dark font-mono fw-bold d-block" id="raw-metar-text" style="white-space: pre-wrap;">Loading METAR WICC...</code>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-body p-3 bg-white rounded-3 border h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <span class="badge bg-secondary font-mono fw-bold px-2 py-1">RAW TAF</span>
-                                        </div>
-                                        <code class="small text-muted font-mono d-block" id="raw-taf-text" style="white-space: pre-wrap; line-height: 1.5;">Loading TAF WICC...</code>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-3">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-body p-3">
-                                    <div class="text-secondary small fw-bold tracking-wider">SUHU UDARA (OAT)</div>
-                                    <div class="fs-2 fw-extrabold text-primary my-1 font-mono" id="m-temp">-- °C</div>
-                                    <div class="small text-muted">Dew Point: <span id="m-dew" class="fw-bold font-mono text-dark">-- °C</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-body p-3">
-                                    <div class="text-secondary small fw-bold tracking-wider">KELEMBAPAN RELATIF</div>
-                                    <div class="fs-2 fw-extrabold text-info my-1 font-mono" id="m-rh">-- %</div>
-                                    <div class="progress bg-light mt-2 border" style="height: 5px;">
-                                        <div class="progress-bar bg-info" id="bar-rh" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-body p-3">
-                                    <div class="text-secondary small fw-bold tracking-wider">ALTIMETER (QNH)</div>
-                                    <div class="fs-2 fw-extrabold text-warning my-1 font-mono" id="m-press">-- hPa</div>
-                                    <div class="small text-muted">QFE: <span id="m-surf-press" class="fw-bold font-mono text-dark">-- hPa</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card card-luxury shadow-sm h-100 card-clickable" id="cloudCardBtn" data-bs-toggle="modal" data-bs-target="#cloudDetailModal" title="Klik untuk melihat detail lengkap awan">
-                                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="text-secondary small fw-bold tracking-wider">TUTUPAN AWAN</div>
-                                        <span class="badge bg-primary font-mono extra-small" id="m-cloud-octa">SCT</span>
-                                    </div>
-                                    <div class="cloud-canvas-wrapper position-relative my-2" style="height: 65px; width: 100%;">
-                                        <canvas id="cloudProfileCanvas" style="width: 100%; height: 100%;"></canvas>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center pt-1 border-top mt-1" style="margin-top: 10px !important;">
-                                        <span class="text-muted extra-small">Base Alt</span>
-                                        <span class="fw-bold font-mono text-primary small" id="m-cloud-alt">1,800 ft</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-lg-5">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-header bg-transparent py-2.5 fw-bold d-flex justify-content-between align-items-center border-bottom">
-                                    <span><i class="bi bi-wind me-2 text-primary"></i>Profil Angin Vertikal WICC</span>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Knots</span>
-                                </div>
-                                <div class="card-body p-0">
-                                    <table class="table table-custom-glass align-middle mb-0">
-                                        <thead class="small text-secondary">
-                                            <tr>
-                                                <th class="ps-4">Level</th>
-                                                <th>Kecepatan</th>
-                                                <th>Arah</th>
-                                                <th class="pe-4 text-center">Visual</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td class="ps-4 fw-bold">33 ft (Angin Permukaan)</td><td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td><td class="font-mono" id="w33-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">250 ft (Angin Lapisan Rendah)</td><td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td><td class="font-mono" id="w250-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">400 ft (Terminal Winds)</td><td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td><td class="font-mono" id="w400-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">600 ft (Angin Ketinggian Jelajah)</td><td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td><td class="font-mono" id="w600-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr class="table-warning bg-opacity-10 border-0"><td class="ps-4 fw-bold text-warning">Peak Gust</td><td class="fw-bold text-warning font-mono" id="wgust-spd">-- kt</td><td colspan="2" class="pe-4 small text-muted">Max Gust METAR</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-7">
-                            <div class="card card-luxury shadow-sm h-100">
-                                <div class="card-header bg-transparent py-2.5 fw-bold d-flex justify-content-between align-items-center border-bottom">
-                                    <span><i class="bi bi-compass me-2 text-danger"></i>Wind Rose RWY 11/29 Alignment</span>
-                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">WICC Realtime</span>
-                                </div>
-                                <div class="card-body text-center p-2" style="position: relative; height: 300px;">
-                                    <canvas id="windRoseChart"></canvas>
-                                </div>
-                                <div class="card-footer bg-transparent border-top small text-muted d-flex justify-content-around py-2">
-                                    <span><i class="bi bi-square-fill text-info me-1"></i>Calm (&lt;3 kt)</span>
-                                    <span><i class="bi bi-square-fill me-1" style="color:#10b981;"></i>Light (3-10 kt)</span>
-                                    <span><i class="bi bi-square-fill me-1" style="color:#f59e0b;"></i>Moderate (11-20 kt)</span>
-                                    <span><i class="bi bi-square-fill text-danger me-1"></i>Strong (&gt;20 kt)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: CUACA HARI INI -->
-                <div class="tab-pane fade fade-in-up" id="forecast" role="tabpanel">
-                    
-                    <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
-                        <div class="border-bottom pb-3 mb-4">
-                            <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
-                            <div class="h5 fw-bold text-dark mb-0 mt-1">Bandara Husein Sastranegara (WICC)</div>
-                        </div>
-
-                        <div class="row align-items-center g-4">
-                            <div class="col-md-5 d-flex align-items-center gap-4">
-                                <div class="p-3 bg-light rounded-4 text-center border shadow-sm" style="min-width: 100px;">
-                                    <i class="bi bi-cloud-sun-fill text-warning display-3"></i>
-                                </div>
-                                <div>
-                                    <div class="display-4 fw-extrabold font-mono text-dark" id="fc-temp">28.9 °C</div>
-                                    <div class="fs-6 fw-semibold text-secondary" id="fc-weather-desc">Cerah Berawan / Udara Kabur</div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-7">
-                                <div class="row g-3">
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-eye me-1 text-primary"></i>JARAK PANDANG</div>
-                                            <div class="fs-5 sub-card-value" id="fc-vis">10 km</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-info"></i>KECEPATAN ANGIN</div>
-                                            <div class="fs-5 sub-card-value" id="fc-wind-spd">7.6 kt</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>ARAH ANGIN DARI</div>
-                                            <div class="fs-5 sub-card-value" id="fc-wind-dir">202° (SSW)</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-speedometer me-1 text-danger"></i>TEKANAN UDARA</div>
-                                            <div class="fs-5 sub-card-value" id="fc-press">1013.5 hPa</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mb-4">
-                        <div class="col-lg-5" id="daily-forecast-cards"></div>
-
-                        <div class="col-lg-7">
-                            <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
-                                <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
-                                <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
-                                    <canvas id="daylightCanvas"></canvas>
-                                </div>
-                                <div class="d-flex justify-content-around text-center mt-3">
-                                    <div>
-                                        <div class="small fw-bold text-muted">Sunrise</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunrise-val">06:02</div>
-                                    </div>
-                                    <div>
-                                        <div class="small fw-bold text-muted">Midday</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-midday-val">11:58</div>
-                                    </div>
-                                    <div>
-                                        <div class="small fw-bold text-muted">Sunset</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:54 (2:48h)</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card card-luxury p-4 mb-4 shadow-sm">
-                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-signpost-split me-2 text-primary"></i>Runways</h4>
-                        <div class="table-responsive">
-                            <table class="table table-custom-glass align-middle mb-2">
-                                <thead>
-                                    <tr class="text-secondary small">
-                                        <th>1D</th>
-                                        <th>Heading</th>
-                                        <th>Crosswind</th>
-                                        <th>Headwind</th>
-                                        <th>Crosswind %</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="fw-bold font-mono text-primary">11/29</td>
-                                        <td class="font-mono">110° - 290°</td>
-                                        <td class="fw-bold text-warning font-mono" id="rwy-cross-val">11 kt</td>
-                                        <td class="font-mono" id="rwy-head-val">2 kt</td>
-                                        <td class="fw-bold font-mono" id="rwy-pct-val">98 %</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: MASTER TABLE -->
-                <div class="tab-pane fade fade-in-up" id="master" role="tabpanel">
-                    <div class="card card-luxury shadow-sm">
-                        <div class="card-header bg-transparent py-3 fw-bold border-bottom">
-                            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Ringkasan Parameter Operasional Penerbangan (WICC)
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-custom-glass align-middle mb-0">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th class="ps-4">Parameter Penerbangan</th>
-                                            <th>Nilai Sensor</th>
-                                            <th>Satuan Standar</th>
-                                            <th class="pe-4">Keterangan Operasional</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="flight-prep-table-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 4: HISTORY LOG -->
-                <div class="tab-pane fade fade-in-up" id="history" role="tabpanel">
-                    <div class="card card-luxury shadow-sm">
-                        <div class="card-header bg-transparent py-3 fw-bold d-flex justify-content-between align-items-center border-bottom">
-                            <div>
-                                <i class="bi bi-clock-history me-2 text-primary"></i><span id="history-date-header">History - August 6, 2026</span>
-                            </div>
-                            <button class="btn btn-outline-success btn-sm fw-semibold rounded-3" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-custom-glass align-middle mb-0">
-                                    <thead class="table-dark small text-secondary">
-                                        <tr>
-                                            <th class="ps-4">Time</th>
-                                            <th class="text-center">Weather</th>
-                                            <th>Temp.</th>
-                                            <th>Dewpoint</th>
-                                            <th>Rel. Hum</th>
-                                            <th>Heat Index</th>
-                                            <th>Kp-Index</th>
-                                            <th>Visibility</th>
-                                            <th class="pe-4">Wind</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="history-table-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="text-end">
+                <i class="bi ${weatherIcon} display-4"></i>
             </div>
-        </main>
-    </div>
+        </div>
 
-    <!-- POP-UP MODAL DETAIL AWAN -->
-    <div class="modal fade" id="cloudDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content card-luxury border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white p-4 border-bottom">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-clouds me-2"></i>Analisis Detail Profil & Ketinggian Awan WICC</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="p-3 sub-card-dark h-100">
-                                <div class="small text-muted fw-bold mb-1">LAPISAN UTAMA (OKTA)</div>
-                                <div class="fs-4 fw-bold text-primary font-mono" id="modal-cloud-octa">SCT (3-4/8)</div>
-                                <div class="small text-secondary mt-1">Kondisi tutupan awan terpencar di atas aerodrom Husein Sastranegara.</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 sub-card-dark h-100">
-                                <div class="small text-muted fw-bold mb-1">KETINGGIAN DASAR (BASE ALTITUDE)</div>
-                                <div class="fs-4 fw-bold text-warning font-mono" id="modal-cloud-base">1,800 ft MSL</div>
-                                <div class="small text-secondary mt-1">Elevasi vertikal dasar lapisan awan terdeteksi dari sensor real-time.</div>
-                            </div>
-                        </div>
+        <div class="card-body p-4">
+            <div class="d-flex align-items-baseline gap-3 mb-3">
+                <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
+                <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
+                <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
+            </div>
+
+            <hr class="border-secondary border-opacity-25 my-3">
+
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
+                        <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
+                        <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
                     </div>
-                    <div class="p-3 bg-light rounded-3 border">
-                        <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i>Keterangan Operasional Penerbangan:</div>
-                        <p class="small text-muted mb-0">Lapisan awan Scattered (SCT) pada ketinggian 1,800 ft aman untuk penerbangan VFR/IFR namun tetap memerlukan kewaspadaan visual pada sektor pendekatan final Runway 11/29.</p>
+                </div>
+
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
+                        <div class="fs-5 sub-card-value text-danger">${gustsMaxKt} kt</div>
+                        <div class="sub-card-desc">Peak Surface Gust</div>
+                    </div>
+                </div>
+
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
+                        <div class="fs-5 sub-card-value text-warning">${crosswindKt} kt</div>
+                        <div class="sub-card-desc">Runway Component</div>
+                    </div>
+                </div>
+
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
+                        <div class="fs-5 sub-card-value text-info">${precipSum} mm</div>
+                        <div class="sub-card-desc">Total Harian</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    `;
+    container.appendChild(card);
+}
 
-    <!-- POP-UP MODALS LAINNYA -->
-    <div class="modal fade" id="crosswindModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content card-luxury border-0 shadow-lg">
-                <div class="modal-header bg-dark text-white p-4 border-bottom">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind Calculator</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Runway Alignment</label>
-                            <select class="form-select fw-bold" id="calc-rwy-heading">
-                                <option value="110" selected>RWY 11 (110°)</option>
-                                <option value="290">RWY 29 (290°)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Arah Datang Angin (°)</label>
-                            <input type="number" class="form-control font-mono" id="calc-wind-dir" min="0" max="360" value="180">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Kecepatan (Knots)</label>
-                            <input type="number" class="form-control font-mono" id="calc-wind-spd" min="0" value="12">
-                        </div>
-                    </div>
+function calculatePopUpCrosswind() {
+    const rwyHeading = parseFloat(document.getElementById("calc-rwy-heading").value) || 110;
+    const windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
+    const windSpd = parseFloat(document.getElementById("calc-wind-spd").value) || 0;
 
-                    <div class="alert alert-light border rounded-3 p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark">Status Keselamatan Komponen Angin:</span>
-                            <span class="badge bg-success px-3 py-1 font-mono fs-6" id="calc-threat-badge">SAFE</span>
-                        </div>
-                        <p class="small text-muted mb-0" id="calc-threat-desc">Kondisi angin samping di bawah limit aman penerbangan normal (15 Knots).</p>
-                    </div>
+    const angleRad = (windDir - rwyHeading) * (Math.PI / 180);
+    const crosswind = Math.abs(windSpd * Math.sin(angleRad));
+    const headtail = windSpd * Math.cos(angleRad);
 
-                    <div class="row g-3 text-center">
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <div class="small text-muted fw-bold mb-1">CROSSWIND (ANGIN SAMPING)</div>
-                                <div class="fs-2 fw-bold text-warning font-mono" id="calc-out-cross">0.0 kt</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <div class="small text-muted fw-bold mb-1">HEADWIND / TAILWIND</div>
-                                <div class="fs-2 fw-bold text-primary font-mono" id="calc-out-headtail">0.0 kt</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    const outCross = document.getElementById("calc-out-cross");
+    const outHeadTail = document.getElementById("calc-out-headtail");
+    const threatBadge = document.getElementById("calc-threat-badge");
+    const threatDesc = document.getElementById("calc-threat-desc");
 
-    <div class="modal fade" id="airportInfoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content card-luxury border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white p-4 border-bottom">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-airplane me-2"></i>Spesifikasi Aerodrom Husein Sastranegara (BDO/WICC)</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <table class="table table-custom-glass align-middle mb-0">
-                        <tbody>
-                            <tr><th class="w-35 text-secondary">Nama Aerodrom</th><td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td></tr>
-                            <tr><th class="text-secondary">Kode ICAO / IATA</th><td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td></tr>
-                            <tr><th class="text-secondary">Koordinat Stasiun</th><td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td></tr>
-                            <tr><th class="text-secondary">Elevasi Aerodrom</th><td class="fw-bold text-primary font-mono">2,428 ft MSL (740 Meter)</td></tr>
-                            <tr><th class="text-secondary">Dimensi Runway</th><td><strong>2,220 m x 45 m</strong> (Asphalt Concrete)</td></tr>
-                            <tr><th class="text-secondary">Orientasi Runway</th><td><strong>RWY 11 / RWY 29</strong> (True Heading: 110° / 290°)</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    if (outCross) outCross.textContent = `${crosswind.toFixed(1)} kt`;
+    if (outHeadTail) {
+        const type = headtail >= 0 ? "Headwind" : "Tailwind";
+        outHeadTail.textContent = `${Math.abs(headtail).toFixed(1)} kt (${type})`;
+    }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/app.js"></script>
-</body>
-</html>
+    if (threatBadge && threatDesc) {
+        if (crosswind > 20.0) {
+            threatBadge.className = "badge bg-danger px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "HAZARDOUS";
+            threatDesc.textContent = "BAHAYA: Komponen crosswind melebihi limit maksimum operasional (20 Knots).";
+        } else if (crosswind > 12.0) {
+            threatBadge.className = "badge bg-warning text-dark px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "CAUTION";
+            threatDesc.textContent = "WASPADA: Komponen crosswind cukup tinggi (12-20 Knots).";
+        } else {
+            threatBadge.className = "badge bg-success px-3 py-1 font-mono fs-6";
+            threatBadge.textContent = "SAFE";
+            threatDesc.textContent = "AMAN: Komponen angin samping di bawah limitasi penerbangan normal.";
+        }
+    }
+}
+
+function renderFlightPrepTable(data) {
+    const tbody = document.getElementById("flight-prep-table-body");
+    if (!tbody) return;
+
+    const t = data.thermodynamics || {};
+    const w = data.wind_profile || {};
+    const c = data.clouds_precipitation || {};
+
+    const flightParams = [
+        { name: "Raw METAR WICC", val: data.metadata ? data.metadata.raw_metar : '--', unit: "ICAO Standard", desc: "Observasi Mentah Cuaca Penerbangan WICC" },
+        { name: "Raw TAF WICC", val: data.metadata ? data.metadata.raw_taf : '--', unit: "ICAO Standard", desc: "Prakiraan Mentah Aerodrom WICC" },
+        { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
+        { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
+        { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
+        { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
+        { name: "Heat Index", val: t.heat_index, unit: "°C", desc: "Indeks Sensasi Suhu Terasa" },
+        { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
+        { name: "Total Cloud Cover", val: c.cloud_cover_octa, unit: "METAR Code", desc: "Tutupan & Tinggi Dasar Awan" }
+    ];
+
+    tbody.innerHTML = "";
+    flightParams.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="ps-4 fw-bold text-primary">${p.name}</td>
+            <td><code class="px-2 py-1 bg-light text-dark rounded border fw-bold font-mono">${p.val !== undefined ? p.val : '--'}</code></td>
+            <td class="text-secondary">${p.unit}</td>
+            <td class="pe-4 small text-muted">${p.desc}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderDaily00to24History(payload, fullData) {
+    const tbody = document.getElementById("history-table-body");
+    const dateHeader = document.getElementById("history-date-header");
+    if (!tbody || !payload || !payload.time) return;
+
+    const times = payload.time;
+    const temps = payload.temperature_2m || [];
+    const dews = payload.relative_humidity_2m || [];
+    const windSpeeds = payload.wind_speed_10m || [];
+    const windDirs = payload.wind_direction_10m || [];
+
+    const now = new Date();
+    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    const formattedDate = now.toLocaleDateString('en-US', { 
+        timeZone: 'Asia/Jakarta', month: 'long', day: 'numeric', year: 'numeric' 
+    });
+
+    if (dateHeader) {
+        dateHeader.textContent = `History - ${formattedDate}`;
+    }
+
+    const currentHHMM = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
+    }).replace('.', ':');
+
+    let logsMap = new Map();
+
+    times.forEach((isoStr, i) => {
+        if (!isoStr) return;
+
+        const parts = isoStr.split("T");
+        if (parts.length < 2) return;
+
+        const datePart = parts[0];
+        const timePart = parts[1].substring(0, 5);
+
+        const minute = timePart.split(":")[1];
+        if ((minute === "00" || minute === "30") && datePart === todayISO && timePart <= currentHHMM) {
+            const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
+            const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
+            const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
+            const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
+            const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
+            const heatVal = tempVal + 2;
+            const kpVal = "1 (0-9)";
+            const visVal = rhVal > 85 ? "4 km" : (rhVal > 75 ? "8 km" : "10 km");
+
+            logsMap.set(timePart, {
+                timeKey: timePart,
+                time: timePart,
+                weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
+                temp: `${tempVal} °C`,
+                dewpoint: `${dewpVal} °C`,
+                rh: `${rhVal} %`,
+                heat: `${heatVal} °C`,
+                kp: kpVal,
+                visibility: visVal,
+                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
+            });
+        }
+    });
+
+    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
+    renderHistoryTable();
+}
+
+function renderHistoryTable() {
+    const tbody = document.getElementById("history-table-body");
+    if (!tbody) return;
+
+    if (historyLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = "";
+    historyLogs.forEach(log => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
+            <td class="text-center">${log.weather}</td>
+            <td class="font-mono text-dark fw-bold">${log.temp}</td>
+            <td class="font-mono text-secondary">${log.dewpoint}</td>
+            <td class="font-mono text-info">${log.rh}</td>
+            <td class="font-mono text-warning">${log.heat}</td>
+            <td class="font-mono text-secondary">${log.kp}</td>
+            <td class="font-mono text-secondary">${log.visibility}</td>
+            <td class="pe-4 font-mono text-dark">${log.wind}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function exportHistoryCSV() {
+    if (historyLogs.length === 0) return;
+    let csv = "Time,Temp,Dewpoint,Rel_Humidity,Heat_Index,Kp_Index,Visibility,Wind\n";
+    historyLogs.forEach(l => {
+        const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+        csv += `"${l.time}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.kp}","${l.visibility}","${cleanWind}"\n`;
+    });
+    const link = document.createElement("a");
+    link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
+    link.download = `Aviation_AWS_BDO_History_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+}
