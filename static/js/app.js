@@ -353,16 +353,28 @@ function startRealtimeClock() {
 
 function updateClockDisplay() {
     const now = new Date();
-    const fullDateStr = now.toLocaleDateString('id-ID', {
-        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-    });
-    const timeStr = now.toLocaleTimeString('id-ID', { 
-        hour: '2-digit', minute: '2-digit', second: '2-digit' 
-    });
+    
+    // Format WIB
+    const wibStr = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    }).replace(/\./g, ' : ');
+
+    // Format UTC
+    const utcStr = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    }).replace(/\./g, ' : ');
+
+    const clockEl = document.getElementById("utc-wib-clock");
+    if (clockEl) {
+        clockEl.innerHTML = `STANDAR WAKTU INDONESIA &nbsp; <span class="text-success fw-bold">${wibStr}</span> &nbsp; / &nbsp; <span class="text-info fw-bold">${utcStr} UTC</span>`;
+    }
 
     const lastUpdate = document.getElementById("last-update");
     if (lastUpdate) {
-        lastUpdate.textContent = `${fullDateStr} - ${timeStr} WIB`;
+        const fullDateStr = now.toLocaleDateString('id-ID', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+        });
+        lastUpdate.textContent = `${fullDateStr} - ${wibStr} WIB`;
     }
 }
 
@@ -441,10 +453,19 @@ function renderDashboard(data) {
     if (modalOcta) modalOcta.textContent = `SCT (${c.cloud_cover_octa})`;
     if (modalBase) modalBase.textContent = "1,800 ft MSL";
 
+    // PENGISIAN DATA REAL-TIME PADA KARTU UTAMA TAB CUACA HARI INI
+    const now = new Date();
+    const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+    safeSetText("current-forecast-date-label", dateLabelStr);
+    safeSetText("fc-temp", t.temp_2m, "°C");
+    safeSetText("fc-vis", "10 km");
+    safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
+    safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
+    safeSetText("fc-press", t.msl_pressure, "hPa");
+
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
 
-    const now = new Date();
     const [sunsetHH, sunsetMM] = dl.sunset.split(':').map(Number);
     const sunsetDate = new Date(now);
     sunsetDate.setHours(sunsetHH, sunsetMM, 0);
@@ -715,7 +736,7 @@ function renderDaily00to24History(payload, fullData) {
 
     const times = payload.time;
     const temps = payload.temperature_2m || [];
-    const dews = payload.relative_humidity_2m || []; // kita gunakan untuk estimasi dewp/rh dinamis
+    const dews = payload.relative_humidity_2m || [];
     const windSpeeds = payload.wind_speed_10m || [];
     const windDirs = payload.wind_direction_10m || [];
 
