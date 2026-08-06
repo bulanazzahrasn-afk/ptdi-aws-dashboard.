@@ -184,7 +184,6 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
-// RENDER GRAFIK AWAN REAL-TIME DENGAN JARAK SPACING (1CM / ~10px) DI BAWAH SUMBU X
 function drawCloudProfileCanvas(cloudAltFt) {
     const canvas = document.getElementById("cloudProfileCanvas");
     if (!canvas) return;
@@ -196,7 +195,6 @@ function drawCloudProfileCanvas(cloudAltFt) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Garis sumbu dasar (X-axis) dengan jarak margin bawah
     const baselineY = canvas.height - 12;
     ctx.beginPath();
     ctx.strokeStyle = '#cbd5e1';
@@ -205,7 +203,6 @@ function drawCloudProfileCanvas(cloudAltFt) {
     ctx.lineTo(canvas.width - 10, baselineY);
     ctx.stroke();
 
-    // Gambar ikon awan sederhana di tengah sumbu X
     const cloudX = canvas.width / 2 - 25;
     const cloudY = baselineY - 32;
 
@@ -216,7 +213,6 @@ function drawCloudProfileCanvas(cloudAltFt) {
     ctx.arc(cloudX + 38, cloudY + 14, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // Badge Teks Keterangan di Tengah Bawah Sumbu X (Berjarak sesuai permintaan)
     const badgeText = `SCT ${cloudAltFt.toLocaleString()} ft`;
     ctx.font = 'bold 11px "Inter", sans-serif';
     const textWidth = ctx.measureText(badgeText).width;
@@ -439,6 +435,12 @@ function renderDashboard(data) {
     safeSetText("m-cloud-octa", c.cloud_cover_octa);
     safeSetText("m-cloud-alt", "1,800 ft");
     drawCloudProfileCanvas(1800);
+
+    // Update Modal Detail Awan
+    const modalOcta = document.getElementById("modal-cloud-octa");
+    const modalBase = document.getElementById("modal-cloud-base");
+    if (modalOcta) modalOcta.textContent = `SCT (${c.cloud_cover_octa})`;
+    if (modalBase) modalBase.textContent = "1,800 ft MSL";
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
