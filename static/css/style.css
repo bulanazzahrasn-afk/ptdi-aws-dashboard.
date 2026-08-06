@@ -56,9 +56,9 @@ body {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1030;
-    overflow-y: auto; /* Memastikan sidebar bisa digeser ke atas dan kebawah */
-    -webkit-overflow-scrolling: touch; /* Scroll yang halus di perangkat seluler */
-    padding-bottom: 80px; /* Ruang tambahan agar menu paling bawah tidak terpotong */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
 }
 
 .sidebar-wrapper.collapsed { width: 78px; }
@@ -216,65 +216,11 @@ body {
 }
 
 /* -----------------------------------------------------------------
-   MOBILE RESPONSIVE FIXES (TAMPILAN HP) - DIPERBAIKI TOTAL
+   MOBILE RESPONSIVE FIXES (TAMPILAN HP)
 ----------------------------------------------------------------- */
 @media (max-width: 991.98px) {
-    /* Atur agar body bisa digeser sepenuhnya di HP */
-    body {
-        overflow-y: auto !important;
-        height: auto !important;
-    }
-
-    /* Ubah layout utama menjadi blok biasa agar bisa di-scroll ke bawah */
+    /* Berikan jarak atas yang lebih aman di HP agar konten tidak tertutup navbar */
     .app-layout {
-        display: block !important;
-        margin-top: 130px !important; /* Memberi ruang untuk navbar HP yang lebih tinggi */
-        min-height: auto !important;
-    }
-
-    /* Sidebar tersembunyi secara default dan bisa digeser vertikal */
-    .sidebar-wrapper {
-        position: fixed;
-        top: 130px !important;
-        bottom: 0;
-        left: 0;
-        transform: translateX(-100%);
-        width: 260px !important;
-        z-index: 1050;
-        overflow-y: auto !important;
-    }
-
-    /* Ketika sidebar dibuka */
-    .sidebar-wrapper:not(.collapsed) {
-        transform: translateX(0);
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Konten utama agar tidak tertutup navbar dan bisa digeser */
-    .content-wrapper {
-        margin-left: 0 !important;
-        width: 100% !important;
-        padding: 1rem !important;
-        overflow-y: visible !important;
-    }
-
-    /* Perbesar tinggi navbar di HP dan buat elemennya turun ke bawah dengan rapi */
-    .navbar-custom {
-        padding: 8px 10px !important;
-    }
-
-    .navbar-custom .container-fluid {
-        flex-direction: column;
-        align-items: stretch !important;
-        gap: 6px;
-    }
-
-    /* Baris tombol aksi dan jam di HP */
-    .navbar-custom .d-flex.align-items-center.gap-2 {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 4px !important;
-        width: 100%;
+        margin-top: 135px !important;
     }
 }
