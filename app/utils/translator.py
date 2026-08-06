@@ -19,6 +19,7 @@ def safe_val(val, default=0.0):
 
 def translate_aws_payload(raw: dict) -> dict:
     current = raw.get("current", {})
+    hourly = raw.get("hourly", {})
     daily_ext = raw.get("daily_ext", {})
     min15 = raw.get("minutely_15", {})
 
@@ -28,7 +29,23 @@ def translate_aws_payload(raw: dict) -> dict:
     surf_press = safe_val(current.get("surface_pressure"), 925.0)
     rh = safe_val(current.get("relative_humidity_2m"), 50)
     precip = safe_val(current.get("precipitation"), 0.0)
+
+    # AMBIL DATA CLOUD COVER REAL-TIME BERDASARKAN JAM SAAT INI DARI HOURLY ARRAY
     cloud_cover_pct = safe_val(current.get("cloud_cover"), 30.0)
+    hourly_times = hourly.get("time", [])
+    hourly_clouds = hourly.get("cloud_cover", [])
+    
+    if hourly_times and hourly_clouds:
+        current_iso_hour = datetime.now().strftime("%Y-%m-%dT%H:00")
+        try:
+            matched_idx = hourly_times.index(current_iso_hour)
+            if matched_idx < len(hourly_clouds) and hourly_clouds[matched_idx] is not None:
+                cloud_cover_pct = float(hourly_clouds[matched_idx])
+        except ValueError:
+            # Jika format pas jam tidak ketemu, ambil indeks terdekat berdasarkan waktu sistem
+            current_hour_int = datetime.now().hour
+            if current_hour_int < len(hourly_clouds):
+                cloud_cover_pct = safe_val(hourly_clouds[current_hour_int], cloud_cover_pct)
 
     heat_index = round(temp + (0.5555 * (6.11 * math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewp))) - 10)), 1) if dewp else temp + 2
 
@@ -51,6 +68,23 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
+    # KONVERSI PERSENTASE AWAN KE OKTA & METAR BERDASARKAN DATA AKTUAL REAL-TIME
+    if cloud_cover_pct <= 10:
+        cloud_octa = "0/8 (SKC)"
+        metar_cloud = "SKC"
+    elif cloud_cover_pct <= 25:
+        cloud_octa = "1-2/8 (FEW)"
+        metar_cloud = "FEW018"
+    elif cloud_cover_pct <= 50:
+        cloud_octa = "3-4/8 (SCT)"
+        metar_cloud = "SCT018"
+    elif cloud_cover_pct <= 87:
+        cloud_octa = "5-7/8 (BKN)"
+        metar_cloud = "BKN018"
+    else:
+        cloud_octa = "8/8 (OVC)"
+        metar_cloud = "OVC018"
+
     vis_code = "9999"
     vis_km_str = "10 km"
     weather_qualifier = ""
@@ -67,22 +101,6 @@ def translate_aws_payload(raw: dict) -> dict:
         vis_code = "6000"
         vis_km_str = "6 km"
         weather_qualifier = "HZ "
-
-    if cloud_cover_pct <= 10:
-        cloud_octa = "0/8 (SKC)"
-        metar_cloud = "SKC"
-    elif cloud_cover_pct <= 25:
-        cloud_octa = "1-2/8 (FEW)"
-        metar_cloud = "FEW018"
-    elif cloud_cover_pct <= 50:
-        cloud_octa = "3-4/8 (SCT)"
-        metar_cloud = "SCT018"
-    elif cloud_cover_pct <= 87:
-        cloud_octa = "5-7/8 (BKN)"
-        metar_cloud = "BKN018"
-    else:
-        cloud_octa = "8/8 (OVC)"
-        metar_cloud = "OVC018"
 
     now_utc = datetime.utcnow()
     day_z = now_utc.strftime("%d")
