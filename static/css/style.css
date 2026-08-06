@@ -214,3 +214,41 @@ body {
     50% { opacity: 0.6; }
     100% { opacity: 1; }
 }
+
+/* -----------------------------------------------------------------
+   MOBILE RESPONSIVE FIXES (TAMPILAN HP)
+----------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    /* Sidebar secara default tersembunyi di layar HP agar tidak menutupi konten */
+    .sidebar-wrapper {
+        transform: translateX(-100%);
+        width: 260px !important;
+        z-index: 1050;
+    }
+
+    /* Saat tombol toggle diklik dan sidebar aktif/terbuka */
+    .sidebar-wrapper:not(.collapsed) {
+        transform: translateX(0);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Konten utama memenuhi lebar layar HP */
+    .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 1rem !important;
+    }
+
+    /* Rapikan tata letak navbar atas agar tidak bertumpuk */
+    .navbar-custom .container-fluid {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .navbar-custom .d-flex.align-items-center.gap-2 {
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 4px;
+        justify-content: flex-start;
+    }
+}
