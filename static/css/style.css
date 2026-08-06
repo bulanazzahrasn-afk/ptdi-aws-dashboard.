@@ -56,7 +56,9 @@ body {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1030;
-    overflow-y: auto;
+    overflow-y: auto; /* Memastikan sidebar bisa digeser ke atas dan kebawah */
+    -webkit-overflow-scrolling: touch; /* Scroll yang halus di perangkat seluler */
+    padding-bottom: 80px; /* Ruang tambahan agar menu paling bawah tidak terpotong */
 }
 
 .sidebar-wrapper.collapsed { width: 78px; }
