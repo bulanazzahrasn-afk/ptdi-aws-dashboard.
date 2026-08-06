@@ -27,6 +27,7 @@ def translate_aws_payload(raw: dict) -> dict:
     altim_hpa = safe_val(current.get("pressure_msl"), 1010.0)
     surf_press = safe_val(current.get("surface_pressure"), 925.0)
     rh = safe_val(current.get("relative_humidity_2m"), 50)
+    precip = safe_val(current.get("precipitation"), 0.0)
 
     heat_index = round(temp + (0.5555 * (6.11 * math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewp))) - 10)), 1) if dewp else temp + 2
 
@@ -49,6 +50,19 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
+    # Penentuan Visibility & Weather Code Dinamis Berdasarkan Kelembapan/Presipitasi Real-time
+    vis_code = "9999"
+    weather_qualifier = ""
+    if precip > 0.5:
+        vis_code = "4000"
+        weather_qualifier = "RA "
+    elif rh > 85:
+        vis_code = "5000"
+        weather_qualifier = "HZ "
+    elif rh > 75:
+        vis_code = "8000"
+        weather_qualifier = "HZ "
+
     now_utc = datetime.utcnow()
     day_z = now_utc.strftime("%d")
     hour_z = now_utc.strftime("%H")
@@ -58,8 +72,8 @@ def translate_aws_payload(raw: dict) -> dict:
     qnh_str = f"Q{int(altim_hpa)}"
     temp_dew_str = f"{int(temp):02d}/{int(dewp):02d}"
 
-    synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} 9999 SCT018 {temp_dew_str} {qnh_str} NOSIG="
-    synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} 4000 HZ SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
+    synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} {vis_code} {weather_qualifier}SCT018 {temp_dew_str} {qnh_str} NOSIG="
+    synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} {vis_code} {weather_qualifier}SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
 
     sunrise_str = daily_ext.get("sunrise", ["2026-08-06T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
     sunset_str = daily_ext.get("sunset", ["2026-08-06T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
@@ -95,7 +109,7 @@ def translate_aws_payload(raw: dict) -> dict:
         },
         "wind_profile": wind_levels,
         "clouds_precipitation": {
-            "precipitation_mm": current.get("precipitation", 0.0),
+            "precipitation_mm": precip,
             "cloud_cover_octa": "3-4/8 (SCT)",
             "cloud_cover_low_pct": 20
         },
