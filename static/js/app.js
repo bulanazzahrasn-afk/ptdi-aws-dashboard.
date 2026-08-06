@@ -1,7 +1,7 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 15000; // Dipercepat menjadi setiap 15 detik untuk update real-time yang responsif
+const POLLING_INTERVAL = 15000;
 let historyLogs = [];
 let dashOffset = 0;
 
@@ -455,7 +455,7 @@ function renderDashboard(data) {
     const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
     safeSetText("current-forecast-date-label", dateLabelStr);
     safeSetText("fc-temp", t.temp_2m, "°C");
-    safeSetText("fc-vis", "10 km");
+    safeSetText("fc-vis", t.visibility_km || "10 km");
     safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
     safeSetText("fc-press", t.msl_pressure, "hPa");
@@ -758,6 +758,7 @@ function renderDaily00to24History(payload, fullData) {
             const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
             const heatVal = tempVal + 2;
             const kpVal = "1 (0-9)";
+            const visVal = rhVal > 85 ? "4 km" : (rhVal > 75 ? "8 km" : "10 km");
 
             logsMap.set(timePart, {
                 timeKey: timePart,
@@ -768,7 +769,7 @@ function renderDaily00to24History(payload, fullData) {
                 rh: `${rhVal} %`,
                 heat: `${heatVal} °C`,
                 kp: kpVal,
-                visibility: '10 km',
+                visibility: visVal,
                 wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
         }

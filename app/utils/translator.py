@@ -28,6 +28,7 @@ def translate_aws_payload(raw: dict) -> dict:
     surf_press = safe_val(current.get("surface_pressure"), 925.0)
     rh = safe_val(current.get("relative_humidity_2m"), 50)
     precip = safe_val(current.get("precipitation"), 0.0)
+    cloud_cover_pct = safe_val(current.get("cloud_cover"), 30.0)
 
     heat_index = round(temp + (0.5555 * (6.11 * math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewp))) - 10)), 1) if dewp else temp + 2
 
@@ -50,18 +51,39 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # Penentuan Visibility & Weather Code Dinamis Berdasarkan Kelembapan/Presipitasi Real-time
+    # VISIBILITAS & CUACA DINAMIS BERDASARKAN PARAMETER AKTUAL
     vis_code = "9999"
+    vis_km_str = "10 km"
     weather_qualifier = ""
+    
     if precip > 0.5:
         vis_code = "4000"
+        vis_km_str = "4 km"
         weather_qualifier = "RA "
-    elif rh > 85:
-        vis_code = "5000"
+    elif rh > 88:
+        vis_code = "3000"
+        vis_km_str = "3 km"
+        weather_qualifier = "FG "
+    elif rh > 78:
+        vis_code = "6000"
+        vis_km_str = "6 km"
         weather_qualifier = "HZ "
-    elif rh > 75:
-        vis_code = "8000"
-        weather_qualifier = "HZ "
+
+    if cloud_cover_pct <= 10:
+        cloud_octa = "0/8 (SKC)"
+        metar_cloud = "SKC"
+    elif cloud_cover_pct <= 25:
+        cloud_octa = "1-2/8 (FEW)"
+        metar_cloud = "FEW018"
+    elif cloud_cover_pct <= 50:
+        cloud_octa = "3-4/8 (SCT)"
+        metar_cloud = "SCT018"
+    elif cloud_cover_pct <= 87:
+        cloud_octa = "5-7/8 (BKN)"
+        metar_cloud = "BKN018"
+    else:
+        cloud_octa = "8/8 (OVC)"
+        metar_cloud = "OVC018"
 
     now_utc = datetime.utcnow()
     day_z = now_utc.strftime("%d")
@@ -72,8 +94,8 @@ def translate_aws_payload(raw: dict) -> dict:
     qnh_str = f"Q{int(altim_hpa)}"
     temp_dew_str = f"{int(temp):02d}/{int(dewp):02d}"
 
-    synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} {vis_code} {weather_qualifier}SCT018 {temp_dew_str} {qnh_str} NOSIG="
-    synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} {vis_code} {weather_qualifier}SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
+    synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} {vis_code} {weather_qualifier}{metar_cloud} {temp_dew_str} {qnh_str} NOSIG="
+    synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} {vis_code} {weather_qualifier}{metar_cloud} BECMG 0602/0604 08012KT 8000 FEW020="
 
     sunrise_str = daily_ext.get("sunrise", ["2026-08-06T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
     sunset_str = daily_ext.get("sunset", ["2026-08-06T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
@@ -92,7 +114,8 @@ def translate_aws_payload(raw: dict) -> dict:
             "msl_pressure": altim_hpa,
             "surface_pressure": surf_press,
             "heat_index": heat_index,
-            "kp_index": "1 (0-9)"
+            "kp_index": "1 (0-9)",
+            "visibility_km": vis_km_str
         },
         "runways": {
             "id": "11/29",
@@ -110,8 +133,8 @@ def translate_aws_payload(raw: dict) -> dict:
         "wind_profile": wind_levels,
         "clouds_precipitation": {
             "precipitation_mm": precip,
-            "cloud_cover_octa": "3-4/8 (SCT)",
-            "cloud_cover_low_pct": 20
+            "cloud_cover_octa": cloud_octa,
+            "cloud_cover_pct": cloud_cover_pct
         },
         "minutely_15": min15,
         "raw_daily_payload": daily_ext
