@@ -455,10 +455,32 @@ function renderDashboard(data) {
     const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
     safeSetText("current-forecast-date-label", dateLabelStr);
     safeSetText("fc-temp", t.temp_2m, "°C");
-    safeSetText("fc-vis", t.visibility_km || "10 km");
+    
+    const visStr = t.visibility_km || "10 km";
+    safeSetText("fc-vis", visStr);
+    
+    // Logika Sinkronisasi Deskripsi Cuaca dengan Data Aktual (Visibility & Wind)
+    const weatherDescEl = document.getElementById("fc-weather-desc");
+    if (weatherDescEl) {
+        const visNum = parseFloat(visStr);
+        const windSpdKt = w.surface ? w.surface.speed_kt : 0;
+        let desc = "Cerah Berawan (Aman VFR)";
+        if (visNum < 3.0) {
+            desc = "Waspada: Jarak Pandang Rendah (Visibility Restricted)";
+        } else if (windSpdKt > 15.0) {
+            desc = "Waspada: Kecepatan Angin Permukaan Tinggi";
+        } else if (visNum < 7.0) {
+            desc = "Udara Kabur / Haze (Moderate Visibility)";
+        }
+        weatherDescEl.textContent = desc;
+    }
+
     safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
     safeSetText("fc-press", t.msl_pressure, "hPa");
+
+    // EVALUASI WARNING SYSTEM / NOTIFIKASI PERINGATAN DINI REAL-TIME
+    evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStr));
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
@@ -526,6 +548,70 @@ function renderDashboard(data) {
 
     renderFlightPrepTable(data);
     drawDaylightCurve();
+}
+
+// FUNGSI EVALUASI WEATHER ALERT / WARNING SYSTEM REAL-TIME
+function evaluateWeatherAlerts(windSpdKt, crosswindKt, visKm) {
+    const alertBanner = document.getElementById("weatherAlertBanner");
+    const alertIcon = document.getElementById("alertIcon");
+    const alertTitle = document.getElementById("alertTitle");
+    const alertDesc = document.getElementById("alertDesc");
+    const alertBadge = document.getElementById("alertBadge");
+
+    if (!alertBanner) return;
+
+    let isHazardous = false;
+    let isCaution = false;
+    let reasons = [];
+
+    if (crosswindKt > 15.0) {
+        isHazardous = true;
+        reasons.push(`Komponen Crosswind tinggi (${crosswindKt} kt > 15 kt)`);
+    } else if (crosswindKt > 10.0) {
+        isCaution = true;
+        reasons.push(`Crosswind moderat (${crosswindKt} kt)`);
+    }
+
+    if (windSpdKt > 15.0) {
+        isHazardous = true;
+        reasons.push(`Kecepatan Angin Permukaan Kencang (${windSpdKt} kt > 15 kt)`);
+    } else if (windSpdKt > 12.0) {
+        isCaution = true;
+        reasons.push(`Angin permukaan agak tinggi (${windSpdKt} kt)`);
+    }
+
+    if (visKm < 3.0) {
+        isHazardous = true;
+        reasons.push(`Jarak Pandang Sangat Rendah (${visKm} km < 3 km)`);
+    } else if (visKm < 6.0) {
+        isCaution = true;
+        reasons.push(`Jarak pandang terbatas (${visKm} km)`);
+    }
+
+    alertBanner.classList.remove("alert-success", "alert-warning", "alert-danger", "alert-warning-flash");
+
+    if (isHazardous) {
+        alertBanner.classList.add("alert-danger", "alert-warning-flash");
+        alertIcon.className = "bi bi-exclamation-triangle-fill fs-4 text-danger";
+        alertTitle.textContent = "PERINGATAN BAHAYA PENERBANGAN (WARNING ALERT)";
+        alertDesc.textContent = `Kondisi kritis terdeteksi: ${reasons.join(" | ")}. Harap batasi/koordinasikan ulang aktivitas take-off & landing.`;
+        alertBadge.className = "badge bg-danger font-mono extra-small";
+        alertBadge.textContent = "HAZARDOUS";
+    } else if (isCaution) {
+        alertBanner.classList.add("alert-warning");
+        alertIcon.className = "bi bi-exclamation-circle-fill fs-4 text-warning";
+        alertTitle.textContent = "WASPADA KONDISI AERODROM (CAUTION ADVISORY)";
+        alertDesc.textContent = `Perhatian parameter: ${reasons.join(" | ")}. Pastikan pemantauan visual diperketat.`;
+        alertBadge.className = "badge bg-warning text-dark font-mono extra-small";
+        alertBadge.textContent = "CAUTION";
+    } else {
+        alertBanner.classList.add("alert-success");
+        alertIcon.className = "bi bi-shield-check fs-4 text-success";
+        alertTitle.textContent = "Status Aerodrom WICC: Normal / Operasional Optimal (VFR)";
+        alertDesc.textContent = "Seluruh parameter cuaca aerodrom berada di bawah ambang batas bahaya penerbangan.";
+        alertBadge.className = "badge bg-success font-mono extra-small";
+        alertBadge.textContent = "SYSTEM SAFE";
+    }
 }
 
 function renderEsokHariForecast(daily, fullData) {

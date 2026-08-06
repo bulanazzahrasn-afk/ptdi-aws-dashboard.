@@ -84,6 +84,19 @@
 
         <!-- KONTEN UTAMA -->
         <main class="content-wrapper" id="contentArea">
+            
+            <!-- WEATHER ALERT / WARNING BANNER (DIPERBARUI SECARA REAL-TIME) -->
+            <div id="weatherAlertBanner" class="alert alert-success d-flex align-items-center justify-content-between shadow-sm rounded-3 py-2.5 px-4 mb-3 border" role="alert">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-shield-check fs-4 text-success" id="alertIcon"></i>
+                    <div>
+                        <div class="fw-bold small text-uppercase" id="alertTitle">Status Aerodrom WICC: Normal / Operasional Optimal (VFR)</div>
+                        <div class="extra-small text-muted" id="alertDesc">Seluruh parameter cuaca aerodrom berada di bawah ambang batas bahaya penerbangan.</div>
+                    </div>
+                </div>
+                <span class="badge bg-success font-mono extra-small" id="alertBadge">SYSTEM SAFE</span>
+            </div>
+
             <div class="tab-content" id="mainTabContent">
                 
                 <!-- TAB 1: RINGKASAN UTAMA -->
@@ -230,7 +243,6 @@
                                 </div>
                                 <div>
                                     <div class="display-4 fw-extrabold font-mono text-dark" id="fc-temp">28.9 °C</div>
-                                    <!-- DESKRIPSI CUACA DISINKRONKAN DENGAN NILAI VISIBILITAS AKTUAL -->
                                     <div class="fs-6 fw-semibold text-secondary" id="fc-weather-desc">Cerah Berawan (Aman VFR)</div>
                                 </div>
                             </div>

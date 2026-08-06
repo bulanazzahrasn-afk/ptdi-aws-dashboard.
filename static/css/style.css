@@ -202,3 +202,13 @@ body {
     color: #38bdf8;
     transform: scale(1.04);
 }
+
+/* WARNING BANNER FLASHING ANIMATION */
+.alert-warning-flash {
+    animation: warningFlash 1.5s infinite;
+}
+@keyframes warningFlash {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
