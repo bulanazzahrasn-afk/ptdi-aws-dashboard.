@@ -273,19 +273,37 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // Area Arsir Biru di Bawah Kurva Siang Hari
+    // KALKULASI POSISI MATAHARI BERDASARKAN WAKTU LOKAL REAL-TIME
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentSeconds = now.getSeconds();
+    const currentTotalHours = currentHours + currentMinutes / 60 + currentSeconds / 3600;
+
+    const daylightStart = 6.0;
+    const daylightEnd = 17.9;
+    
+    let sunProgress = (currentTotalHours - daylightStart) / (daylightEnd - daylightStart);
+    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress));
+
+    const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
+    const sunRad = sunProgress * Math.PI;
+    const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
+
+    // ARSIR CAHAYA (CURVE LIGHT) MENGIKUTI PERGERAKAN IKON MATAHARI SECARA DINAMIS
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sunriseX, horizonY);
-    for (let x = sunriseX; x <= sunsetX; x++) {
+    // Arsir digambar dari sunriseX hingga posisi x matahari saat ini (sunX)
+    for (let x = sunriseX; x <= sunX; x++) {
         const progress = (x - sunriseX) / (sunsetX - sunriseX);
         const rad = progress * Math.PI;
         const y = horizonY - Math.sin(rad) * curveRadiusY;
         ctx.lineTo(x, y);
     }
-    ctx.lineTo(sunsetX, horizonY);
+    ctx.lineTo(sunX, horizonY);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(37, 99, 235, 0.07)';
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.12)';
     ctx.fill();
     ctx.restore();
 
@@ -314,24 +332,6 @@ function drawDaylightCurve() {
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
-
-    // KALKULASI POSISI MATAHARI BERDASARKAN WAKTU LOKAL REAL-TIME (JAM SEKARANG)
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const currentSeconds = now.getSeconds();
-    const currentTotalHours = currentHours + currentMinutes / 60 + currentSeconds / 3600;
-
-    // Asumsi durasi siang standar dari pukul 06.00 (6.0) hingga 17:54 (17.9)
-    const daylightStart = 6.0;
-    const daylightEnd = 17.9;
-    
-    let sunProgress = (currentTotalHours - daylightStart) / (daylightEnd - daylightStart);
-    sunProgress = Math.max(0.0, Math.min(1.0, sunProgress)); // Batasi di rentang kurva
-
-    const sunX = sunriseX + sunProgress * (sunsetX - sunriseX);
-    const sunRad = sunProgress * Math.PI;
-    const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
     // Render Ikon Matahari Bergerak di Atas Kurva
     ctx.beginPath();
