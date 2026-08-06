@@ -945,8 +945,10 @@ function exportHistoryPDF() {
             <title>History & Log Observasi WICC - PTDI AWS</title>
             <style>
                 body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-                h2 { margin-bottom: 5px; color: #0f172a; }
-                p { color: #64748b; font-size: 12px; margin-bottom: 20px; }
+                .header-container { display: flex; align-items: center; gap: 15px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 15px; }
+                .header-container img { height: 45px; width: auto; }
+                h2 { margin: 0; color: #0f172a; font-size: 18px; }
+                p { color: #64748b; font-size: 12px; margin: 3px 0 0 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
                 th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
                 th { background-color: #0f172a; color: white; }
@@ -954,8 +956,14 @@ function exportHistoryPDF() {
             </style>
         </head>
         <body>
-            <h2>PT. DIRGANTARA INDONESIA - Aviation Weather System</h2>
-            <p>History & Log Observasi Aerodrom Husein Sastranegara (WICC/BDO) - ${new Date().toLocaleDateString()}</p>
+            <div class="header-container">
+                <!-- Logo PTDI dengan format .jpg pada cetak PDF -->
+                <img src="/static/images/logo-ptdi.jpg" alt="Logo PTDI">
+                <div>
+                    <h2>PT. DIRGANTARA INDONESIA - Aviation Weather System</h2>
+                    <p>History & Log Observasi Aerodrom Husein Sastranegara (WICC/BDO) - ${new Date().toLocaleDateString()}</p>
+                </div>
+            </div>
             <table>
                 <thead>
                     <tr>
