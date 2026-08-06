@@ -367,7 +367,16 @@
                             <div>
                                 <i class="bi bi-clock-history me-2 text-primary"></i><span id="history-date-header">History - August 6, 2026</span>
                             </div>
-                            <button class="btn btn-outline-success btn-sm fw-semibold rounded-3" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</button>
+                            <!-- Dropdown Menu Export Data (CSV & PDF) -->
+                            <div class="dropdown">
+                                <button class="btn btn-outline-success btn-sm fw-semibold rounded-3 dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-download me-1"></i>Export Data
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="exportDropdown">
+                                    <li><a class="dropdown-item small fw-semibold" href="#" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Export as CSV</a></li>
+                                    <li><a class="dropdown-item small fw-semibold" href="#" id="exportPdfBtn"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Export as PDF</a></li>
+                                </ul>
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">

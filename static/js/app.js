@@ -97,7 +97,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const exportBtn = document.getElementById("exportHistoryBtn");
     if (exportBtn) {
-        exportBtn.addEventListener("click", exportHistoryCSV);
+        exportBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            exportHistoryCSV();
+        });
+    }
+
+    const exportPdfBtn = document.getElementById("exportPdfBtn");
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            exportHistoryPDF();
+        });
     }
 
     const rwySelect = document.getElementById("calc-rwy-heading");
@@ -778,7 +789,7 @@ function renderFlightPrepTable(data) {
         { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
-        { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Spread Titik Embun & Kondisi Kabut" },
+        { name: "Dew Point Temperature", val: t.dew_point, unit: "°C", desc: "Penentu Titik Embun & Potensi Kabut" },
         { name: "Curah Hujan (Precipitation)", val: c.precipitation_mm, unit: "mm", desc: "Akumulasi Intensitas Presipitasi" },
         { name: "Heat Index", val: t.heat_index, unit: "°C", desc: "Indeks Sensasi Suhu Terasa" },
         { name: "Surface Wind (33 ft)", val: w.surface ? `${w.surface.speed_kt} kt / ${w.surface.dir_deg}° (${w.surface.dir_compass})` : '--', unit: "Knots / Deg", desc: "Angin Permukaan Runway Husein (11/29)" },
@@ -923,4 +934,77 @@ function exportHistoryCSV() {
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
     link.download = `Aviation_AWS_BDO_History_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
+}
+
+function exportHistoryPDF() {
+    if (historyLogs.length === 0) return;
+    const printWindow = window.open('', '_blank');
+    let htmlContent = `
+        <html>
+        <head>
+            <title>History & Log Observasi WICC - PTDI AWS</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+                h2 { margin-bottom: 5px; color: #0f172a; }
+                p { color: #64748b; font-size: 12px; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+                th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+                th { background-color: #0f172a; color: white; }
+                tr:nth-child(even) { background-color: #f8fafc; }
+            </style>
+        </head>
+        <body>
+            <h2>PT. DIRGANTARA INDONESIA - Aviation Weather System</h2>
+            <p>History & Log Observasi Aerodrom Husein Sastranegara (WICC/BDO) - ${new Date().toLocaleDateString()}</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Weather</th>
+                        <th>Temp.</th>
+                        <th>Dewpoint</th>
+                        <th>Rel. Hum</th>
+                        <th>Heat Index</th>
+                        <th>Kp-Index</th>
+                        <th>Visibility</th>
+                        <th>Wind</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    historyLogs.forEach(l => {
+        const cleanTime = l.time.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanWeather = l.weather.replace(/<[^>]*>/g, '').trim() || 'SKC';
+        const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        
+        htmlContent += `
+            <tr>
+                <td><b>${cleanTime}</b></td>
+                <td>${cleanWeather}</td>
+                <td>${l.temp}</td>
+                <td>${l.dewpoint}</td>
+                <td>${l.rh}</td>
+                <td>${l.heat}</td>
+                <td>${l.kp}</td>
+                <td>${l.visibility}</td>
+                <td>${cleanWind}</td>
+            </tr>
+        `;
+    });
+
+    htmlContent += `
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
 }
