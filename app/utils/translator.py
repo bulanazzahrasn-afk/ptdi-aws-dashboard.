@@ -61,8 +61,8 @@ def translate_aws_payload(raw: dict) -> dict:
     synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} 9999 SCT018 {temp_dew_str} {qnh_str} NOSIG="
     synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} 4000 HZ SCT018 BECMG 0602/0604 08012KT 8000 FEW020="
 
-    sunrise_str = daily_ext.get("sunrise", ["2026-08-05T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
-    sunset_str = daily_ext.get("sunset", ["2026-08-05T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
+    sunrise_str = daily_ext.get("sunrise", ["2026-08-06T06:02"])[0].split("T")[1][:5] if daily_ext.get("sunrise") else "06:02"
+    sunset_str = daily_ext.get("sunset", ["2026-08-06T17:54"])[0].split("T")[1][:5] if daily_ext.get("sunset") else "17:54"
 
     return {
         "metadata": {

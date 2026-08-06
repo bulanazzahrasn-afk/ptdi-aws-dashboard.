@@ -184,6 +184,7 @@ function updateWindRoseChart(payload) {
     windRoseInstance.update();
 }
 
+// RENDER GRAFIK AWAN PRESISI DENGAN LABEL DI TENGAH BAWAH SUMBU X
 function drawCloudProfileCanvas(cloudAltFt) {
     const canvas = document.getElementById("cloudProfileCanvas");
     if (!canvas) return;
@@ -195,7 +196,7 @@ function drawCloudProfileCanvas(cloudAltFt) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const baselineY = canvas.height - 12;
+    const baselineY = canvas.height - 14;
     ctx.beginPath();
     ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 1;
@@ -203,31 +204,31 @@ function drawCloudProfileCanvas(cloudAltFt) {
     ctx.lineTo(canvas.width - 10, baselineY);
     ctx.stroke();
 
-    const cloudX = canvas.width / 2 - 25;
-    const cloudY = baselineY - 32;
+    const cloudX = canvas.width / 2 - 22;
+    const cloudY = baselineY - 30;
 
     ctx.fillStyle = '#2563eb';
     ctx.beginPath();
-    ctx.arc(cloudX + 12, cloudY + 12, 12, 0, Math.PI * 2);
-    ctx.arc(cloudX + 25, cloudY + 8, 15, 0, Math.PI * 2);
-    ctx.arc(cloudX + 38, cloudY + 14, 10, 0, Math.PI * 2);
+    ctx.arc(cloudX + 10, cloudY + 10, 10, 0, Math.PI * 2);
+    ctx.arc(cloudX + 22, cloudY + 6, 13, 0, Math.PI * 2);
+    ctx.arc(cloudX + 34, cloudY + 12, 9, 0, Math.PI * 2);
     ctx.fill();
 
-    const badgeText = `SCT ${cloudAltFt.toLocaleString()} ft`;
-    ctx.font = 'bold 11px "Inter", sans-serif';
+    const badgeText = `SCT ${cloudAltFt.toLocaleString()}`;
+    ctx.font = 'bold 10px "Inter", sans-serif';
     const textWidth = ctx.measureText(badgeText).width;
 
-    const badgeX = (canvas.width / 2) - (textWidth / 2) - 8;
+    const badgeX = (canvas.width / 2) - (textWidth / 2) - 6;
     const badgeY = baselineY + 2;
 
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.roundRect(badgeX, badgeY, textWidth + 16, 16, 4);
+    ctx.roundRect(badgeX, badgeY, textWidth + 12, 15, 3);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(badgeText, canvas.width / 2, badgeY + 12);
+    ctx.fillText(badgeText, canvas.width / 2, badgeY + 11);
 }
 
 function drawDaylightCurve() {
@@ -436,7 +437,6 @@ function renderDashboard(data) {
     safeSetText("m-cloud-alt", "1,800 ft");
     drawCloudProfileCanvas(1800);
 
-    // Update Modal Detail Awan
     const modalOcta = document.getElementById("modal-cloud-octa");
     const modalBase = document.getElementById("modal-cloud-base");
     if (modalOcta) modalOcta.textContent = `SCT (${c.cloud_cover_octa})`;
@@ -444,7 +444,20 @@ function renderDashboard(data) {
 
     safeSetText("sun-sunrise-val", dl.sunrise);
     safeSetText("sun-midday-val", dl.midday);
-    safeSetText("sun-sunset-val", `${dl.sunset} (2:48h)`);
+
+    // KALKULASI REAL-TIME SISA WAKTU MENUJU SUNSET YANG AKURAT
+    const now = new Date();
+    const [sunsetHH, sunsetMM] = dl.sunset.split(':').map(Number);
+    const sunsetDate = new Date(now);
+    sunsetDate.setHours(sunsetHH, sunsetMM, 0);
+    const diffMs = sunsetDate - now;
+    let sunsetText = dl.sunset;
+    if (diffMs > 0) {
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        sunsetText = `${dl.sunset} (${diffHrs}h ${diffMins}m)`;
+    }
+    safeSetText("sun-sunset-val", sunsetText);
 
     safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
     safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
@@ -521,18 +534,29 @@ function render2DayForecast(daily, fullData) {
             weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
         });
 
-        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
-        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
-        
-        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
-        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
-        
-        const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
-        const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
-        
-        const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
-        const domDirCompass = degToCompassShort(domDirDeg);
-        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+        // SINKRONISASI REAL-TIME UNTUK HARI INI, FORECAST UNTUK ESOK HARI
+        let tempMax, tempMin, windMaxKt, gustsMaxKt, domDirDeg, domDirCompass, precipSum;
+        if (i === 0) {
+            const t = fullData.thermodynamics || {};
+            const w = fullData.wind_profile || {};
+            tempMax = `${t.temp_2m}°C`;
+            tempMin = `${t.dew_point}°C`;
+            windMaxKt = w.surface ? w.surface.speed_kt : 6.0;
+            gustsMaxKt = w.gusts_kt || 8.0;
+            domDirDeg = w.surface ? w.surface.dir_deg : 180;
+            domDirCompass = w.surface ? w.surface.dir_compass : 'S';
+            precipSum = fullData.clouds_precipitation.precipitation_mm || 0.0;
+        } else {
+            tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+            tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+            const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+            windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+            const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+            gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+            domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+            domDirCompass = degToCompassShort(domDirDeg);
+            precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+        }
 
         let flightCategory = "VFR";
         let categoryBadge = "bg-success";
