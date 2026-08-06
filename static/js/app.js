@@ -823,6 +823,7 @@ function renderDaily00to24History(payload, fullData) {
     const dews = payload.relative_humidity_2m || [];
     const windSpeeds = payload.wind_speed_10m || [];
     const windDirs = payload.wind_direction_10m || [];
+    const precips = payload.precipitation || [];
 
     const now = new Date();
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
@@ -831,7 +832,7 @@ function renderDaily00to24History(payload, fullData) {
     });
 
     if (dateHeader) {
-        dateHeader.textContent = `History - ${formattedDate}`;
+        dateHeader.textContent = `History & Log Observasi - ${formattedDate}`;
     }
 
     const currentHHMM = now.toLocaleTimeString('id-ID', { 
@@ -855,15 +856,30 @@ function renderDaily00to24History(payload, fullData) {
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
             const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
+            const precipVal = precips[i] !== undefined ? precips[i] : 0.0;
             const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
             const heatVal = tempVal + 2;
             const kpVal = "1 (0-9)";
-            const visVal = rhVal > 85 ? "4 km" : (rhVal > 75 ? "8 km" : "10 km");
+
+            // Penentuan Cuaca & Visibilitas Sesuai Standar BMKG No. 1 / 2017
+            let weatherCode = '<i class="bi bi-cloud-sun-fill text-warning fs-5" title="SCT / SKC"></i>';
+            let visVal = "10 km (9999)";
+            
+            if (precipVal > 0.5) {
+                weatherCode = '<span class="badge bg-danger font-mono" title="Rain (RA)">+RA</span>';
+                visVal = "4 km (4000)";
+            } else if (rhVal > 85) {
+                weatherCode = '<span class="badge bg-secondary font-mono" title="Fog (FG)">FG</span>';
+                visVal = "2 km (2000)";
+            } else if (rhVal > 75 || tempVal >= 28) {
+                weatherCode = '<span class="badge bg-warning text-dark font-mono" title="Haze (HZ)">HZ</span>';
+                visVal = "4 km (4000)";
+            }
 
             logsMap.set(timePart, {
                 timeKey: timePart,
-                time: timePart,
-                weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
+                time: `${timePart} Z`,
+                weather: weatherCode,
                 temp: `${tempVal} °C`,
                 dewpoint: `${dewpVal} °C`,
                 rh: `${rhVal} %`,
@@ -877,6 +893,33 @@ function renderDaily00to24History(payload, fullData) {
 
     historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
     renderHistoryTable();
+}
+
+function renderHistoryTable() {
+    const tbody = document.getElementById("history-table-body");
+    if (!tbody) return;
+
+    if (historyLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = "";
+    historyLogs.forEach(log => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
+            <td class="text-center">${log.weather}</td>
+            <td class="font-mono text-dark fw-bold">${log.temp}</td>
+            <td class="font-mono text-secondary">${log.dewpoint}</td>
+            <td class="font-mono text-info">${log.rh}</td>
+            <td class="font-mono text-warning">${log.heat}</td>
+            <td class="font-mono text-secondary">${log.kp}</td>
+            <td class="font-mono text-secondary">${log.visibility}</td>
+            <td class="pe-4 font-mono text-dark">${log.wind}</td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function renderHistoryTable() {
