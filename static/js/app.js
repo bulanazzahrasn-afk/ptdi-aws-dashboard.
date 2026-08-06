@@ -39,7 +39,7 @@ const runwayOverlayPlugin = {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.font = 'bold 10px "Inter", sans-serif';
+        ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
         ctx.fillStyle = '#ef4444';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -214,7 +214,7 @@ function drawCloudProfileCanvas(cloudAltFt) {
     ctx.fill();
 
     const badgeText = `SCT ${cloudAltFt.toLocaleString()}`;
-    ctx.font = 'bold 10px "Inter", sans-serif';
+    ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
     const textWidth = ctx.measureText(badgeText).width;
 
     const badgeX = (canvas.width / 2) - (textWidth / 2) - 6;
@@ -246,7 +246,6 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Garis Horizon Dasar
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
     ctx.lineWidth = 1.5;
@@ -259,7 +258,6 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 55;
 
-    // Garis Putus-putus Marker (Sunrise, Midday, Sunset)
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -273,7 +271,6 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // KALKULASI POSISI MATAHARI BERDASARKAN WAKTU LOKAL REAL-TIME
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
@@ -290,11 +287,9 @@ function drawDaylightCurve() {
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
-    // ARSIR CAHAYA (CURVE LIGHT) MENGIKUTI PERGERAKAN IKON MATAHARI SECARA DINAMIS
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sunriseX, horizonY);
-    // Arsir digambar dari sunriseX hingga posisi x matahari saat ini (sunX)
     for (let x = sunriseX; x <= sunX; x++) {
         const progress = (x - sunriseX) / (sunsetX - sunriseX);
         const rad = progress * Math.PI;
@@ -307,7 +302,6 @@ function drawDaylightCurve() {
     ctx.fill();
     ctx.restore();
 
-    // Gambar Kurva Utama Sinusoidal Daylight
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -333,7 +327,6 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // Render Ikon Matahari Bergerak di Atas Kurva
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -342,7 +335,6 @@ function drawDaylightCurve() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Sinar Matahari (Ray Effects)
     for (let i = 0; i < 8; i++) {
         const angle = (i * 45) * (Math.PI / 180);
         const rx1 = sunX + Math.cos(angle) * 11;
@@ -379,14 +371,6 @@ function updateClockDisplay() {
     const clockEl = document.getElementById("utc-wib-clock");
     if (clockEl) {
         clockEl.innerHTML = `STANDAR WAKTU INDONESIA &nbsp; <span class="text-success fw-bold">${wibStr}</span> &nbsp; / &nbsp; <span class="text-info fw-bold">${utcStr} UTC</span>`;
-    }
-
-    const lastUpdate = document.getElementById("last-update");
-    if (lastUpdate) {
-        const fullDateStr = now.toLocaleDateString('id-ID', {
-            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-        });
-        lastUpdate.textContent = `${fullDateStr} - ${wibStr} WIB`;
     }
 }
 
@@ -473,7 +457,6 @@ function renderDashboard(data) {
     const visStr = t.visibility_km || "10 km";
     safeSetText("fc-vis", visStr);
     
-    // Logika Sinkronisasi Deskripsi Cuaca dengan Data Aktual (Visibility & Wind)
     const weatherDescEl = document.getElementById("fc-weather-desc");
     if (weatherDescEl) {
         const visNum = parseFloat(visStr);
@@ -493,7 +476,6 @@ function renderDashboard(data) {
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
     safeSetText("fc-press", t.msl_pressure, "hPa");
 
-    // EVALUASI WARNING SYSTEM / NOTIFIKASI PERINGATAN DINI REAL-TIME
     evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStr));
 
     safeSetText("sun-sunrise-val", dl.sunrise);
@@ -564,7 +546,6 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// FUNGSI EVALUASI WEATHER ALERT / WARNING SYSTEM REAL-TIME
 function evaluateWeatherAlerts(windSpdKt, crosswindKt, visKm) {
     const alertBanner = document.getElementById("weatherAlertBanner");
     const alertIcon = document.getElementById("alertIcon");
@@ -832,88 +813,6 @@ function renderDaily00to24History(payload, fullData) {
     });
 
     if (dateHeader) {
-        dateHeader.textContent = `History & Log Observasi - ${formattedDate}`;
-    }
-
-    const currentHHMM = now.toLocaleTimeString('id-ID', { 
-        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
-    }).replace('.', ':');
-
-    let logsMap = new Map();
-
-    times.forEach((isoStr, i) => {
-        if (!isoStr) return;
-
-        const parts = isoStr.split("T");
-        if (parts.length < 2) return;
-
-        const datePart = parts[0];
-        const timePart = parts[1].substring(0, 5);
-
-        const minute = timePart.split(":")[1];
-        if ((minute === "00" || minute === "30") && datePart === todayISO && timePart <= currentHHMM) {
-            const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
-            const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
-            const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
-            const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
-            const precipVal = precips[i] !== undefined ? precips[i] : 0.0;
-            const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
-            const heatVal = tempVal + 2;
-            const kpVal = "1 (0-9)";
-
-            // Penentuan Cuaca & Visibilitas Sesuai Standar BMKG No. 1 / 2017
-            let weatherCode = '<i class="bi bi-cloud-sun-fill text-warning fs-5" title="SCT / SKC"></i>';
-            let visVal = "10 km (9999)";
-            
-            if (precipVal > 0.5) {
-                weatherCode = '<span class="badge bg-danger font-mono" title="Rain (RA)">+RA</span>';
-                visVal = "4 km (4000)";
-            } else if (rhVal > 85) {
-                weatherCode = '<span class="badge bg-secondary font-mono" title="Fog (FG)">FG</span>';
-                visVal = "2 km (2000)";
-            } else if (rhVal > 75 || tempVal >= 28) {
-                weatherCode = '<span class="badge bg-warning text-dark font-mono" title="Haze (HZ)">HZ</span>';
-                visVal = "4 km (4000)";
-            }
-
-            logsMap.set(timePart, {
-                timeKey: timePart,
-                time: `${timePart} Z`,
-                weather: weatherCode,
-                temp: `${tempVal} °C`,
-                dewpoint: `${dewpVal} °C`,
-                rh: `${rhVal} %`,
-                heat: `${heatVal} °C`,
-                kp: kpVal,
-                visibility: visVal,
-                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
-            });
-        }
-    });
-
-    historyLogs = Array.from(logsMap.values()).sort((a, b) => b.timeKey.localeCompare(a.timeKey));
-    renderHistoryTable();
-}
-
-function renderDaily00to24History(payload, fullData) {
-    const tbody = document.getElementById("history-table-body");
-    const dateHeader = document.getElementById("history-date-header");
-    if (!tbody || !payload || !payload.time) return;
-
-    const times = payload.time;
-    const temps = payload.temperature_2m || [];
-    const dews = payload.relative_humidity_2m || [];
-    const windSpeeds = payload.wind_speed_10m || [];
-    const windDirs = payload.wind_direction_10m || [];
-    const precips = payload.precipitation || [];
-
-    const now = new Date();
-    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
-    const formattedDate = now.toLocaleDateString('en-US', { 
-        timeZone: 'Asia/Jakarta', month: 'long', day: 'numeric', year: 'numeric' 
-    });
-
-    if (dateHeader) {
         dateHeader.textContent = `History & Log Observasi (WIB / UTC) - ${formattedDate}`;
     }
 
@@ -930,9 +829,8 @@ function renderDaily00to24History(payload, fullData) {
         if (parts.length < 2) return;
 
         const datePart = parts[0];
-        const timePartWIB = parts[1].substring(0, 5); // Waktu dalam string data diasumsikan lokal/WIB
+        const timePartWIB = parts[1].substring(0, 5);
 
-        // Konversi jam WIB ke UTC (WIB dikurangi 7 jam)
         const [hStr, mStr] = timePartWIB.split(":");
         let hUTC = parseInt(hStr) - 7;
         if (hUTC < 0) hUTC += 24;
@@ -965,7 +863,7 @@ function renderDaily00to24History(payload, fullData) {
 
             logsMap.set(timePartWIB, {
                 timeKey: timePartWIB,
-                timeDisplay: `${timePartWIB} WIB<br><span class="text-secondary extra-small font-mono">(${timePartUTC} Z)</span>`,
+                time: `${timePartWIB} WIB<br><span class="text-secondary extra-small font-mono">(${timePartUTC} Z)</span>`,
                 weather: weatherCode,
                 temp: `${tempVal} °C`,
                 dewpoint: `${dewpVal} °C`,
@@ -995,34 +893,7 @@ function renderHistoryTable() {
     historyLogs.forEach(log => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="ps-4 font-mono text-primary fw-bold lh-sm">${log.timeDisplay}</td>
-            <td class="text-center">${log.weather}</td>
-            <td class="font-mono text-dark fw-bold">${log.temp}</td>
-            <td class="font-mono text-secondary">${log.dewpoint}</td>
-            <td class="font-mono text-info">${log.rh}</td>
-            <td class="font-mono text-warning">${log.heat}</td>
-            <td class="font-mono text-secondary">${log.kp}</td>
-            <td class="font-mono text-secondary">${log.visibility}</td>
-            <td class="pe-4 font-mono text-dark">${log.wind}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function renderHistoryTable() {
-    const tbody = document.getElementById("history-table-body");
-    if (!tbody) return;
-
-    if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = "";
-    historyLogs.forEach(log => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td class="ps-4 font-mono text-primary fw-bold">${log.time}</td>
+            <td class="ps-4 font-mono text-primary fw-bold lh-sm">${log.time}</td>
             <td class="text-center">${log.weather}</td>
             <td class="font-mono text-dark fw-bold">${log.temp}</td>
             <td class="font-mono text-secondary">${log.dewpoint}</td>
@@ -1040,8 +911,9 @@ function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
     let csv = "Time,Temp,Dewpoint,Rel_Humidity,Heat_Index,Kp_Index,Visibility,Wind\n";
     historyLogs.forEach(l => {
+        const cleanTime = l.time.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
-        csv += `"${l.time}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.kp}","${l.visibility}","${cleanWind}"\n`;
+        csv += `"${cleanTime}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.kp}","${l.visibility}","${cleanWind}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);

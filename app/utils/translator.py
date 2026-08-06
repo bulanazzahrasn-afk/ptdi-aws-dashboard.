@@ -30,7 +30,6 @@ def translate_aws_payload(raw: dict) -> dict:
     rh = safe_val(current.get("relative_humidity_2m"), 50)
     precip = safe_val(current.get("precipitation"), 0.0)
 
-    # Ambil Cloud Cover Real-time dari Hourly Data
     cloud_cover_pct = safe_val(current.get("cloud_cover"), 30.0)
     hourly_times = hourly.get("time", [])
     hourly_clouds = hourly.get("cloud_cover", [])
@@ -67,7 +66,6 @@ def translate_aws_payload(raw: dict) -> dict:
         "gusts_kt": wgst_kt
     }
 
-    # STANDAR PELAPORAN VISIBILITAS & CUACA BERDASARKAN LAMPIRAN PERATURAN BMKG NO. 1 TAHUN 2017
     vis_code = "9999"
     vis_km_str = "10 km"
     weather_qualifier = ""
@@ -82,7 +80,6 @@ def translate_aws_payload(raw: dict) -> dict:
         vis_km_str = "2 km"
         weather_qualifier = "FG "
     elif rh > 75 or (spread >= 5 and temp >= 28):
-        # Haze (HZ) sesuai aturan pelaporan litometeor ketika visibility berkurang
         vis_code = "4000"
         vis_km_str = "4 km"
         weather_qualifier = "HZ "
@@ -91,7 +88,6 @@ def translate_aws_payload(raw: dict) -> dict:
         vis_km_str = "7 km"
         weather_qualifier = ""
 
-    # Standar Pelaporan Jumlah & Tinggi Dasar Awan (Okta & Kaki/Feet)
     if cloud_cover_pct <= 10:
         cloud_octa = "0/8 (SKC)"
         metar_cloud = "SKC"
@@ -113,7 +109,6 @@ def translate_aws_payload(raw: dict) -> dict:
     hour_z = now_utc.strftime("%H")
     min_z = "30" if int(now_utc.strftime("%M")) >= 30 else "00"
     
-    # Format angin permukaan dddffKT sesuai Bab B Peraturan BMKG No. 1/2017
     wind_str = f"{str(wdir_deg).zfill(3)}{str(int(wspd_kt)).zfill(2)}KT"
     if wgst_kt > wspd_kt + 5:
         wind_str = f"{str(wdir_deg).zfill(3)}{str(int(wspd_kt)).zfill(2)}G{int(wgst_kt)}KT"
@@ -121,7 +116,6 @@ def translate_aws_payload(raw: dict) -> dict:
     qnh_str = f"Q{int(altim_hpa)}"
     temp_dew_str = f"{int(temp):02d}/{int(dewp):02d}"
 
-    # Sintaks Resmi METAR & TAF Berdasarkan Regulasi BMKG
     synth_metar = f"SAID40 WICC {day_z}{hour_z}{min_z}\nMETAR WICC {day_z}{hour_z}{min_z}Z {wind_str} {vis_code} {weather_qualifier}{metar_cloud} {temp_dew_str} {qnh_str} NOSIG="
     synth_taf = f"FTID40 WICC {day_z}{hour_z}00\nTAF WICC {day_z}{hour_z}00Z {(int(day_z)):02d}{(int(hour_z)):02d}/{(int(day_z)+1):02d}{(int(hour_z)):02d} {wind_str} {vis_code} {weather_qualifier}{metar_cloud} BECMG 0602/0604 08012KT 8000 FEW020="
 
