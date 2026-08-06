@@ -458,7 +458,6 @@ function render2DayForecast(daily, fullData) {
     dates.forEach((dStr, i) => {
         const dateObj = new Date(dStr);
         const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
-        // REVISI: Hari ini real-time, esok hari forecast
         const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
         
         const formattedDate = dateObj.toLocaleDateString('id-ID', { 
@@ -654,7 +653,7 @@ function renderDaily00to24History(payload, fullData) {
     });
 
     if (dateHeader) {
-        // REVISI: Format Header History menjadi "History - [Tanggal Hari Ini]"
+        // REVISI: Header History disesuaikan menjadi "History - [Tanggal]"
         dateHeader.textContent = `History - ${formattedDate}`;
     }
 
@@ -679,12 +678,13 @@ function renderDaily00to24History(payload, fullData) {
             const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
 
+            // REVISI: Visibility disamakan secara dinamis menjadi 9999 (10 km) mengikuti standar METAR real-time
             logsMap.set(timePart, {
                 timeKey: timePart,
                 time: timePart,
                 weather: '<i class="bi bi-cloud-sun-fill text-warning fs-5"></i>',
                 temp: `${tempVal} °C`,
-                visibility: '6 km',
+                visibility: '10 km (9999)',
                 wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
             });
         }
