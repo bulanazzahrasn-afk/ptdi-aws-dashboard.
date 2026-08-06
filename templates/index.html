@@ -206,17 +206,14 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: CUACA HARI INI (FORMAT BARU ALA BMKG / REFERENSI PROFESIONAL) -->
+                <!-- TAB 2: CUACA HARI INI (TAMPILAN UTAMA + ESOK HARI DI KIRI & DAYLIGHT DI KANAN) -->
                 <div class="tab-pane fade fade-in-up" id="forecast" role="tabpanel">
                     
-                    <!-- KARTU UTAMA CUACA HARI INI -->
+                    <!-- KARTU UTAMA REAL-TIME (TANPA TEKS LIVE REAL-TIME DI KANAN ATAS) -->
                     <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
-                            <div>
-                                <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
-                                <div class="h5 fw-bold text-dark mb-0 mt-1">Bandara Husein Sastranegara (WICC)</div>
-                            </div>
-                            <span class="badge bg-primary font-mono px-3 py-2 fs-6">LIVE REAL-TIME</span>
+                        <div class="border-bottom pb-3 mb-4">
+                            <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
+                            <div class="h5 fw-bold text-dark mb-0 mt-1">Bandara Husein Sastranegara (WICC)</div>
                         </div>
 
                         <div class="row align-items-center g-4">
@@ -261,25 +258,32 @@
                         </div>
                     </div>
 
-                    <div class="row g-4" id="daily-forecast-cards"></div>
-
-                    <div class="card card-luxury p-4 mb-4 shadow-sm">
-                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
-                        <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
-                            <canvas id="daylightCanvas"></canvas>
+                    <!-- CARD ESOK HARI DI KIRI & DAYLIGHT PERIOD DI KANAN (TIDAK DOBEL/BOROS) -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-5" id="daily-forecast-cards">
+                            <!-- Diisi via JS untuk card Esok Hari -->
                         </div>
-                        <div class="d-flex justify-content-around text-center mt-3">
-                            <div>
-                                <div class="small fw-bold text-muted">Sunrise</div>
-                                <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunrise-val">06:02</div>
-                            </div>
-                            <div>
-                                <div class="small fw-bold text-muted">Midday</div>
-                                <div class="fs-5 font-mono fw-bold text-dark" id="sun-midday-val">11:58</div>
-                            </div>
-                            <div>
-                                <div class="small fw-bold text-muted">Sunset</div>
-                                <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:54 (2:48h)</div>
+
+                        <div class="col-lg-7">
+                            <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
+                                <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
+                                <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
+                                    <canvas id="daylightCanvas"></canvas>
+                                </div>
+                                <div class="d-flex justify-content-around text-center mt-3">
+                                    <div>
+                                        <div class="small fw-bold text-muted">Sunrise</div>
+                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunrise-val">06:02</div>
+                                    </div>
+                                    <div>
+                                        <div class="small fw-bold text-muted">Midday</div>
+                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-midday-val">11:58</div>
+                                    </div>
+                                    <div>
+                                        <div class="small fw-bold text-muted">Sunset</div>
+                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:54 (2:48h)</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

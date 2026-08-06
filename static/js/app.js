@@ -453,7 +453,6 @@ function renderDashboard(data) {
     if (modalOcta) modalOcta.textContent = `SCT (${c.cloud_cover_octa})`;
     if (modalBase) modalBase.textContent = "1,800 ft MSL";
 
-    // PENGISIAN DATA REAL-TIME PADA KARTU UTAMA TAB CUACA HARI INI
     const now = new Date();
     const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
     safeSetText("current-forecast-date-label", dateLabelStr);
@@ -524,139 +523,127 @@ function renderDashboard(data) {
     }
 
     if (data.raw_daily_payload) {
-        render2DayForecast(data.raw_daily_payload, data);
+        renderEsokHariForecast(data.raw_daily_payload, data);
     }
 
     renderFlightPrepTable(data);
     drawDaylightCurve();
 }
 
-function render2DayForecast(daily, fullData) {
+function renderEsokHariForecast(daily, fullData) {
     const container = document.getElementById("daily-forecast-cards");
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    const dates = daily.time.slice(0, 2);
+    // HANYA RENDER CARD ESOK HARI (INDEX 1) DI SEBELAH KIRI
+    if (daily.time.length < 2) return;
+    const i = 1;
 
-    dates.forEach((dStr, i) => {
-        const dateObj = new Date(dStr);
-        const dayLabel = i === 0 ? "Hari Ini" : "Esok Hari";
-        const badgeText = i === 0 ? "OBSERVED REAL-TIME" : "FORECAST";
-        
-        const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
-        });
+    const dateObj = new Date(daily.time[i]);
+    const dayLabel = "Esok Hari";
+    const badgeText = "FORECAST";
+    
+    const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+        weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
+    });
 
-        let tempMax, tempMin, windMaxKt, gustsMaxKt, domDirDeg, domDirCompass, precipSum;
-        if (i === 0) {
-            const t = fullData.thermodynamics || {};
-            const w = fullData.wind_profile || {};
-            tempMax = `${t.temp_2m}°C`;
-            tempMin = `${t.dew_point}°C`;
-            windMaxKt = w.surface ? w.surface.speed_kt : 6.0;
-            gustsMaxKt = w.gusts_kt || 8.0;
-            domDirDeg = w.surface ? w.surface.dir_deg : 180;
-            domDirCompass = w.surface ? w.surface.dir_compass : 'S';
-            precipSum = fullData.clouds_precipitation.precipitation_mm || 0.0;
-        } else {
-            tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
-            tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
-            const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
-            windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
-            const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
-            gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
-            domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
-            domDirCompass = degToCompassShort(domDirDeg);
-            precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
-        }
+    const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+    const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+    
+    const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+    const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+    
+    const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
+    const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
+    
+    const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
+    const domDirCompass = degToCompassShort(domDirDeg);
+    const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
 
-        let flightCategory = "VFR";
-        let categoryBadge = "bg-success";
-        let weatherIcon = "bi-sun-fill text-warning";
-        let weatherText = "Kondisi visual operasional optimal.";
+    let flightCategory = "VFR";
+    let categoryBadge = "bg-success";
+    let weatherIcon = "bi-sun-fill text-warning";
+    let weatherText = "Kondisi visual operasional optimal.";
 
-        if (precipSum > 10.0) {
-            flightCategory = "IFR / Severe";
-            categoryBadge = "bg-danger";
-            weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
-            weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
-        } else if (precipSum > 1.0 || windMaxKt > 15.0) {
-            flightCategory = "MVFR";
-            categoryBadge = "bg-warning text-dark";
-            weatherIcon = "bi-cloud-rain-heavy-fill text-info";
-            weatherText = "Waspada presipitasi lokal / angin kencang.";
-        } else if (windMaxKt <= 10.0) {
-            weatherIcon = "bi-cloud-sun-fill text-warning";
-        }
+    if (precipSum > 10.0) {
+        flightCategory = "IFR / Severe";
+        categoryBadge = "bg-danger";
+        weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
+        weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
+    } else if (precipSum > 1.0 || windMaxKt > 15.0) {
+        flightCategory = "MVFR";
+        categoryBadge = "bg-warning text-dark";
+        weatherIcon = "bi-cloud-rain-heavy-fill text-info";
+        weatherText = "Waspada presipitasi lokal / angin kencang.";
+    } else if (windMaxKt <= 10.0) {
+        weatherIcon = "bi-cloud-sun-fill text-warning";
+    }
 
-        const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
-        const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
+    const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
+    const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
 
-        const card = document.createElement("div");
-        card.className = "col-md-6";
-        card.innerHTML = `
-            <div class="card card-luxury shadow-sm rounded-4 overflow-hidden h-100">
-                <div class="card-header bg-dark text-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
-                            <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1 font-mono extra-small">${badgeText}</span>
-                        </div>
-                        <h4 class="fw-bold mb-0">${dayLabel}</h4>
-                        <div class="small text-secondary font-mono mt-1">${formattedDate}</div>
-                    </div>
-                    <div class="text-end">
-                        <i class="bi ${weatherIcon} display-4"></i>
+    const card = document.createElement("div");
+    card.className = "card card-luxury shadow-sm rounded-4 overflow-hidden h-100";
+    card.innerHTML = `
+        <div class="card-header bg-dark text-white p-4 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1 font-mono extra-small">${badgeText}</span>
+                </div>
+                <h4 class="fw-bold mb-0">${dayLabel}</h4>
+                <div class="small text-secondary font-mono mt-1">${formattedDate}</div>
+            </div>
+            <div class="text-end">
+                <i class="bi ${weatherIcon} display-4"></i>
+            </div>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="d-flex align-items-baseline gap-3 mb-3">
+                <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
+                <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
+                <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
+            </div>
+
+            <hr class="border-secondary border-opacity-25 my-3">
+
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
+                        <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
+                        <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
                     </div>
                 </div>
 
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-baseline gap-3 mb-3">
-                        <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
-                        <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
-                        <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
+                        <div class="fs-5 sub-card-value text-danger">${gustsMaxKt} kt</div>
+                        <div class="sub-card-desc">Peak Surface Gust</div>
                     </div>
+                </div>
 
-                    <hr class="border-secondary border-opacity-25 my-3">
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
+                        <div class="fs-5 sub-card-value text-warning">${crosswindKt} kt</div>
+                        <div class="sub-card-desc">Runway Component</div>
+                    </div>
+                </div>
 
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="p-3 sub-card-dark">
-                                <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
-                                <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
-                                <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 sub-card-dark">
-                                <div class="sub-card-label mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
-                                <div class="fs-5 sub-card-value text-danger">${gustsMaxKt} kt</div>
-                                <div class="sub-card-desc">Peak Surface Gust</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 sub-card-dark">
-                                <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
-                                <div class="fs-5 sub-card-value text-warning">${crosswindKt} kt</div>
-                                <div class="sub-card-desc">Runway Component</div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="p-3 sub-card-dark">
-                                <div class="sub-card-label mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
-                                <div class="fs-5 sub-card-value text-info">${precipSum} mm</div>
-                                <div class="sub-card-desc">Total Harian</div>
-                            </div>
-                        </div>
+                <div class="col-6">
+                    <div class="p-3 sub-card-dark">
+                        <div class="sub-card-label mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
+                        <div class="fs-5 sub-card-value text-info">${precipSum} mm</div>
+                        <div class="sub-card-desc">Total Harian</div>
                     </div>
                 </div>
             </div>
-        `;
-        container.appendChild(card);
-    });
+        </div>
+    `;
+    container.appendChild(card);
 }
 
 function calculatePopUpCrosswind() {
