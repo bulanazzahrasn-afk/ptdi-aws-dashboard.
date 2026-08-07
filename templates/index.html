@@ -287,28 +287,29 @@
                         <div class="col-lg-5" id="daily-forecast-cards"></div>
 
                         <div class="col-lg-7">
-                            <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
-                                <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
-                                <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px;">
-                                    <canvas id="daylightCanvas"></canvas>
-                                </div>
-                                <div class="d-flex justify-content-around text-center mt-3">
-                                    <div>
-                                        <div class="small fw-bold text-muted">Sunrise</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunrise-val">06:02</div>
-                                    </div>
-                                    <div>
-                                        <div class="small fw-bold text-muted">Midday</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-midday-val">11:58</div>
-                                    </div>
-                                    <div>
-                                        <div class="small fw-bold text-muted">Sunset</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:54 (2:48h)</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
+        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
+        <div class="daylight-canvas-container text-center py-2" style="width: 100%; min-height: 140px; position: relative;">
+            <canvas id="daylightCanvas"></canvas>
+        </div>
+        
+        <!-- Penyelarasan posisi jam tepat di bawah garis putus-putus (25%, 50%, 75%) -->
+        <div class="d-flex justify-content-between text-center mt-2 px-3">
+            <div style="width: 33.33%; text-align: left;">
+                <div class="small fw-bold text-muted">Sunrise</div>
+                <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunrise-val">06:02</div>
+            </div>
+            <div style="width: 33.33%; text-align: center;">
+                <div class="small fw-bold text-muted">Midday</div>
+                <div class="fs-5 font-mono fw-bold text-dark" id="sun-midday-val">11:58</div>
+            </div>
+            <div style="width: 33.33%; text-align: right;">
+                <div class="small fw-bold text-muted">Sunset</div>
+                <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:54 (2:48h)</div>
+            </div>
+        </div>
+    </div>
+</div>
 
                     <div class="card card-luxury p-4 mb-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-signpost-split me-2 text-primary"></i>Runways</h4>
