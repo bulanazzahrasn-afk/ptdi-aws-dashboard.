@@ -452,7 +452,13 @@ async function fetchAWSData() {
 function safeSetText(id, value, suffix = "") {
     const el = document.getElementById(id);
     if (el) {
-        const newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
+        let newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
+        
+        // PEMBERSIH PAKSA: Jika elemen menyangkut raw-metar-text atau raw-taf-text, hapus pecahan okta jika ada
+        if (id === "raw-metar-text" || id === "raw-taf-text") {
+            newText = newText.replace(/\d+-\d+\/\d+\s*\([A-Z]+\)/g, ''); // Menghapus format pecahan seperti 5-7/8 (BKN)
+        }
+
         if (el.textContent !== newText) {
             el.textContent = newText;
             el.classList.remove("value-update-anim");
@@ -515,7 +521,7 @@ function renderDashboard(data) {
     const cloudOcta = c.cloud_cover_octa || "FEW";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     
-    // PENULISAN SANDI AWAN BERSIH TANPA PECAHAN OKTA (SESUAI STANDAR BMKG & ICAO)
+    // MURNI SANDI OKTA TANPA PECAHAN
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let currentMetarTime = `${hour}${currentMinSlot}`;
