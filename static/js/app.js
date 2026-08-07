@@ -248,14 +248,16 @@ function drawDaylightCurve() {
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const parentWidth = canvas.parentElement.clientWidth || 500;
+    const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 190; // Tinggi canvas pas agar kurva tidak terpotong
+    canvas.height = 160;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 30; // Posisi garis horizon pas di tengah atas
+    
+    // REVISI: horizonY diset ke 45 agar kurva naik pas ke garis merah yang kamu inginkan
+    const horizonY = 45; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -270,7 +272,7 @@ function drawDaylightCurve() {
     const sunriseX = w * 0.25;
     const middayX = w * 0.50;
     const sunsetX = w * 0.75;
-    const curveRadiusY = 55; // Radius lengkungan kurva proporsional
+    const curveRadiusY = 40;
 
     // Garis putus-putus vertikal ke bawah
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
@@ -281,7 +283,7 @@ function drawDaylightCurve() {
     markers.forEach(m => {
         ctx.beginPath();
         ctx.moveTo(m.x, horizonY);
-        ctx.lineTo(m.x, horizonY + 50); // Panjang garis pas turun ke teks
+        ctx.lineTo(m.x, horizonY + 45);
         ctx.stroke();
     });
     ctx.restore();
@@ -292,23 +294,23 @@ function drawDaylightCurve() {
     // 1. SUNRISE
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Sunrise', sunriseX, horizonY + 62);
+    ctx.fillText('Sunrise', sunriseX, horizonY + 56);
     ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(currentDaylightData.sunrise, sunriseX, horizonY + 80);
+    ctx.fillText(currentDaylightData.sunrise, sunriseX, horizonY + 74);
 
     // 2. MIDDAY
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Midday', middayX, horizonY + 62);
+    ctx.fillText('Midday', middayX, horizonY + 56);
     ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(currentDaylightData.midday, middayX, horizonY + 80);
+    ctx.fillText(currentDaylightData.midday, middayX, horizonY + 74);
 
     // 3. SUNSET (beserta durasi di sampingnya)
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Sunset', sunsetX, horizonY + 62);
+    ctx.fillText('Sunset', sunsetX, horizonY + 56);
     
     const sunsetText = currentDaylightData.sunset;
     const durationText = ` ${currentDaylightData.duration}`;
@@ -323,11 +325,11 @@ function drawDaylightCurve() {
     ctx.textAlign = 'left';
     ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(sunsetText, startX, horizonY + 80);
+    ctx.fillText(sunsetText, startX, horizonY + 74);
     
     ctx.font = '500 12px "JetBrains Mono", monospace';
     ctx.fillStyle = '#64748b';
-    ctx.fillText(durationText, startX + textW1, horizonY + 80);
+    ctx.fillText(durationText, startX + textW1, horizonY + 74);
 
     // Posisi matahari (sun icon) di kurva
     const now = new Date();
@@ -1060,7 +1062,7 @@ function exportHistoryPDF() {
         </html>
     `;
 
-    printWindow.document.write(htmlContent);
+printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
