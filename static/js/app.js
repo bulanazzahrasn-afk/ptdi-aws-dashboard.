@@ -512,8 +512,10 @@ function renderDashboard(data) {
     if (visKm < 5.0 && rh > 80) wxStr = "HZ ";
     else if (c.precipitation_mm > 0.5) wxStr = "RA ";
 
-    const cloudOcta = c.cloud_cover_octa || "SCT";
+    const cloudOcta = c.cloud_cover_octa || "OVC";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
+    
+    // FORMAT STANDAR RESMI BMKG & ICAO: Langsung okta + tinggi (Contoh: OVC018) tanpa ada 8/8[cite: 1]
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let metarHeaderLatest = `${day}${hour}${currentMinSlot}`;
