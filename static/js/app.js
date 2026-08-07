@@ -251,7 +251,7 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 145; // Tinggi canvas pas untuk menghilangkan space kosong di atas
+    canvas.height = 100; // Tinggi canvas pas untuk menghilangkan space kosong di atas
 
     const w = canvas.width;
     const h = canvas.height;
