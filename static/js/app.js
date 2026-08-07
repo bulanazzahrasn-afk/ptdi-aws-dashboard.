@@ -251,7 +251,7 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 100;
+    canvas.height = 50;
 
     const w = canvas.width;
     const h = canvas.height;
