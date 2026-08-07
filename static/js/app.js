@@ -499,13 +499,15 @@ function renderDashboard(data) {
     const sunsetDate = new Date(now);
     sunsetDate.setHours(sunsetHH, sunsetMM, 0);
     const diffMs = sunsetDate - now;
-    let sunsetText = dl.sunset;
+    
+    // Nilai jam sunset dimasukkan terpisah dari durasinya agar tata letak menyamping rapi
+    safeSetText("sun-sunset-val", dl.sunset);
+    
     if (diffMs > 0) {
         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        sunsetText = `${dl.sunset} (${diffHrs}h ${diffMins}m)`;
+        safeSetText("sun-duration-val", `(${diffHrs}h ${diffMins}m)`);
     }
-    safeSetText("sun-sunset-val", sunsetText);
 
     safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
     safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
@@ -957,7 +959,6 @@ function exportHistoryPDF() {
         </head>
         <body>
             <div class="header-container">
-                <!-- Logo PTDI dengan format .jpg pada cetak PDF -->
                 <img src="/static/images/logo-ptdi.jpg" alt="Logo PTDI">
                 <div>
                     <h2>PT. DIRGANTARA INDONESIA - Aviation Weather System</h2>
