@@ -514,7 +514,8 @@ function renderDashboard(data) {
 
     const cloudOcta = c.cloud_cover_octa || "FEW";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    // Format sandi awan bersih tanpa pecahan okta 8/8 sesuai standar resmi BMKG & ICAO
+    
+    // PENULISAN SANDI AWAN BERSIH TANPA PECAHAN OKTA (SESUAI STANDAR BMKG & ICAO)
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let currentMetarTime = `${hour}${currentMinSlot}`;
