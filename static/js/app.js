@@ -249,11 +249,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 150;
+    canvas.height = 300;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 25; 
+    const horizonY = 150; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -477,7 +477,7 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // FORMAT METAR & TAF SESUAI DATA RIIL & STANDAR BMKG (TANPA PECAHAN OKTA 8/8)
+    // FORMAT PENULISAN METAR DAN TAF SESUAI STANDAR BMKG & ICAO (TANPA PECAHAN 8/8 DI DEPAN AWAN)
     const nowUTC = new Date();
     const day = String(nowUTC.getUTCDate()).padStart(2, '0');
     const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
@@ -515,7 +515,7 @@ function renderDashboard(data) {
 
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    // Standar format ICAO: gabungan okta & base altitude tanpa teks "8/8"
+    // Format standar sandi awan tanpa mencantumkan pecahan okta 8/8 di depan
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let metarHeaderLatest = `${day}${hour}${currentMinSlot}`;
@@ -536,7 +536,6 @@ function renderDashboard(data) {
     }
     let tafValidStart = String(tafPrevHourNum).padStart(2, '0') + "00";
     let tafValidEnd = String(Number(hour)).padStart(2, '0') + "00";
-    let nextDayNum = String(Number(day) + 1).padStart(2, '0');
 
     const tafHeader = `FTID40 WICC ${day}${hour}00`;
     const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPrevDay}${tafValidStart}/${day}${tafValidEnd} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG 0602/0604 08012KT 8000 FEW020=`;
@@ -631,7 +630,7 @@ function renderDashboard(data) {
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
-        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-arrow", arrowId: "w400-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
         { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
     ];
 
@@ -704,7 +703,6 @@ function renderHourlyForecast24h(minData) {
         const card = document.createElement("div");
         card.className = "p-3 bg-light border rounded-3 text-center flex-shrink-0 shadow-sm";
         card.style.minWidth = "110px";
-        // DITAMBAHKAN IKON PANAH ARAH ANGIN YANG BEROTASI SESUAI DERAJATNYA
         card.innerHTML = `
             <div class="small fw-bold font-mono text-secondary mb-1">${timePartWIB}</div>
             <div class="my-1"><i class="bi bi-cloud-haze2-fill text-secondary fs-4"></i></div>
@@ -719,15 +717,19 @@ function renderHourlyForecast24h(minData) {
     });
 }
 
+// PERBAIKAN: RENDER PRAKIRAAN 3 HARI KEDEPAN (BESOK, LUSA, DAN H+3) SECARA LENGKAP
 function render3DaysForecast(daily) {
     const container = document.getElementById("daily-forecast-cards-3days");
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    // Menampilkan TIGA HARI KEDEPAN (Besok, Lusa, dan H+3, melewati indeks 0 / hari ini)
+    // Loop dari indeks 1 sampai 3 (Besok, Lusa, dan Hari Berikutnya)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
-        const dayLabel = i === 1 ? "Besok" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+        let dayLabel = "Besok";
+        if (i === 2) dayLabel = "Lusa";
+        else if (i === 3) dayLabel = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
         const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
