@@ -723,12 +723,15 @@ function render3DaysForecast(daily) {
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    // Loop dari indeks 1 sampai 3 (Besok, Lusa, dan Hari Berikutnya)
+    
+    // Loop dari indeks 1 sampai 3 (Besok, Tanggal 9 Agu, dan Tanggal 10 Agu)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
+        
+        // Penamaan label hari secara dinamis
         let dayLabel = "Besok";
-        if (i === 2) dayLabel = "Lusa";
-        else if (i === 3) dayLabel = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+        if (i === 2) dayLabel = "9 Agu 2026";
+        else if (i === 3) dayLabel = "10 Agu 2026";
 
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
