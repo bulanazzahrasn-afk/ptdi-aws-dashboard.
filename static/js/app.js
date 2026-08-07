@@ -251,13 +251,13 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 400;
+    canvas.height = 600;
 
     const w = canvas.width;
     const h = canvas.height;
     
     // REVISI: horizonY diset ke 25 agar grafik naik mendekati tulisan "Daylight period"
-    const horizonY = 200; 
+    const horizonY = 300; 
 
     ctx.clearRect(0, 0, w, h);
 
