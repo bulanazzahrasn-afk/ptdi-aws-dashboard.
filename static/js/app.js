@@ -249,11 +249,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 300;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 150; 
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -464,7 +464,7 @@ function safeSetText(id, value, suffix = "") {
 
 function degToCompassShort(deg) {
     if (deg === null || deg === undefined) return "";
-    const sectors = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    const sectors = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
     return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
 }
 
@@ -477,7 +477,7 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // FORMAT METAR & TAF SESUAI STANDAR RESMI BMKG (SAID40 & FTID40 DENGAN RENTANG WAKTU 30 MENIT & 6 JAM)
+    // FORMAT METAR & TAF SESUAI DATA RIIL & STANDAR BMKG (TANPA PECAHAN OKTA 8/8)
     const nowUTC = new Date();
     const day = String(nowUTC.getUTCDate()).padStart(2, '0');
     const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
@@ -515,9 +515,9 @@ function renderDashboard(data) {
 
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
+    // Standar format ICAO: gabungan okta & base altitude tanpa teks "8/8"
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
-    // METAR: 30 menit sebelumnya dan yang terupdate (SAID40 WICC)
     let metarHeaderLatest = `${day}${hour}${currentMinSlot}`;
     let metarTimeLatest = `${hour}${currentMinSlot}Z`;
     let metarHeaderPrev = `${prevDay}${prevHourStr}${prevMinSlot}`;
@@ -528,7 +528,6 @@ function renderDashboard(data) {
 
     const combinedMetar = `${metarLatest}\n\n${metarPrev}`;
     
-    // TAF: Mencakup 6 jam sebelumnya hingga masa berlaku berikutnya (FTID40 WICC)
     let tafPrevHourNum = Number(hour) - 6;
     let tafPrevDay = day;
     if (tafPrevHourNum < 0) {
@@ -632,7 +631,7 @@ function renderDashboard(data) {
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
-        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-arrow", arrowId: "w400-arrow" },
         { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
     ];
 
@@ -705,12 +704,16 @@ function renderHourlyForecast24h(minData) {
         const card = document.createElement("div");
         card.className = "p-3 bg-light border rounded-3 text-center flex-shrink-0 shadow-sm";
         card.style.minWidth = "110px";
+        // DITAMBAHKAN IKON PANAH ARAH ANGIN YANG BEROTASI SESUAI DERAJATNYA
         card.innerHTML = `
             <div class="small fw-bold font-mono text-secondary mb-1">${timePartWIB}</div>
-            <div class="my-2"><i class="bi bi-cloud-haze2-fill text-secondary fs-4"></i></div>
+            <div class="my-1"><i class="bi bi-cloud-haze2-fill text-secondary fs-4"></i></div>
             <div class="fw-bold font-mono text-dark fs-6">${tempVal}°C</div>
             <div class="extra-small text-muted font-mono mt-1">${windSpdKt} kt</div>
-            <div class="extra-small text-secondary font-mono">${compass}</div>
+            <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
+                <i class="bi bi-arrow-up-circle text-primary" style="display:inline-block; transform: rotate(${windDirDeg}deg); font-size: 0.85rem;"></i>
+                <span class="extra-small text-secondary font-mono fw-bold">${compass}</span>
+            </div>
         `;
         container.appendChild(card);
     });
@@ -721,6 +724,7 @@ function render3DaysForecast(daily) {
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
+    // Menampilkan TIGA HARI KEDEPAN (Besok, Lusa, dan H+3, melewati indeks 0 / hari ini)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         const dayLabel = i === 1 ? "Besok" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
