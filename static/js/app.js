@@ -250,13 +250,12 @@ function drawDaylightCurve() {
     const ctx = canvas.getContext("2d");
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
+    // DIPERBAIKI: Tinggi canvas dan horizonY dikembalikan ke posisi normal
     canvas.width = parentWidth;
     canvas.height = 700;
 
     const w = canvas.width;
     const h = canvas.height;
-    
-    // POSISI GRAFIK NAIK BERJARAK PAS DI BAWAH TULISAN "Daylight period"
     const horizonY = 750; 
 
     ctx.clearRect(0, 0, w, h);
@@ -474,59 +473,6 @@ function degToCompassShort(deg) {
     return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
 }
 
-// GENERATOR FORMAT METAR & TAF BERDASARKAN SOP BMKG/ICAO MENGGUNAKAN DATA OPEN-METEO
-function generateBmkgMetarTafFromOpenMeteo(t, w, c) {
-    const nowUTC = new Date();
-    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
-    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const hourNum = Number(hour);
-    const nextDay = String(Number(day) + 1).padStart(2, '0');
-
-    // Ambil parameter dari Open-Meteo
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "090";
-    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "07";
-    const windStr = `${windDir}${windSpd}KT`;
-
-    const visKm = parseFloat(t.visibility_km || 10);
-    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
-
-    const tempVal = Math.round(t.temp_2m || 30);
-    const dewVal = Math.round(t.dew_point || 23);
-    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
-
-    const qnhVal = Math.round(t.msl_pressure || 1013);
-    const qnhStr = `Q${qnhVal}`;
-
-    // Penentuan cuaca & awan berdasarkan data riil Open-Meteo
-    let wxStr = "";
-    const rh = t.rh_2m || 70;
-    if (visKm < 5.0 && rh > 80) wxStr = "HZ ";
-    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
-
-    const cloudOcta = c.cloud_cover_octa || "SCT";
-    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
-
-    // Waktu observasi terakhir (jam sekarang dan 1 jam lalu)
-    let h1 = hourNum;
-    let h2 = hourNum - 1;
-    let d1 = day, d2 = day;
-    if (h2 < 0) { h2 += 24; d2 = String(Number(day) - 1).padStart(2, '0'); }
-
-    let h1Str = String(h1).padStart(2, '0') + "00Z";
-    let h2Str = String(h2).padStart(2, '0') + "30Z";
-
-    let metar1 = `SAID32 WICC ${d1}${String(h1).padStart(2, '0')}00\nMETAR WICC ${d1}${h1Str} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let metar2 = `SAID32 WICC ${d2}${String(h2).padStart(2, '0')}30\nMETAR WICC ${d2}${h2Str} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-
-    const combinedMetar = `${metar1}\n\n${metar2}`;
-    
-    const tafHeader = `FTID40 WICC ${day}${hour}00`;
-    const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${day}${hour}/${nextDay}${hour} ${windStr} ${visMeters} ${wxStr}${cloudCode} NOSIG=`;
-
-    return { metar: combinedMetar, taf: tafString };
-}
-
 function renderDashboard(data) {
     if (!data) return;
 
@@ -536,10 +482,10 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // BUAT FORMAT METAR & TAF SECARA DINAMIS BERDASARKAN OPEN-METEO
-    const bmkgData = generateBmkgMetarTafFromOpenMeteo(t, w, c);
-    safeSetText("raw-metar-text", bmkgData.metar);
-    safeSetText("raw-taf-text", bmkgData.taf);
+    if (data.metadata) {
+        safeSetText("raw-metar-text", data.metadata.raw_metar);
+        safeSetText("raw-taf-text", data.metadata.raw_taf);
+    }
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
