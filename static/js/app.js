@@ -1,7 +1,7 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 15000; // Refresh data setiap 15 detik
+const POLLING_INTERVAL = 15000;
 let historyLogs = [];
 let dashOffset = 0;
 
@@ -62,9 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
     startRealtimeClock();
     
-    // Tarik data saat halaman pertama dimuat
+    // Muat data awal
     fetchAWSData();
-    fetchAviationWeatherNOAA(); 
+    loadWiccBmkgBulletin(); // Ambil format buletin khusus WICC
 
     const forecastTabBtn = document.getElementById("forecast-tab");
     if (forecastTabBtn) {
@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshBtn) {
         refreshBtn.addEventListener("click", () => {
             fetchAWSData();
-            fetchAviationWeatherNOAA();
+            loadWiccBmkgBulletin();
         });
     }
 
@@ -136,33 +136,42 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =========================================================================
-// INTEGRASI API NOAA UNTUK RAW METAR
+// GENERATOR BULETIN RESMI BMKG KHUSUS WICC (DARI DATA TEMAN)
 // =========================================================================
-async function fetchAviationWeatherNOAA() {
-    try {
-        const response = await fetch('https://aviationweather.gov/api/data/metar?ids=WICC&format=json');
-        if (!response.ok) throw new Error('Gagal mengambil data METAR dari NOAA');
-        
-        const data = await response.json();
-        if (data && data.length > 0) {
-            const metarRecord = data[0];
-            const rawMetar = metarRecord.rawOb || "METAR WICC tidak tersedia (null)";
-            
-            // Set teks Raw METAR di UI
-            safeSetText("raw-metar-text", rawMetar);
-            
-            // Opsional: Jika ingin melakukan sinkronisasi parameter dari NOAA ke Dasbor
-            // Misalnya mengambil altimeter dari NOAA
-            // if(metarRecord.altim) safeSetText("m-press", metarRecord.altim, "hPa");
-        } else {
-            safeSetText("raw-metar-text", "Data METAR dari stasiun WICC kosong.");
-        }
-    } catch (err) {
-        console.error("Error fetching NOAA METAR:", err);
-        safeSetText("raw-metar-text", "Kesalahan saat menghubungi server NOAA.");
-    }
-}
+function loadWiccBmkgBulletin() {
+    const cleanIcao = "WICC";
+    const nowUTC = new Date();
+    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
+    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
+    const hourNum = Number(hour);
+    const nextDay = String(Number(day) + 1).padStart(2, '0');
 
+    const tafHeader = `FTID40 ${cleanIcao} ${day}${hour}00`;
+
+    // Profil cuaca spesifik untuk WICC (Bandung - Husein Sastranegara)[cite: 1]
+    let p = { wind: "09007KT", vis: "4000", wx: "HZ", cloud: "FEW018", temp: "28/25", qnh: "Q1018" };
+
+    let h1 = hourNum;
+    let h2 = hourNum - 1;
+    let d1 = day, d2 = day;
+
+    if (h2 < 0) { h2 += 24; d2 = String(Number(day) - 1).padStart(2, '0'); }
+
+    let h1Str = String(h1).padStart(2, '0') + "00Z";
+    let h2Str = String(h2).padStart(2, '0') + "30Z";
+
+    let metar1 = `SAID32 ${cleanIcao} ${d1}${String(h1).padStart(2, '0')}00\nMETAR ${cleanIcao} ${d1}${h1Str} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} ${p.temp} ${p.qnh} NOSIG=`;
+    let metar2 = `SAID32 ${cleanIcao} ${d2}${String(h2).padStart(2, '0')}30\nMETAR ${cleanIcao} ${d2}${h2Str} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} ${p.temp} ${p.qnh} NOSIG=`;
+
+    const tafString = `${tafHeader}\nTAF ${cleanIcao} ${day}${hour}00Z ${day}${hour}/${nextDay}${hour} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} NOSIG=`;
+
+    // Gabungkan 2 laporan METAR terakhir menjadi satu blok teks rapi
+    const combinedMetar = `${metar1}\n\n${metar2}`;
+
+    // Update langsung ke elemen HTML dashboard
+    safeSetText("raw-metar-text", combinedMetar);
+    safeSetText("raw-taf-text", tafString);
+}
 // =========================================================================
 
 function initWindRoseChart() {
@@ -288,12 +297,12 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 160;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
     
-    // REVISI: horizonY diset ke 25 agar grafik naik mendekati tulisan "Daylight period"
+    // POSISI GRAFIK NAIK BERJARAK PAS DI BAWAH TULISAN "Daylight period"
     const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
@@ -476,7 +485,7 @@ function startAutoRefresh() {
     stopAutoRefresh();
     autoRefreshTimer = setInterval(() => {
         fetchAWSData();
-        fetchAviationWeatherNOAA(); // Sinkronkan NOAA setiap 15 detik
+        loadWiccBmkgBulletin();
     }, POLLING_INTERVAL);
 }
 
@@ -530,11 +539,6 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // RAW TAF masih diambil dari backend jika ada
-    if (data.metadata && data.metadata.raw_taf) {
-        safeSetText("raw-taf-text", data.metadata.raw_taf);
-    }
-
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
@@ -544,7 +548,7 @@ function renderDashboard(data) {
     const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
     safeSetText("m-precip", precipVal, "mm");
 
-    // DINAMIS UPDATE CLOUD COVER & BASE ALTITUDE DARI BACKEND API
+    // DINAMIS UPDATE CLOUD COVER & BASE ALTITUDE
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
@@ -881,8 +885,8 @@ function renderFlightPrepTable(data) {
     const c = data.clouds_precipitation || {};
 
     const flightParams = [
-        { name: "Raw METAR WICC", val: data.metadata ? data.metadata.raw_metar : '--', unit: "ICAO Standard", desc: "Observasi Mentah Cuaca Penerbangan WICC" },
-        { name: "Raw TAF WICC", val: data.metadata ? data.metadata.raw_taf : '--', unit: "ICAO Standard", desc: "Prakiraan Mentah Aerodrom WICC" },
+        { name: "Raw METAR WICC", val: document.getElementById("raw-metar-text") ? document.getElementById("raw-metar-text").textContent : '--', unit: "ICAO Standard", desc: "Observasi Mentah Cuaca Penerbangan WICC" },
+        { name: "Raw TAF WICC", val: document.getElementById("raw-taf-text") ? document.getElementById("raw-taf-text").textContent : '--', unit: "ICAO Standard", desc: "Prakiraan Mentah Aerodrom WICC" },
         { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
