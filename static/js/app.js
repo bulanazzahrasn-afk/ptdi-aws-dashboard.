@@ -482,7 +482,6 @@ function renderDashboard(data) {
     const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
     const minute = nowUTC.getUTCMinutes();
     
-    // Slot waktu 30 menit (misal: 0330 atau 0300)
     let currentMinSlot = minute >= 30 ? "30" : "00";
     let prevMinSlot = minute >= 30 ? "00" : "30";
     let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
@@ -515,10 +514,9 @@ function renderDashboard(data) {
 
     const cloudOcta = c.cloud_cover_octa || "FEW";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    // Format bersih sesuai ICAO & BMKG (contoh: FEW018, tanpa 8/8)
+    // Format sandi awan bersih tanpa pecahan okta 8/8 sesuai standar resmi BMKG & ICAO
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
-    // 1. FORMAT RAW METAR SESUAI CONTOH
     let currentMetarTime = `${hour}${currentMinSlot}`;
     let prevMetarTime = `${prevHourStr}${prevMinSlot}`;
 
@@ -527,7 +525,6 @@ function renderDashboard(data) {
 
     const combinedMetar = `${metarLatest}\n\n${metarPrev}`;
     
-    // 2. FORMAT RAW TAF SESUAI CONTOH
     let tafStartHour = Number(hour);
     let tafEndHour = tafStartHour + 24;
     let tafEndDay = day;
