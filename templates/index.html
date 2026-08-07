@@ -292,11 +292,11 @@
                                     <canvas id="daylightCanvas"></canvas>
                                 </div>
                                 
-                                <!-- Penyelarasan presisi lurus dengan garis putus-putus dan durasi di samping sunset -->
+                                <!-- Susunan persis seperti referensi gambar (Sunrise, Midday, Sunset di atas nilai jam) -->
                                 <div class="row text-center mt-2 gx-0">
                                     <div class="col-4" style="padding-left: 12%;">
                                         <div class="small fw-bold text-muted text-start">Sunrise</div>
-                                        <div class="fs-5 font-mono fw-bold text-dark text-start" id="sun-sunrise-val">06:00</div>
+                                        <div class="fs-5 font-mono fw-bold text-dark text-start" id="sun-sunrise-val">06:02</div>
                                     </div>
                                     <div class="col-4">
                                         <div class="small fw-bold text-muted">Midday</div>
@@ -306,9 +306,10 @@
                                         <div class="d-flex justify-content-end align-items-baseline gap-1">
                                             <div class="text-end">
                                                 <div class="small fw-bold text-muted">Sunset</div>
-                                                <div class="fs-5 font-mono fw-bold text-dark" id="sun-sunset-val">17:50</div>
+                                                <div class="fs-5 font-mono fw-bold text-dark">
+                                                    <span id="sun-sunset-val">17:54</span> <span class="text-muted fw-normal" style="font-size: 0.82rem;" id="sun-duration-val">(8:22h)</span>
+                                                </div>
                                             </div>
-                                            <span class="text-muted font-mono" style="font-size: 0.78rem;" id="sun-duration-val">(8h 8m)</span>
                                         </div>
                                     </div>
                                 </div>

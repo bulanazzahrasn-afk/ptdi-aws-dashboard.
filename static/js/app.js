@@ -500,13 +500,12 @@ function renderDashboard(data) {
     sunsetDate.setHours(sunsetHH, sunsetMM, 0);
     const diffMs = sunsetDate - now;
     
-    // Nilai jam sunset dimasukkan terpisah dari durasinya agar tata letak menyamping rapi
     safeSetText("sun-sunset-val", dl.sunset);
     
     if (diffMs > 0) {
         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        safeSetText("sun-duration-val", `(${diffHrs}h ${diffMins}m)`);
+        safeSetText("sun-duration-val", `(${diffHrs}:${String(diffMins).padStart(2, '0')}h)`);
     }
 
     safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
