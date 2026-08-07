@@ -251,11 +251,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 190; // Tinggi canvas pas agar kurva tidak terpotong
+    canvas.height = 350; // Tinggi canvas pas agar kurva tidak terpotong
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 85; // Posisi garis horizon pas di tengah atas
+    const horizonY = 180; // Posisi garis horizon pas di tengah atas
 
     ctx.clearRect(0, 0, w, h);
 
