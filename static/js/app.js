@@ -255,7 +255,7 @@ function drawDaylightCurve() {
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 32; // Horizon digeser semakin ke atas
+    const horizonY = 95; // Horizon digeser semakin ke atas
 
     ctx.clearRect(0, 0, w, h);
 
