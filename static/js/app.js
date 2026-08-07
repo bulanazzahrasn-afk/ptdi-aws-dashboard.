@@ -252,11 +252,11 @@ function drawDaylightCurve() {
     
     // DIPERBAIKI: Tinggi canvas dan horizonY dikembalikan ke posisi normal
     canvas.width = parentWidth;
-    canvas.height = 700;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 600; 
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
