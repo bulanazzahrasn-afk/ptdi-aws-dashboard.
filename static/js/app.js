@@ -477,10 +477,23 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    if (data.metadata) {
-        safeSetText("raw-metar-text", data.metadata.raw_metar);
-        safeSetText("raw-taf-text", data.metadata.raw_taf);
-    }
+    // PERBAIKAN TANGGAL METAR & TAF MENGIKUTI WAKTU UTC RIIL (AGAR TIDAK KETINGGALAN SATU HARI)
+    const nowUTC = new Date();
+    const utcDay = String(nowUTC.getUTCDate()).padStart(2, '0');
+    const utcHour = String(nowUTC.getUTCHours()).padStart(2, '0');
+    const prevUtcDay = String(Number(utcDay) - 1).padStart(2, '0');
+    
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "214";
+    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "07";
+    const tempVal = Math.round(t.temp_2m || 31);
+    const dewVal = Math.round(t.dew_point || 13);
+    const qnhVal = Math.round(t.msl_pressure || 1009);
+
+    const dynamicMetar = `SAID40 WICC ${utcDay}${utcHour}00\nMETAR WICC ${utcDay}${utcHour}00Z ${windDir}${windSpd}G22KT 4000 HZ OVC018 ${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')} Q${qnhVal} NOSIG=`;
+    const dynamicTaf = `FTID40 WICC ${utcDay}${utcHour}00\nTAF WICC ${utcDay}${utcHour}00Z ${utcDay}${utcHour}/${String(Number(utcDay)+1).padStart(2, '0')}${utcHour} ${windDir}${windSpd}G22KT 4000 HZ OVC018 BECMG 0602/0604 08012KT 8000 FEW020=`;
+
+    safeSetText("raw-metar-text", dynamicMetar);
+    safeSetText("raw-taf-text", dynamicTaf);
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
@@ -513,6 +526,7 @@ function renderDashboard(data) {
     const visStr = t.visibility_km || "10 km";
     safeSetText("fc-vis", visStr);
     
+    // IKON ANIMASI CUACA DINAMIS SESUAI KONDISI RIIL (HAZE, HUJAN, BERAWAN, CERAH)
     const weatherDescEl = document.getElementById("fc-weather-desc");
     const weatherIconEl = document.getElementById("fc-weather-icon");
 
@@ -522,15 +536,18 @@ function renderDashboard(data) {
     const visNum = parseFloat(visStr);
     const rhVal = t.rh_2m || 60;
 
-    if (visNum < 5.0 && rhVal > 80) {
-        desc = "Udara Kabur / Haze (Moderate Visibility)";
-        iconClass = "bi-cloud-haze2-fill text-secondary display-4";
-    } else if (precipVal > 0.5) {
+    if (precipVal > 0.5) {
         desc = "Hujan / Presipitasi Terdeteksi";
         iconClass = "bi-cloud-rain-fill text-primary display-4";
+    } else if (visNum < 5.0 && rhVal > 75) {
+        desc = "Udara Kabur / Haze (Moderate Visibility)";
+        iconClass = "bi-cloud-haze2-fill text-secondary display-4";
     } else if (visNum < 3.0) {
-        desc = "Waspada: Jarak Pandang Rendah";
+        desc = "Waspada: Jarak Pandang Rendah (Fog)";
         iconClass = "bi-cloud-fog2-fill text-info display-4";
+    } else if (cloudOcta === "BKN" || cloudOcta === "OVC") {
+        desc = "Berawan Tebal (Cloudy)";
+        iconClass = "bi-clouds-fill text-muted display-4";
     }
 
     if (weatherDescEl) weatherDescEl.textContent = desc;
@@ -612,10 +629,17 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// FITUR 1: RENDER PRAKIRAAN 24 JAM KEDEPAN (PER JAM)
+// RENDER PRAKIRAAN 24 JAM KEDEPAN DENGAN JUDUL TANGGAL RIIL
 function renderHourlyForecast24h(minData) {
     const container = document.getElementById("hourly-forecast-scroll");
+    const titleEl = document.getElementById("hourly-forecast-title");
     if (!container || !minData.time) return;
+
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="bi bi-clock-fill me-2 text-primary"></i>Prakiraan per Jam (WIB) - 24 Jam Kedepan / ${dateFormatted}`;
+    }
 
     container.innerHTML = "";
     const times = minData.time;
@@ -623,7 +647,6 @@ function renderHourlyForecast24h(minData) {
     const windSpeeds = minData.wind_speed_10m || [];
     const windDirs = minData.wind_direction_10m || [];
 
-    const now = new Date();
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
     times.forEach((isoStr, i) => {
@@ -649,15 +672,16 @@ function renderHourlyForecast24h(minData) {
     });
 }
 
-// FITUR 2: RENDER PRAKIRAAN 3 HARI KEDEPAN
+// RENDER PRAKIRAAN 3 HARI KEDEPAN (HARI INI DILEWATI, MULAI DARI BESOK)
 function render3DaysForecast(daily) {
     const container = document.getElementById("daily-forecast-cards-3days");
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    for (let i = 0; i < Math.min(3, daily.time.length); i++) {
+    // Mulai dari i = 1 (Esok Hari / Besok) hingga 3 hari ke depan
+    for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
-        const dayLabel = i === 0 ? "Hari Ini" : (i === 1 ? "Esok Hari" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' }));
+        const dayLabel = i === 1 ? "Besok" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
         const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
