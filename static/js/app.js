@@ -241,7 +241,6 @@ function drawCloudProfileCanvas(cloudAltFt) {
     ctx.fillText(badgeText, canvas.width / 2, badgeY + 11);
 }
 
-// Global variable untuk menyimpan data waktu agar bisa digambar langsung di canvas
 let currentDaylightData = { sunrise: "06:00", midday: "11:58", sunset: "17:50", duration: "(8:22h)" };
 
 function drawDaylightCurve() {
@@ -252,11 +251,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 190; // Dipertinggi sedikit agar muat teks di bawah garis putus-putus
+    canvas.height = 160; // Tinggi pas agar grafik digeser ke atas dan tidak banyak space kosong
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 75; // Posisi garis horizon grafik
+    const horizonY = 55; // Posisi kurva digeser ke atas
 
     ctx.clearRect(0, 0, w, h);
 
@@ -271,7 +270,7 @@ function drawDaylightCurve() {
     const sunriseX = w * 0.25;
     const middayX = w * 0.50;
     const sunsetX = w * 0.75;
-    const curveRadiusY = 55;
+    const curveRadiusY = 50;
 
     // Garis putus-putus vertikal ke bawah
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
@@ -282,53 +281,55 @@ function drawDaylightCurve() {
     markers.forEach(m => {
         ctx.beginPath();
         ctx.moveTo(m.x, horizonY);
-        ctx.lineTo(m.x, horizonY + 45); // Garis putus-putus diperpanjang pas ke area teks
+        ctx.lineTo(m.x, horizonY + 42); // Panjang garis pas menempel ke teks jam di bawahnya
         ctx.stroke();
     });
     ctx.restore();
 
-    // RENDER TEKS LANGSUNG DI BAWAH GARIS PUTUS-PUTUS
+    // RENDER TEKS TEPAT DI BAWAH GARIS PUTUS-PUTUS
     ctx.textAlign = 'center';
 
     // 1. SUNRISE
-    ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Sunrise', sunriseX, horizonY + 58);
-    ctx.font = 'bold 14px "JetBrains Mono", monospace';
+    ctx.fillText('Sunrise', sunriseX, horizonY + 54);
+    ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(currentDaylightData.sunrise, sunriseX, horizonY + 76);
+    ctx.fillText(currentDaylightData.sunrise, sunriseX, horizonY + 72);
 
     // 2. MIDDAY
-    ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Midday', middayX, horizonY + 58);
-    ctx.font = 'bold 14px "JetBrains Mono", monospace';
+    ctx.fillText('Midday', middayX, horizonY + 54);
+    ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(currentDaylightData.midday, middayX, horizonY + 76);
+    ctx.fillText(currentDaylightData.midday, middayX, horizonY + 72);
 
-    // 3. SUNSET (beserta durasi di sampingnya dalam satu baris)
-    ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    // 3. SUNSET (beserta durasi di sampingnya)
+    ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('Sunset', sunsetX, horizonY + 58);
+    ctx.fillText('Sunset', sunsetX, horizonY + 54);
     
-    ctx.font = 'bold 14px "JetBrains Mono", monospace';
-    ctx.fillStyle = '#0f172a';
     const sunsetText = currentDaylightData.sunset;
     const durationText = ` ${currentDaylightData.duration}`;
     
-    const totalWidth = ctx.measureText(sunsetText + durationText).width;
+    ctx.font = '700 14px "JetBrains Mono", monospace';
+    const textW1 = ctx.measureText(sunsetText).width;
+    ctx.font = '500 12px "JetBrains Mono", monospace';
+    const textW2 = ctx.measureText(durationText).width;
+    const totalWidth = textW1 + textW2;
     const startX = sunsetX - (totalWidth / 2);
     
     ctx.textAlign = 'left';
-    ctx.font = 'bold 14px "JetBrains Mono", monospace';
+    ctx.font = '700 14px "JetBrains Mono", monospace';
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(sunsetText, startX, horizonY + 76);
+    ctx.fillText(sunsetText, startX, horizonY + 72);
     
-    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.font = '500 12px "JetBrains Mono", monospace';
     ctx.fillStyle = '#64748b';
-    ctx.fillText(durationText, startX + ctx.measureText(sunsetText).width, horizonY + 76);
+    ctx.fillText(durationText, startX + textW1, horizonY + 72);
 
-    // Kalkulasi posisi matahari (sun icon) di kurva
+    // Posisi matahari (sun icon) di kurva
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
@@ -542,7 +543,6 @@ function renderDashboard(data) {
 
     evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStr));
 
-    // Perbarui data variabel global daylight untuk digambar langsung di canvas
     currentDaylightData.sunrise = dl.sunrise || "06:00";
     currentDaylightData.midday = dl.midday || "11:58";
     currentDaylightData.sunset = dl.sunset || "17:50";
@@ -1039,6 +1039,7 @@ function exportHistoryPDF() {
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
         
         htmlContent += `
+            ` + `
             <tr>
                 <td><b>${cleanTime}</b></td>
                 <td>${cleanWeather}</td>
@@ -1050,7 +1051,7 @@ function exportHistoryPDF() {
                 <td>${l.visibility}</td>
                 <td>${cleanWind}</td>
             </tr>
-        `;
+            `;
     });
 
     htmlContent += `

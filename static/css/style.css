@@ -23,12 +23,14 @@ body {
     background-attachment: fixed;
     color: var(--text-primary);
     overflow-x: hidden;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .font-mono {
     font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.03em;
 }
 
 /* Navbar */
@@ -110,14 +112,12 @@ body {
 }
 
 .card-luxury:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     border-color: #cbd5e1 !important;
     box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08) !important;
 }
 
-.card-clickable {
-    cursor: pointer;
-}
+.card-clickable { cursor: pointer; }
 .card-clickable:hover {
     border-color: var(--accent-blue) !important;
     background-color: #fafbfc !important;
@@ -136,9 +136,9 @@ body {
 
 .sub-card-label {
     color: #64748b !important;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 }
 
 .sub-card-value {
@@ -155,7 +155,7 @@ body {
 /* TABLE PADDING */
 .table-custom-glass td, .table-custom-glass th {
     border-color: #edf2f7 !important;
-    padding: 10px 14px !important;
+    padding: 11px 14px !important;
     background: transparent !important;
     color: var(--text-primary) !important;
     font-size: 0.88rem;
@@ -215,11 +215,8 @@ body {
     100% { opacity: 1; }
 }
 
-/* -----------------------------------------------------------------
-   MOBILE RESPONSIVE FIXES (TAMPILAN HP)
------------------------------------------------------------------ */
+/* MOBILE RESPONSIVE FIXES */
 @media (max-width: 991.98px) {
-    /* Berikan jarak atas yang lebih aman di HP agar konten tidak tertutup navbar */
     .app-layout {
         margin-top: 135px !important;
     }
