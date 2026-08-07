@@ -256,12 +256,11 @@ function drawDaylightCurve() {
     const w = canvas.width;
     const h = canvas.height;
     
-    // REVISI: horizonY diset ke 25 agar grafik naik mendekati tulisan "Daylight period"
+    // REVISI: horizonY diset ke 25 agar kurva naik pas berjarak sekitar 20 pixel di bawah tulisan "Daylight period"
     const horizonY = 750; 
 
     ctx.clearRect(0, 0, w, h);
 
-    // Garis horizon
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
     ctx.lineWidth = 1.5;
@@ -274,7 +273,6 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 40;
 
-    // Garis putus-putus vertikal ke bawah
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -288,10 +286,8 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // RENDER TEKS WAKTU TEPAT DI BAWAH GARIS PUTUS-PUTUS
     ctx.textAlign = 'center';
 
-    // 1. SUNRISE
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.fillText('Sunrise', sunriseX, horizonY + 56);
@@ -299,7 +295,6 @@ function drawDaylightCurve() {
     ctx.fillStyle = '#0f172a';
     ctx.fillText(currentDaylightData.sunrise, sunriseX, horizonY + 74);
 
-    // 2. MIDDAY
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.fillText('Midday', middayX, horizonY + 56);
@@ -307,7 +302,6 @@ function drawDaylightCurve() {
     ctx.fillStyle = '#0f172a';
     ctx.fillText(currentDaylightData.midday, middayX, horizonY + 74);
 
-    // 3. SUNSET (beserta durasi di sampingnya)
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.fillText('Sunset', sunsetX, horizonY + 56);
@@ -331,7 +325,6 @@ function drawDaylightCurve() {
     ctx.fillStyle = '#64748b';
     ctx.fillText(durationText, startX + textW1, horizonY + 74);
 
-    // Posisi matahari (sun icon) di kurva
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
@@ -348,7 +341,6 @@ function drawDaylightCurve() {
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
-    // Area bayangan kurva
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sunriseX, horizonY);
@@ -364,7 +356,6 @@ function drawDaylightCurve() {
     ctx.fill();
     ctx.restore();
 
-    // Kurva biru matahari
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -390,7 +381,6 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // Gambar ikon matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
