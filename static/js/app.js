@@ -297,13 +297,13 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 150;
+    canvas.height = 700;
 
     const w = canvas.width;
     const h = canvas.height;
     
     // POSISI GRAFIK NAIK BERJARAK PAS DI BAWAH TULISAN "Daylight period"
-    const horizonY = 25; 
+    const horizonY = 750; 
 
     ctx.clearRect(0, 0, w, h);
 
