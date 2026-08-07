@@ -1,7 +1,7 @@
 let windRoseInstance = null;
 let clockTimer = null;
 let autoRefreshTimer = null;
-const POLLING_INTERVAL = 15000;
+const POLLING_INTERVAL = 15000; // Refresh data setiap 15 detik
 let historyLogs = [];
 let dashOffset = 0;
 
@@ -61,7 +61,10 @@ Chart.register(runwayOverlayPlugin);
 document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
     startRealtimeClock();
+    
+    // Tarik data saat halaman pertama dimuat
     fetchAWSData();
+    fetchAviationWeatherNOAA(); 
 
     const forecastTabBtn = document.getElementById("forecast-tab");
     if (forecastTabBtn) {
@@ -92,7 +95,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const refreshBtn = document.getElementById("manualRefreshBtn");
     if (refreshBtn) {
-        refreshBtn.addEventListener("click", () => fetchAWSData());
+        refreshBtn.addEventListener("click", () => {
+            fetchAWSData();
+            fetchAviationWeatherNOAA();
+        });
     }
 
     const exportBtn = document.getElementById("exportHistoryBtn");
@@ -125,8 +131,39 @@ document.addEventListener("DOMContentLoaded", () => {
         drawDaylightCurve();
         drawCloudProfileCanvas(1800);
     });
+    
     startAutoRefresh();
 });
+
+// =========================================================================
+// INTEGRASI API NOAA UNTUK RAW METAR
+// =========================================================================
+async function fetchAviationWeatherNOAA() {
+    try {
+        const response = await fetch('https://aviationweather.gov/api/data/metar?ids=WICC&format=json');
+        if (!response.ok) throw new Error('Gagal mengambil data METAR dari NOAA');
+        
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const metarRecord = data[0];
+            const rawMetar = metarRecord.rawOb || "METAR WICC tidak tersedia (null)";
+            
+            // Set teks Raw METAR di UI
+            safeSetText("raw-metar-text", rawMetar);
+            
+            // Opsional: Jika ingin melakukan sinkronisasi parameter dari NOAA ke Dasbor
+            // Misalnya mengambil altimeter dari NOAA
+            // if(metarRecord.altim) safeSetText("m-press", metarRecord.altim, "hPa");
+        } else {
+            safeSetText("raw-metar-text", "Data METAR dari stasiun WICC kosong.");
+        }
+    } catch (err) {
+        console.error("Error fetching NOAA METAR:", err);
+        safeSetText("raw-metar-text", "Kesalahan saat menghubungi server NOAA.");
+    }
+}
+
+// =========================================================================
 
 function initWindRoseChart() {
     const canvas = document.getElementById("windRoseChart");
@@ -251,16 +288,17 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 700;
+    canvas.height = 160;
 
     const w = canvas.width;
     const h = canvas.height;
     
-    // REVISI: horizonY diset ke 25 agar kurva naik pas berjarak sekitar 20 pixel di bawah tulisan "Daylight period"
-    const horizonY = 750; 
+    // REVISI: horizonY diset ke 25 agar grafik naik mendekati tulisan "Daylight period"
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
+    // Garis horizon
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
     ctx.lineWidth = 1.5;
@@ -273,6 +311,7 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 40;
 
+    // Garis putus-putus vertikal ke bawah
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -286,6 +325,7 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
+    // RENDER TEKS WAKTU TEPAT DI BAWAH GARIS PUTUS-PUTUS
     ctx.textAlign = 'center';
 
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
@@ -325,6 +365,7 @@ function drawDaylightCurve() {
     ctx.fillStyle = '#64748b';
     ctx.fillText(durationText, startX + textW1, horizonY + 74);
 
+    // Posisi matahari (sun icon) di kurva
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
@@ -341,6 +382,7 @@ function drawDaylightCurve() {
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
+    // Area bayangan kurva
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sunriseX, horizonY);
@@ -356,6 +398,7 @@ function drawDaylightCurve() {
     ctx.fill();
     ctx.restore();
 
+    // Kurva biru matahari
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -381,6 +424,7 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
+    // Gambar ikon matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -430,7 +474,10 @@ function updateClockDisplay() {
 
 function startAutoRefresh() {
     stopAutoRefresh();
-    autoRefreshTimer = setInterval(fetchAWSData, POLLING_INTERVAL);
+    autoRefreshTimer = setInterval(() => {
+        fetchAWSData();
+        fetchAviationWeatherNOAA(); // Sinkronkan NOAA setiap 15 detik
+    }, POLLING_INTERVAL);
 }
 
 function stopAutoRefresh() {
@@ -449,7 +496,7 @@ async function fetchAWSData() {
         renderDashboard(data);
 
     } catch (err) {
-        console.error("Gagal memuat data METAR WICC AWS:", err);
+        console.error("Gagal memuat data AWS Backend:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
     }
@@ -483,9 +530,8 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // DINAMIS UPDATE RAW METAR & TAF DARI API BACKEND
-    if (data.metadata) {
-        safeSetText("raw-metar-text", data.metadata.raw_metar);
+    // RAW TAF masih diambil dari backend jika ada
+    if (data.metadata && data.metadata.raw_taf) {
         safeSetText("raw-taf-text", data.metadata.raw_taf);
     }
 
