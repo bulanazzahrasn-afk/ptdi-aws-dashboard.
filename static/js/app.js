@@ -20,7 +20,6 @@ const runwayOverlayPlugin = {
         const rad290 = (290 - 90) * (Math.PI / 180);
 
         ctx.save();
-
         ctx.beginPath();
         ctx.lineWidth = 7;
         ctx.strokeStyle = '#1e293b'; 
@@ -51,7 +50,6 @@ const runwayOverlayPlugin = {
         const x29 = centerX + Math.cos(rad290) * (radius * 1.08);
         const y29 = centerY + Math.sin(rad290) * (radius * 1.08);
         ctx.fillText('RWY 29', x29, y29);
-
         ctx.restore();
     }
 };
@@ -250,13 +248,12 @@ function drawDaylightCurve() {
     const ctx = canvas.getContext("2d");
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
-    // DIPERBAIKI: Tinggi canvas dan horizonY dikembalikan ke posisi normal
     canvas.width = parentWidth;
-    canvas.height = 300;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 290; 
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -412,11 +409,9 @@ function startRealtimeClock() {
 
 function updateClockDisplay() {
     const now = new Date();
-    
     const wibStr = now.toLocaleTimeString('id-ID', { 
         timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
     }).replace(/\./g, ' : ');
-
     const utcStr = now.toLocaleTimeString('id-ID', { 
         timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
     }).replace(/\./g, ' : ');
@@ -495,6 +490,7 @@ function renderDashboard(data) {
     
     const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
     safeSetText("m-precip", precipVal, "mm");
+    safeSetText("fc-precip-card", precipVal, "mm");
 
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
@@ -518,19 +514,27 @@ function renderDashboard(data) {
     safeSetText("fc-vis", visStr);
     
     const weatherDescEl = document.getElementById("fc-weather-desc");
-    if (weatherDescEl) {
-        const visNum = parseFloat(visStr);
-        const windSpdKt = w.surface ? w.surface.speed_kt : 0;
-        let desc = "Cerah Berawan (Aman VFR)";
-        if (visNum < 3.0) {
-            desc = "Waspada: Jarak Pandang Rendah (Visibility Restricted)";
-        } else if (windSpdKt > 15.0) {
-            desc = "Waspada: Kecepatan Angin Permukaan Tinggi";
-        } else if (visNum < 7.0) {
-            desc = "Udara Kabur / Haze (Moderate Visibility)";
-        }
-        weatherDescEl.textContent = desc;
+    const weatherIconEl = document.getElementById("fc-weather-icon");
+
+    let desc = "Cerah Berawan (Aman VFR)";
+    let iconClass = "bi-cloud-sun-fill text-warning display-4";
+
+    const visNum = parseFloat(visStr);
+    const rhVal = t.rh_2m || 60;
+
+    if (visNum < 5.0 && rhVal > 80) {
+        desc = "Udara Kabur / Haze (Moderate Visibility)";
+        iconClass = "bi-cloud-haze2-fill text-secondary display-4";
+    } else if (precipVal > 0.5) {
+        desc = "Hujan / Presipitasi Terdeteksi";
+        iconClass = "bi-cloud-rain-fill text-primary display-4";
+    } else if (visNum < 3.0) {
+        desc = "Waspada: Jarak Pandang Rendah";
+        iconClass = "bi-cloud-fog2-fill text-info display-4";
     }
+
+    if (weatherDescEl) weatherDescEl.textContent = desc;
+    if (weatherIconEl) weatherIconEl.className = `bi ${iconClass}`;
 
     safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
@@ -574,7 +578,6 @@ function renderDashboard(data) {
         if (item) {
             safeSetText(lvl.spdId, item.speed_kt, "kt");
             safeSetText(lvl.dirId, `${item.dir_deg}° (${item.dir_compass})`);
-            
             const arrow = document.getElementById(lvl.arrowId);
             if (arrow && item.dir_deg !== undefined) {
                 arrow.style.transform = `rotate(${item.dir_deg}deg)`;
@@ -598,14 +601,94 @@ function renderDashboard(data) {
     if (minData) {
         updateWindRoseChart(minData);
         renderDaily00to24History(minData, data);
+        renderHourlyForecast24h(minData);
     }
 
     if (data.raw_daily_payload) {
-        renderEsokHariForecast(data.raw_daily_payload, data);
+        render3DaysForecast(data.raw_daily_payload);
     }
 
     renderFlightPrepTable(data);
     drawDaylightCurve();
+}
+
+// FITUR 1: RENDER PRAKIRAAN 24 JAM KEDEPAN (PER JAM)
+function renderHourlyForecast24h(minData) {
+    const container = document.getElementById("hourly-forecast-scroll");
+    if (!container || !minData.time) return;
+
+    container.innerHTML = "";
+    const times = minData.time;
+    const temps = minData.temperature_2m || [];
+    const windSpeeds = minData.wind_speed_10m || [];
+    const windDirs = minData.wind_direction_10m || [];
+
+    const now = new Date();
+    const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+
+    times.forEach((isoStr, i) => {
+        if (!isoStr || !isoStr.startsWith(todayISO)) return;
+
+        const timePartWIB = isoStr.split("T")[1].substring(0, 5);
+        const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : '--';
+        const windSpdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 0;
+        const windDirDeg = windDirs[i] !== undefined ? Math.round(windDirs[i]) : 0;
+        const compass = degToCompassShort(windDirDeg);
+
+        const card = document.createElement("div");
+        card.className = "p-3 bg-light border rounded-3 text-center flex-shrink-0 shadow-sm";
+        card.style.minWidth = "110px";
+        card.innerHTML = `
+            <div class="small fw-bold font-mono text-secondary mb-1">${timePartWIB}</div>
+            <div class="my-2"><i class="bi bi-cloud-haze2-fill text-secondary fs-4"></i></div>
+            <div class="fw-bold font-mono text-dark fs-6">${tempVal}°C</div>
+            <div class="extra-small text-muted font-mono mt-1">${windSpdKt} kt</div>
+            <div class="extra-small text-secondary font-mono">${compass}</div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// FITUR 2: RENDER PRAKIRAAN 3 HARI KEDEPAN
+function render3DaysForecast(daily) {
+    const container = document.getElementById("daily-forecast-cards-3days");
+    if (!container || !daily.time) return;
+
+    container.innerHTML = "";
+    for (let i = 0; i < Math.min(3, daily.time.length); i++) {
+        const dateObj = new Date(daily.time[i]);
+        const dayLabel = i === 0 ? "Hari Ini" : (i === 1 ? "Esok Hari" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' }));
+        const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
+        const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
+        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
+
+        const col = document.createElement("div");
+        col.className = "col-md-4";
+        col.innerHTML = `
+            <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold text-dark">${dayLabel}</span>
+                    <span class="badge bg-primary font-mono extra-small">${formattedDate}</span>
+                </div>
+                <div class="d-flex align-items-center gap-3 my-2">
+                    <i class="bi bi-cloud-sun-fill text-warning fs-2"></i>
+                    <div>
+                        <div class="fw-bold font-mono text-dark">${tempMax} / ${tempMin}</div>
+                        <div class="extra-small text-secondary">Angin Max: ${windMaxKt} kt</div>
+                    </div>
+                </div>
+                <div class="pt-2 border-top d-flex justify-content-between text-muted extra-small font-mono">
+                    <span>Curah Hujan:</span>
+                    <span class="fw-bold text-info">${precipSum} mm</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    }
 }
 
 function evaluateWeatherAlerts(windSpdKt, crosswindKt, visKm) {
@@ -669,121 +752,6 @@ function evaluateWeatherAlerts(windSpdKt, crosswindKt, visKm) {
         alertBadge.className = "badge bg-success font-mono extra-small";
         alertBadge.textContent = "SYSTEM SAFE";
     }
-}
-
-function renderEsokHariForecast(daily, fullData) {
-    const container = document.getElementById("daily-forecast-cards");
-    if (!container || !daily.time) return;
-
-    container.innerHTML = "";
-    if (daily.time.length < 2) return;
-    const i = 1;
-
-    const dateObj = new Date(daily.time[i]);
-    const dayLabel = "Esok Hari";
-    const badgeText = "FORECAST";
-    
-    const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-        weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' 
-    });
-
-    const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
-    const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
-    
-    const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
-    const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
-    
-    const gustsMaxKmh = daily.wind_gusts_10m_max[i] || 0;
-    const gustsMaxKt = (gustsMaxKmh * 0.539957).toFixed(1);
-    
-    const domDirDeg = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : 0;
-    const domDirCompass = degToCompassShort(domDirDeg);
-    const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
-
-    let flightCategory = "VFR";
-    let categoryBadge = "bg-success";
-    let weatherIcon = "bi-sun-fill text-warning";
-    let weatherText = "Kondisi visual operasional optimal.";
-
-    if (precipSum > 10.0) {
-        flightCategory = "IFR / Severe";
-        categoryBadge = "bg-danger";
-        weatherIcon = "bi-cloud-lightning-rain-fill text-danger";
-        weatherText = "Potensi presipitasi lebat & jarak pandang terbatas.";
-    } else if (precipSum > 1.0 || windMaxKt > 15.0) {
-        flightCategory = "MVFR";
-        categoryBadge = "bg-warning text-dark";
-        weatherIcon = "bi-cloud-rain-heavy-fill text-info";
-        weatherText = "Waspada presipitasi lokal / angin kencang.";
-    } else if (windMaxKt <= 10.0) {
-        weatherIcon = "bi-cloud-sun-fill text-warning";
-    }
-
-    const angleDiff = Math.abs(domDirDeg - 110) * (Math.PI / 180);
-    const crosswindKt = Math.abs(windMaxKt * Math.sin(angleDiff)).toFixed(1);
-
-    const card = document.createElement("div");
-    card.className = "card card-luxury shadow-sm rounded-4 overflow-hidden h-100";
-    card.innerHTML = `
-        <div class="card-header bg-dark text-white p-4 border-bottom d-flex justify-content-between align-items-center">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge ${categoryBadge} px-3 py-1 font-mono fs-6">${flightCategory}</span>
-                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1 font-mono extra-small">${badgeText}</span>
-                </div>
-                <h4 class="fw-bold mb-0">${dayLabel}</h4>
-                <div class="small text-secondary font-mono mt-1">${formattedDate}</div>
-            </div>
-            <div class="text-end">
-                <i class="bi ${weatherIcon} display-4"></i>
-            </div>
-        </div>
-
-        <div class="card-body p-4">
-            <div class="d-flex align-items-baseline gap-3 mb-3">
-                <div class="display-5 fw-bold text-dark font-mono">${tempMax}</div>
-                <div class="fs-5 text-secondary font-mono">/ ${tempMin}</div>
-                <div class="ms-auto text-end text-secondary small fw-medium">${weatherText}</div>
-            </div>
-
-            <hr class="border-secondary border-opacity-25 my-3">
-
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="p-3 sub-card-dark">
-                        <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-primary"></i>MAX WIND</div>
-                        <div class="fs-5 sub-card-value">${windMaxKt} kt</div>
-                        <div class="sub-card-desc font-mono">${domDirDeg}° (${domDirCompass})</div>
-                    </div>
-                </div>
-
-                <div class="col-6">
-                    <div class="p-3 sub-card-dark">
-                        <div class="sub-card-label mb-1"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>MAX GUST</div>
-                        <div class="fs-5 sub-card-value text-danger">${gustsMaxKt} kt</div>
-                        <div class="sub-card-desc">Peak Surface Gust</div>
-                    </div>
-                </div>
-
-                <div class="col-6">
-                    <div class="p-3 sub-card-dark">
-                        <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>EST. CROSSWIND</div>
-                        <div class="fs-5 sub-card-value text-warning">${crosswindKt} kt</div>
-                        <div class="sub-card-desc">Runway Component</div>
-                    </div>
-                </div>
-
-                <div class="col-6">
-                    <div class="p-3 sub-card-dark">
-                        <div class="sub-card-label mb-1"><i class="bi bi-droplet-half me-1 text-info"></i>PRECIPITATION</div>
-                        <div class="fs-5 sub-card-value text-info">${precipSum} mm</div>
-                        <div class="sub-card-desc">Total Harian</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    container.appendChild(card);
 }
 
 function calculatePopUpCrosswind() {

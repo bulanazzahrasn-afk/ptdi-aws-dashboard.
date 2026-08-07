@@ -11,7 +11,6 @@
 </head>
 <body>
 
-    <!-- Header Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-3 py-2 fixed-top">
         <div class="container-fluid">
             <div class="d-flex align-items-center gap-3">
@@ -54,10 +53,8 @@
         </div>
     </nav>
 
-    <!-- Main App Layout -->
     <div class="app-layout">
         
-        <!-- SIDEBAR NAVIGASI (URUTAN TAB DITUKAR: CUACA HARI INI DI ATAS, RINGKASAN DI BAWAHNYA) -->
         <aside class="sidebar-wrapper collapsed" id="sidebar">
             <div class="py-3">
                 <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.65rem; letter-spacing: 1px;">Navigasi Utama</div>
@@ -82,10 +79,8 @@
             </div>
         </aside>
 
-        <!-- KONTEN UTAMA -->
         <main class="content-wrapper expanded" id="contentArea">
             
-            <!-- WEATHER ALERT / WARNING BANNER -->
             <div id="weatherAlertBanner" class="alert alert-success d-flex align-items-center justify-content-between shadow-sm rounded-3 py-2.5 px-4 mb-3 border" role="alert">
                 <div class="d-flex align-items-center gap-3">
                     <i class="bi bi-shield-check fs-4 text-success" id="alertIcon"></i>
@@ -99,10 +94,9 @@
 
             <div class="tab-content" id="mainTabContent">
                 
-                <!-- TAB 1 (BAR PERTAMA SEKARANG: CUACA HARI INI & FORECAST + RAW METAR & TAF) -->
+                <!-- TAB 1: CUACA HARI INI & FORECAST -->
                 <div class="tab-pane fade show active fade-in-up" id="forecast" role="tabpanel">
                     
-                    <!-- RAW METAR & TAF PINDAH KESINI -->
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <div class="card card-luxury shadow-sm h-100">
@@ -130,64 +124,89 @@
                         </div>
                     </div>
 
-                    <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
-                        <div class="border-bottom pb-3 mb-4">
-                            <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
-                            <div class="h5 fw-bold text-dark mb-0 mt-1">Bandara Husein Sastranegara (WICC)</div>
-                        </div>
-
-                        <div class="row align-items-center g-4">
-                            <div class="col-md-5 d-flex align-items-center gap-4">
-                                <div class="p-3 bg-light rounded-4 text-center border shadow-sm" style="min-width: 100px;">
-                                    <i class="bi bi-cloud-sun-fill text-warning display-3"></i>
-                                </div>
-                                <div>
-                                    <div class="display-4 fw-extrabold font-mono text-dark" id="fc-temp">28.9 °C</div>
-                                    <div class="fs-6 fw-semibold text-secondary" id="fc-weather-desc">Cerah Berawan (Aman VFR)</div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-7">
-                                <div class="row g-3">
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-eye me-1 text-primary"></i>JARAK PANDANG</div>
-                                            <div class="fs-5 sub-card-value" id="fc-vis">10 km</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-info"></i>KECEPATAN ANGIN</div>
-                                            <div class="fs-5 sub-card-value" id="fc-wind-spd">7.6 kt</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>ARAH ANGIN DARI</div>
-                                            <div class="fs-5 sub-card-value" id="fc-wind-dir">202° (SSW)</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="p-3 sub-card-dark">
-                                            <div class="sub-card-label mb-1"><i class="bi bi-speedometer me-1 text-danger"></i>TEKANAN UDARA</div>
-                                            <div class="fs-5 sub-card-value" id="fc-press">1013.5 hPa</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    <!-- CARD UTAMA & DAYLIGHT BERDAMPINGAN -->
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-5" id="daily-forecast-cards"></div>
+                        <div class="col-lg-6">
+                            <div class="card card-luxury shadow-sm p-4 bg-white rounded-4 border h-100">
+                                <div class="border-bottom pb-3 mb-3">
+                                    <div class="small fw-bold text-uppercase text-secondary font-mono tracking-wider" id="current-forecast-date-label">KAMIS, 6 AGUSTUS 2026</div>
+                                    <div class="h5 fw-bold text-dark mb-0 mt-1">Bandara Husein Sastranegara (WICC)</div>
+                                </div>
 
-                        <div class="col-lg-7">
+                                <div class="row align-items-center g-3">
+                                    <div class="col-12 d-flex align-items-center gap-3 mb-2">
+                                        <div class="p-3 bg-light rounded-4 text-center border shadow-sm" style="min-width: 90px;">
+                                            <i id="fc-weather-icon" class="bi bi-cloud-sun-fill text-warning display-4"></i>
+                                        </div>
+                                        <div>
+                                            <div class="display-5 fw-extrabold font-mono text-dark" id="fc-temp">28.9 °C</div>
+                                            <div class="fs-6 fw-semibold text-secondary" id="fc-weather-desc">Cerah Berawan (Aman VFR)</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="p-2.5 sub-card-dark">
+                                                    <div class="sub-card-label mb-1"><i class="bi bi-eye me-1 text-primary"></i>JARAK PANDANG</div>
+                                                    <div class="fs-6 sub-card-value" id="fc-vis">10 km</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2.5 sub-card-dark">
+                                                    <div class="sub-card-label mb-1"><i class="bi bi-wind me-1 text-info"></i>KECEPATAN ANGIN</div>
+                                                    <div class="fs-6 sub-card-value" id="fc-wind-spd">7.6 kt</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2.5 sub-card-dark">
+                                                    <div class="sub-card-label mb-1"><i class="bi bi-compass me-1 text-warning"></i>ARAH ANGIN</div>
+                                                    <div class="fs-6 sub-card-value" id="fc-wind-dir">202° (SSW)</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="p-2.5 sub-card-dark">
+                                                    <div class="sub-card-label mb-1"><i class="bi bi-speedometer me-1 text-danger"></i>TEKANAN UDARA</div>
+                                                    <div class="fs-6 sub-card-value" id="fc-press">1013.5 hPa</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-2.5 sub-card-dark">
+                                                    <div class="sub-card-label mb-1"><i class="bi bi-droplet-fill me-1 text-info"></i>CURAH HUJAN (PRECIPITATION)</div>
+                                                    <div class="fs-6 sub-card-value text-info" id="fc-precip-card">0.0 mm</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
                             <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
                                 <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
                                 <div class="daylight-canvas-container text-center py-0 my-0" style="width: 100%; min-height: 190px; position: relative;">
                                     <canvas id="daylightCanvas"></canvas>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- FITUR 1: PRAKIRAAN PER JAM (24 JAM KEDEPAN) -->
+                    <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
+                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-clock-fill me-2 text-primary"></i>Prakiraan per Jam (WIB) - 24 Jam Kedepan</h4>
+                        <div class="table-responsive">
+                            <div id="hourly-forecast-scroll" class="d-flex gap-3 overflow-auto pb-2 no-scrollbar">
+                                <!-- Konten per jam diisi dinamis via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FITUR 2: PRAKIRAAN 3 HARI KEDEPAN -->
+                    <div class="card card-luxury shadow-sm p-4 mb-4 bg-white rounded-4 border">
+                        <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-calendar3 me-2 text-indigo"></i>Prakiraan Cuaca 3 Hari Kedepan</h4>
+                        <div class="row g-3" id="daily-forecast-cards-3days">
+                            <!-- Diisi dinamis via JS -->
                         </div>
                     </div>
 
@@ -218,9 +237,8 @@
                     </div>
                 </div>
 
-                <!-- TAB 2 (BAR KEDUA SEKARANG: RINGKASAN UTAMA) -->
+                <!-- TAB 2: RINGKASAN UTAMA -->
                 <div class="tab-pane fade fade-in-up" id="summary" role="tabpanel">
-                    
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
                             <div class="card card-luxury shadow-sm h-100">
@@ -391,7 +409,7 @@
         </main>
     </div>
 
-    <!-- POP-UP MODAL DETAIL AWAN -->
+    <!-- MODALS -->
     <div class="modal fade" id="cloudDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content card-luxury border-0 shadow-lg">
@@ -425,7 +443,6 @@
         </div>
     </div>
 
-    <!-- POP-UP MODALS LAINNYA -->
     <div class="modal fade" id="crosswindModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content card-luxury border-0 shadow-lg">
