@@ -251,7 +251,7 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 650; // Tinggi canvas pas agar kurva tidak terpotong
+    canvas.height = 190; // Tinggi canvas pas agar kurva tidak terpotong
 
     const w = canvas.width;
     const h = canvas.height;
