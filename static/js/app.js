@@ -255,7 +255,7 @@ function drawDaylightCurve() {
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 170; // Posisi garis horizon pas di tengah atas
+    const horizonY = 100; // Posisi garis horizon pas di tengah atas
 
     ctx.clearRect(0, 0, w, h);
 
