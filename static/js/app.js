@@ -249,11 +249,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 300;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 150; 
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -477,7 +477,6 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // FORMAT PENULISAN METAR DAN TAF SESUAI STANDAR BMKG & ICAO (TANPA PECAHAN 8/8 DI DEPAN AWAN)
     const nowUTC = new Date();
     const day = String(nowUTC.getUTCDate()).padStart(2, '0');
     const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
@@ -515,7 +514,6 @@ function renderDashboard(data) {
 
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    // Format standar sandi awan tanpa mencantumkan pecahan okta 8/8 di depan
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let metarHeaderLatest = `${day}${hour}${currentMinSlot}`;
@@ -717,20 +715,18 @@ function renderHourlyForecast24h(minData) {
     });
 }
 
-// PERBAIKAN: RENDER PRAKIRAAN 3 HARI KEDEPAN (BESOK, LUSA, DAN H+3) SECARA LENGKAP
 function render3DaysForecast(daily) {
     const container = document.getElementById("daily-forecast-cards-3days");
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
     
-    // Pastikan melakukan perulangan untuk 3 hari ke depan (Indeks 1, 2, dan 3)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         
         let dayLabel = "Besok";
-        if (i === 2) dayLabel = "Lusa";
-        else if (i === 3) dayLabel = "Hari Berikutnya";
+        if (i === 2) dayLabel = "9 Agu 2026";
+        else if (i === 3) dayLabel = "10 Agu 2026";
 
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -741,7 +737,7 @@ function render3DaysForecast(daily) {
         const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
 
         const col = document.createElement("div");
-        col.className = "col-md-4"; // Menggunakan col-md-4 agar berjajar 3 kolom berdampingan
+        col.className = "col-md-4";
         col.innerHTML = `
             <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
