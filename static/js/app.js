@@ -477,23 +477,73 @@ function renderDashboard(data) {
     const r = data.runways || {};
     const dl = data.daylight || {};
 
-    // PERBAIKAN TANGGAL METAR & TAF MENGIKUTI WAKTU UTC RIIL (AGAR TIDAK KETINGGALAN SATU HARI)
+    // FORMAT METAR & TAF SESUAI STANDAR RESMI BMKG (SAID40 & FTID40 DENGAN RENTANG WAKTU 30 MENIT & 6 JAM)
     const nowUTC = new Date();
-    const utcDay = String(nowUTC.getUTCDate()).padStart(2, '0');
-    const utcHour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const prevUtcDay = String(Number(utcDay) - 1).padStart(2, '0');
+    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
+    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
+    const minute = nowUTC.getUTCMinutes();
     
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "214";
+    let currentMinSlot = minute >= 30 ? "30" : "00";
+    let prevMinSlot = minute >= 30 ? "00" : "30";
+    let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
+    let prevDay = day;
+
+    if (prevHourNum < 0) {
+        prevHourNum += 24;
+        prevDay = String(Number(day) - 1).padStart(2, '0');
+    }
+    let prevHourStr = String(prevHourNum).padStart(2, '0');
+
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "090";
     const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "07";
-    const tempVal = Math.round(t.temp_2m || 31);
-    const dewVal = Math.round(t.dew_point || 13);
-    const qnhVal = Math.round(t.msl_pressure || 1009);
+    const windStr = `${windDir}${windSpd}KT`;
 
-    const dynamicMetar = `SAID40 WICC ${utcDay}${utcHour}00\nMETAR WICC ${utcDay}${utcHour}00Z ${windDir}${windSpd}G22KT 4000 HZ OVC018 ${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')} Q${qnhVal} NOSIG=`;
-    const dynamicTaf = `FTID40 WICC ${utcDay}${utcHour}00\nTAF WICC ${utcDay}${utcHour}00Z ${utcDay}${utcHour}/${String(Number(utcDay)+1).padStart(2, '0')}${utcHour} ${windDir}${windSpd}G22KT 4000 HZ OVC018 BECMG 0602/0604 08012KT 8000 FEW020=`;
+    const visKm = parseFloat(t.visibility_km || 10);
+    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
 
-    safeSetText("raw-metar-text", dynamicMetar);
-    safeSetText("raw-taf-text", dynamicTaf);
+    const tempVal = Math.round(t.temp_2m || 30);
+    const dewVal = Math.round(t.dew_point || 23);
+    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
+
+    const qnhVal = Math.round(t.msl_pressure || 1013);
+    const qnhStr = `Q${qnhVal}`;
+
+    let wxStr = "";
+    const rh = t.rh_2m || 70;
+    if (visKm < 5.0 && rh > 80) wxStr = "HZ ";
+    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
+
+    const cloudOcta = c.cloud_cover_octa || "SCT";
+    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
+    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
+
+    // METAR: 30 menit sebelumnya dan yang terupdate (SAID40 WICC)
+    let metarHeaderLatest = `${day}${hour}${currentMinSlot}`;
+    let metarTimeLatest = `${hour}${currentMinSlot}Z`;
+    let metarHeaderPrev = `${prevDay}${prevHourStr}${prevMinSlot}`;
+    let metarTimePrev = `${prevHourStr}${prevMinSlot}Z`;
+
+    let metarLatest = `SAID40 WICC ${metarHeaderLatest}\nMETAR WICC ${day}${metarTimeLatest} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+    let metarPrev = `SAID40 WICC ${metarHeaderPrev}\nMETAR WICC ${prevDay}${metarTimePrev} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+
+    const combinedMetar = `${metarLatest}\n\n${metarPrev}`;
+    
+    // TAF: Mencakup 6 jam sebelumnya hingga masa berlaku berikutnya (FTID40 WICC)
+    let tafPrevHourNum = Number(hour) - 6;
+    let tafPrevDay = day;
+    if (tafPrevHourNum < 0) {
+        tafPrevHourNum += 24;
+        tafPrevDay = String(Number(day) - 1).padStart(2, '0');
+    }
+    let tafValidStart = String(tafPrevHourNum).padStart(2, '0') + "00";
+    let tafValidEnd = String(Number(hour)).padStart(2, '0') + "00";
+    let nextDayNum = String(Number(day) + 1).padStart(2, '0');
+
+    const tafHeader = `FTID40 WICC ${day}${hour}00`;
+    const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPrevDay}${tafValidStart}/${day}${tafValidEnd} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG 0602/0604 08012KT 8000 FEW020=`;
+
+    safeSetText("raw-metar-text", combinedMetar);
+    safeSetText("raw-taf-text", tafString);
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
@@ -505,8 +555,6 @@ function renderDashboard(data) {
     safeSetText("m-precip", precipVal, "mm");
     safeSetText("fc-precip-card", precipVal, "mm");
 
-    const cloudOcta = c.cloud_cover_octa || "SCT";
-    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
 
     safeSetText("m-cloud-octa", cloudOcta);
@@ -518,15 +566,13 @@ function renderDashboard(data) {
     if (modalOcta) modalOcta.textContent = `${cloudOcta}`;
     if (modalBase) modalBase.textContent = `${formattedCloudAlt} MSL`;
 
-    const now = new Date();
-    const dateLabelStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+    const dateLabelStr = nowUTC.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).toUpperCase();
     safeSetText("current-forecast-date-label", dateLabelStr);
     safeSetText("fc-temp", t.temp_2m, "°C");
     
     const visStr = t.visibility_km || "10 km";
     safeSetText("fc-vis", visStr);
     
-    // IKON ANIMASI CUACA DINAMIS SESUAI KONDISI RIIL (HAZE, HUJAN, BERAWAN, CERAH)
     const weatherDescEl = document.getElementById("fc-weather-desc");
     const weatherIconEl = document.getElementById("fc-weather-icon");
 
@@ -564,9 +610,9 @@ function renderDashboard(data) {
     currentDaylightData.sunset = dl.sunset || "17:50";
 
     const [sunsetHH, sunsetMM] = (dl.sunset || "17:50").split(':').map(Number);
-    const sunsetDate = new Date(now);
+    const sunsetDate = new Date(nowUTC);
     sunsetDate.setHours(sunsetHH, sunsetMM, 0);
-    const diffMs = sunsetDate - now;
+    const diffMs = sunsetDate - nowUTC;
     
     if (diffMs > 0) {
         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
@@ -629,7 +675,6 @@ function renderDashboard(data) {
     drawDaylightCurve();
 }
 
-// RENDER PRAKIRAAN 24 JAM KEDEPAN DENGAN JUDUL TANGGAL RIIL
 function renderHourlyForecast24h(minData) {
     const container = document.getElementById("hourly-forecast-scroll");
     const titleEl = document.getElementById("hourly-forecast-title");
@@ -646,7 +691,6 @@ function renderHourlyForecast24h(minData) {
     const temps = minData.temperature_2m || [];
     const windSpeeds = minData.wind_speed_10m || [];
     const windDirs = minData.wind_direction_10m || [];
-
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
 
     times.forEach((isoStr, i) => {
@@ -672,13 +716,11 @@ function renderHourlyForecast24h(minData) {
     });
 }
 
-// RENDER PRAKIRAAN 3 HARI KEDEPAN (HARI INI DILEWATI, MULAI DARI BESOK)
 function render3DaysForecast(daily) {
     const container = document.getElementById("daily-forecast-cards-3days");
     if (!container || !daily.time) return;
 
     container.innerHTML = "";
-    // Mulai dari i = 1 (Esok Hari / Besok) hingga 3 hari ke depan
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         const dayLabel = i === 1 ? "Besok" : dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
