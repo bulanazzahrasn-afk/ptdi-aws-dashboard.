@@ -54,11 +54,11 @@
         </div>
     </nav>
 
-    <!-- Main App Layout -->
+    <!-- Main App Layout (Sidebar di-set 'collapsed' & Content 'expanded' secara default saat pertama kali dibuka) -->
     <div class="app-layout">
         
         <!-- SIDEBAR NAVIGASI -->
-        <aside class="sidebar-wrapper" id="sidebar">
+        <aside class="sidebar-wrapper collapsed" id="sidebar">
             <div class="py-3">
                 <div class="menu-header-text text-uppercase text-secondary extra-small fw-bold px-4 mb-2" style="font-size: 0.65rem; letter-spacing: 1px;">Navigasi Utama</div>
                 <div class="nav flex-column nav-pills" id="mainTab" role="tablist">
@@ -83,7 +83,7 @@
         </aside>
 
         <!-- KONTEN UTAMA -->
-        <main class="content-wrapper" id="contentArea">
+        <main class="content-wrapper expanded" id="contentArea">
             
             <!-- WEATHER ALERT / WARNING BANNER -->
             <div id="weatherAlertBanner" class="alert alert-success d-flex align-items-center justify-content-between shadow-sm rounded-3 py-2.5 px-4 mb-3 border" role="alert">
@@ -288,8 +288,7 @@
                         <div class="col-lg-7">
                             <div class="card card-luxury p-4 shadow-sm h-100 d-flex flex-column justify-content-between">
                                 <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-brightness-high me-2 text-warning"></i>Daylight period</h4>
-                                <!-- Canvas diperbesar tinggi kotaknya agar teks jam langsung digambar di dalam kanvas tepat di bawah titik garis putus-putus -->
-                                <div class="daylight-canvas-container text-center py-0 my-0" style="width: 100%; min-height: 200px; position: relative;">
+                                <div class="daylight-canvas-container text-center py-0 my-0" style="width: 100%; min-height: 180px; position: relative;">
                                     <canvas id="daylightCanvas"></canvas>
                                 </div>
                             </div>
