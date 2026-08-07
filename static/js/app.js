@@ -61,10 +61,7 @@ Chart.register(runwayOverlayPlugin);
 document.addEventListener("DOMContentLoaded", () => {
     initWindRoseChart();
     startRealtimeClock();
-    
-    // Muat data awal
     fetchAWSData();
-    loadWiccBmkgBulletin(); // Ambil format buletin khusus WICC
 
     const forecastTabBtn = document.getElementById("forecast-tab");
     if (forecastTabBtn) {
@@ -95,10 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const refreshBtn = document.getElementById("manualRefreshBtn");
     if (refreshBtn) {
-        refreshBtn.addEventListener("click", () => {
-            fetchAWSData();
-            loadWiccBmkgBulletin();
-        });
+        refreshBtn.addEventListener("click", () => fetchAWSData());
     }
 
     const exportBtn = document.getElementById("exportHistoryBtn");
@@ -131,48 +125,8 @@ document.addEventListener("DOMContentLoaded", () => {
         drawDaylightCurve();
         drawCloudProfileCanvas(1800);
     });
-    
     startAutoRefresh();
 });
-
-// =========================================================================
-// GENERATOR BULETIN RESMI BMKG KHUSUS WICC (DARI DATA TEMAN)
-// =========================================================================
-function loadWiccBmkgBulletin() {
-    const cleanIcao = "WICC";
-    const nowUTC = new Date();
-    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
-    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const hourNum = Number(hour);
-    const nextDay = String(Number(day) + 1).padStart(2, '0');
-
-    const tafHeader = `FTID40 ${cleanIcao} ${day}${hour}00`;
-
-    // Profil cuaca spesifik untuk WICC (Bandung - Husein Sastranegara)[cite: 1]
-    let p = { wind: "09007KT", vis: "4000", wx: "HZ", cloud: "FEW018", temp: "28/25", qnh: "Q1018" };
-
-    let h1 = hourNum;
-    let h2 = hourNum - 1;
-    let d1 = day, d2 = day;
-
-    if (h2 < 0) { h2 += 24; d2 = String(Number(day) - 1).padStart(2, '0'); }
-
-    let h1Str = String(h1).padStart(2, '0') + "00Z";
-    let h2Str = String(h2).padStart(2, '0') + "30Z";
-
-    let metar1 = `SAID32 ${cleanIcao} ${d1}${String(h1).padStart(2, '0')}00\nMETAR ${cleanIcao} ${d1}${h1Str} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} ${p.temp} ${p.qnh} NOSIG=`;
-    let metar2 = `SAID32 ${cleanIcao} ${d2}${String(h2).padStart(2, '0')}30\nMETAR ${cleanIcao} ${d2}${h2Str} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} ${p.temp} ${p.qnh} NOSIG=`;
-
-    const tafString = `${tafHeader}\nTAF ${cleanIcao} ${day}${hour}00Z ${day}${hour}/${nextDay}${hour} ${p.wind} ${p.vis} ${p.wx ? p.wx + ' ' : ''}${p.cloud} NOSIG=`;
-
-    // Gabungkan 2 laporan METAR terakhir menjadi satu blok teks rapi
-    const combinedMetar = `${metar1}\n\n${metar2}`;
-
-    // Update langsung ke elemen HTML dashboard
-    safeSetText("raw-metar-text", combinedMetar);
-    safeSetText("raw-taf-text", tafString);
-}
-// =========================================================================
 
 function initWindRoseChart() {
     const canvas = document.getElementById("windRoseChart");
@@ -307,7 +261,6 @@ function drawDaylightCurve() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Garis horizon
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.25)';
     ctx.lineWidth = 1.5;
@@ -320,7 +273,6 @@ function drawDaylightCurve() {
     const sunsetX = w * 0.75;
     const curveRadiusY = 40;
 
-    // Garis putus-putus vertikal ke bawah
     const markers = [{ x: sunriseX }, { x: middayX }, { x: sunsetX }];
     ctx.save();
     ctx.setLineDash([4, 4]);
@@ -334,7 +286,6 @@ function drawDaylightCurve() {
     });
     ctx.restore();
 
-    // RENDER TEKS WAKTU TEPAT DI BAWAH GARIS PUTUS-PUTUS
     ctx.textAlign = 'center';
 
     ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
@@ -374,7 +325,6 @@ function drawDaylightCurve() {
     ctx.fillStyle = '#64748b';
     ctx.fillText(durationText, startX + textW1, horizonY + 74);
 
-    // Posisi matahari (sun icon) di kurva
     const now = new Date();
     const currentHours = now.getHours();
     const currentMinutes = now.getMinutes();
@@ -391,7 +341,6 @@ function drawDaylightCurve() {
     const sunRad = sunProgress * Math.PI;
     const sunY = horizonY - Math.sin(sunRad) * curveRadiusY;
 
-    // Area bayangan kurva
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sunriseX, horizonY);
@@ -407,7 +356,6 @@ function drawDaylightCurve() {
     ctx.fill();
     ctx.restore();
 
-    // Kurva biru matahari
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -433,7 +381,6 @@ function drawDaylightCurve() {
     }
     ctx.stroke();
 
-    // Gambar ikon matahari
     ctx.beginPath();
     ctx.arc(sunX, sunY, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#f59e0b';
@@ -483,10 +430,7 @@ function updateClockDisplay() {
 
 function startAutoRefresh() {
     stopAutoRefresh();
-    autoRefreshTimer = setInterval(() => {
-        fetchAWSData();
-        loadWiccBmkgBulletin();
-    }, POLLING_INTERVAL);
+    autoRefreshTimer = setInterval(fetchAWSData, POLLING_INTERVAL);
 }
 
 function stopAutoRefresh() {
@@ -505,7 +449,7 @@ async function fetchAWSData() {
         renderDashboard(data);
 
     } catch (err) {
-        console.error("Gagal memuat data AWS Backend:", err);
+        console.error("Gagal memuat data Open-Meteo AWS:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
     }
@@ -530,6 +474,59 @@ function degToCompassShort(deg) {
     return sectors[Math.floor(((parseFloat(deg) + 22.5) % 360) / 45)];
 }
 
+// GENERATOR FORMAT METAR & TAF BERDASARKAN SOP BMKG/ICAO MENGGUNAKAN DATA OPEN-METEO
+function generateBmkgMetarTafFromOpenMeteo(t, w, c) {
+    const nowUTC = new Date();
+    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
+    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
+    const hourNum = Number(hour);
+    const nextDay = String(Number(day) + 1).padStart(2, '0');
+
+    // Ambil parameter dari Open-Meteo
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "090";
+    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "07";
+    const windStr = `${windDir}${windSpd}KT`;
+
+    const visKm = parseFloat(t.visibility_km || 10);
+    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
+
+    const tempVal = Math.round(t.temp_2m || 30);
+    const dewVal = Math.round(t.dew_point || 23);
+    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
+
+    const qnhVal = Math.round(t.msl_pressure || 1013);
+    const qnhStr = `Q${qnhVal}`;
+
+    // Penentuan cuaca & awan berdasarkan data riil Open-Meteo
+    let wxStr = "";
+    const rh = t.rh_2m || 70;
+    if (visKm < 5.0 && rh > 80) wxStr = "HZ ";
+    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
+
+    const cloudOcta = c.cloud_cover_octa || "SCT";
+    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
+    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
+
+    // Waktu observasi terakhir (jam sekarang dan 1 jam lalu)
+    let h1 = hourNum;
+    let h2 = hourNum - 1;
+    let d1 = day, d2 = day;
+    if (h2 < 0) { h2 += 24; d2 = String(Number(day) - 1).padStart(2, '0'); }
+
+    let h1Str = String(h1).padStart(2, '0') + "00Z";
+    let h2Str = String(h2).padStart(2, '0') + "30Z";
+
+    let metar1 = `SAID32 WICC ${d1}${String(h1).padStart(2, '0')}00\nMETAR WICC ${d1}${h1Str} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+    let metar2 = `SAID32 WICC ${d2}${String(h2).padStart(2, '0')}30\nMETAR WICC ${d2}${h2Str} ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+
+    const combinedMetar = `${metar1}\n\n${metar2}`;
+    
+    const tafHeader = `FTID40 WICC ${day}${hour}00`;
+    const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${day}${hour}/${nextDay}${hour} ${windStr} ${visMeters} ${wxStr}${cloudCode} NOSIG=`;
+
+    return { metar: combinedMetar, taf: tafString };
+}
+
 function renderDashboard(data) {
     if (!data) return;
 
@@ -538,6 +535,11 @@ function renderDashboard(data) {
     const c = data.clouds_precipitation || {};
     const r = data.runways || {};
     const dl = data.daylight || {};
+
+    // BUAT FORMAT METAR & TAF SECARA DINAMIS BERDASARKAN OPEN-METEO
+    const bmkgData = generateBmkgMetarTafFromOpenMeteo(t, w, c);
+    safeSetText("raw-metar-text", bmkgData.metar);
+    safeSetText("raw-taf-text", bmkgData.taf);
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
@@ -548,7 +550,6 @@ function renderDashboard(data) {
     const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
     safeSetText("m-precip", precipVal, "mm");
 
-    // DINAMIS UPDATE CLOUD COVER & BASE ALTITUDE
     const cloudOcta = c.cloud_cover_octa || "SCT";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
