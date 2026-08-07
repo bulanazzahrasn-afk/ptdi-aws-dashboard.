@@ -724,14 +724,13 @@ function render3DaysForecast(daily) {
 
     container.innerHTML = "";
     
-    // Loop dari indeks 1 sampai 3 (Besok, Tanggal 9 Agu, dan Tanggal 10 Agu)
+    // Pastikan melakukan perulangan untuk 3 hari ke depan (Indeks 1, 2, dan 3)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         
-        // Penamaan label hari secara dinamis
         let dayLabel = "Besok";
-        if (i === 2) dayLabel = "9 Agu 2026";
-        else if (i === 3) dayLabel = "10 Agu 2026";
+        if (i === 2) dayLabel = "Lusa";
+        else if (i === 3) dayLabel = "Hari Berikutnya";
 
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -742,7 +741,7 @@ function render3DaysForecast(daily) {
         const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
 
         const col = document.createElement("div");
-        col.className = "col-md-4";
+        col.className = "col-md-4"; // Menggunakan col-md-4 agar berjajar 3 kolom berdampingan
         col.innerHTML = `
             <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
