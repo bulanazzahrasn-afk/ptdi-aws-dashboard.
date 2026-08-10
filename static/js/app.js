@@ -663,36 +663,29 @@ function renderHourlyForecast24h(minData) {
 
 function render3DaysForecast(daily) {
     const container = document.getElementById("daily-forecast-cards-3days");
-    if (!container) return;
+    if (!container || !daily || !daily.time) return;
 
     container.innerHTML = "";
     
-    // Ambil data array dari API Open-Meteo jika tersedia, atau gunakan nilai cadangan yang aman
-    const maxTemps = daily && daily.temperature_2m_max ? daily.temperature_2m_max : [];
-    const minTemps = daily && daily.temperature_2m_min ? daily.temperature_2m_min : [];
-    const windWinds = daily && daily.wind_speed_10m_max ? daily.wind_speed_10m_max : [];
-    const precips = daily && daily.precipitation_sum ? daily.precipitation_sum : [];
-
-    // Loop untuk 3 hari ke depan secara dinamis (H+1, H+2, H+3 dari hari ini)
-    for (let i = 1; i <= 3; i++) {
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + i);
-
-        // Label dinamis: Hari pertama "Besok", hari berikutnya menggunakan nama hari atau tanggal asli
+    // Loop untuk 3 hari ke depan (Indeks 1 = Besok/11 Agu, Indeks 2 = 12 Agu, Indeks 3 = 13 Agu)
+    for (let i = 1; i <= 3 && i < daily.time.length; i++) {
+        const targetDate = new Date(daily.time[i]);
+        
         let dayLabel = "Besok";
         if (i === 2) dayLabel = targetDate.toLocaleDateString('id-ID', { weekday: 'long' });
         else if (i === 3) dayLabel = targetDate.toLocaleDateString('id-ID', { weekday: 'long' });
 
         const formattedDate = targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
-        const tempMax = maxTemps[i] !== undefined ? `${maxTemps[i]}°C` : '31.5°C';
-        const tempMin = minTemps[i] !== undefined ? `${minTemps[i]}°C` : '19.0°C';
-        const windMaxKmh = windWinds[i] !== undefined ? windWinds[i] : 6.7;
+        // Mengambil data real-time spesifik dari API Open-Meteo berdasarkan indeks hari ke-i
+        const tempMax = daily.temperature_2m_max[i] !== undefined ? `${daily.temperature_2m_max[i]}°C` : '--';
+        const tempMin = daily.temperature_2m_min[i] !== undefined ? `${daily.temperature_2m_min[i]}°C` : '--';
+        const windMaxKmh = daily.wind_speed_10m_max[i] || 0;
         const windMaxKt = (windMaxKmh * 0.539957).toFixed(1);
-        const precipSum = precips[i] !== undefined ? precips[i] : 0;
+        const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
 
         const col = document.createElement("div");
-        col.className = "col-md-4"; // Membagi card menjadi 3 kolom ukuran sedang secara horizontal
+        col.className = "col-md-4"; // Ukuran sedang (3 kolom sejajar secara horizontal)
         col.innerHTML = `
             <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
