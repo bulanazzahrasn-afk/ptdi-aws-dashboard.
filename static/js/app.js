@@ -249,11 +249,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 150;
+    canvas.height = 300;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 25; 
+    const horizonY = 150; 
 
     ctx.clearRect(0, 0, w, h);
 
