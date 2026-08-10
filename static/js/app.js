@@ -627,11 +627,20 @@ function renderHourlyForecast24h(minData) {
     const windSpeeds = minData.wind_speed_10m || [];
     const windDirs = minData.wind_direction_10m || [];
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
+    
+    // Dapatkan jam dan menit saat ini dalam format string "HH:MM" untuk perbandingan
+    const currentTimeStr = now.toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
+    }).replace(/\./g, ':');
 
     times.forEach((isoStr, i) => {
         if (!isoStr || !isoStr.startsWith(todayISO)) return;
 
         const timePartWIB = isoStr.split("T")[1].substring(0, 5);
+
+        // FILTER: Lewati / abaikan waktu yang sudah berlalu dari jam saat ini
+        if (timePartWIB < currentTimeStr) return;
+
         const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : '--';
         const windSpdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 0;
         const windDirDeg = windDirs[i] !== undefined ? Math.round(windDirs[i]) : 0;
