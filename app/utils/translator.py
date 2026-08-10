@@ -69,26 +69,30 @@ def translate_aws_payload(raw: dict) -> dict:
     vis_code = "9999"
     vis_km_str = "10 km"
     weather_qualifier = ""
+    weather_desc = "Cerah Berawan (Aman VFR)"
     spread = temp - dewp
 
     if precip > 0.5:
         vis_code = "4000"
         vis_km_str = "4 km"
         weather_qualifier = "RA "
+        weather_desc = "Hujan (Rain / RA)"
     elif rh > 90 and spread <= 2:
         vis_code = "2000"
         vis_km_str = "2 km"
         weather_qualifier = "FG "
+        weather_desc = "Kabut (Fog / FG)"
     elif rh > 75 or (spread >= 5 and temp >= 28):
         vis_code = "4000"
         vis_km_str = "4 km"
         weather_qualifier = "HZ "
+        weather_desc = "Udara Kabur (Haze / HZ)"
     elif rh > 65:
         vis_code = "7000"
         vis_km_str = "7 km"
         weather_qualifier = ""
+        weather_desc = "Berawan (Cloudy)"
 
-    # PENENTUAN OKTA AWAN LENGKAP DENGAN KETERANGAN ANGKA OKTA
     if cloud_cover_pct <= 10:
         cloud_octa = "0/8 (SKC)"
         metar_cloud = "SKC"
@@ -138,7 +142,8 @@ def translate_aws_payload(raw: dict) -> dict:
             "surface_pressure": surf_press,
             "heat_index": heat_index,
             "kp_index": "1 (0-9)",
-            "visibility_km": vis_km_str
+            "visibility_km": vis_km_str,
+            "weather_desc": weather_desc
         },
         "runways": {
             "id": "11/29",
@@ -162,3 +167,4 @@ def translate_aws_payload(raw: dict) -> dict:
         "minutely_15": min15,
         "raw_daily_payload": daily_ext
     }
+```[cite: 1]
