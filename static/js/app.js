@@ -488,6 +488,7 @@ function renderDashboard(data) {
     const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
     safeSetText("m-precip", precipVal, "mm");
     safeSetText("fc-precip-card", precipVal, "mm");
+    safeSetText("fc-rh-card", t.rh_2m, "%");
 
     const cloudOcta = (c.cloud_cover_octa || "SCT").substring(0, 3);
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
@@ -511,23 +512,19 @@ function renderDashboard(data) {
     const weatherDescEl = document.getElementById("fc-weather-desc");
     const weatherIconEl = document.getElementById("fc-weather-icon");
 
-    let desc = "Cerah Berawan (Aman VFR)";
+    let desc = t.weather_desc || "Cerah Berawan (Aman VFR)";
     let iconClass = "bi-cloud-sun-fill text-warning display-4";
 
     const visNum = parseFloat(visStr);
     const rhVal = t.rh_2m || 60;
 
     if (precipVal > 0.5) {
-        desc = "Hujan / Presipitasi Terdeteksi";
         iconClass = "bi-cloud-rain-fill text-primary display-4";
     } else if (visNum < 5.0 && rhVal > 75) {
-        desc = "Udara Kabur / Haze (Moderate Visibility)";
         iconClass = "bi-cloud-haze2-fill text-secondary display-4";
     } else if (visNum < 3.0) {
-        desc = "Waspada: Jarak Pandang Rendah (Fog)";
         iconClass = "bi-cloud-fog2-fill text-info display-4";
     } else if (cloudOcta === "BKN" || cloudOcta === "OVC") {
-        desc = "Berawan Tebal (Cloudy)";
         iconClass = "bi-clouds-fill text-muted display-4";
     }
 
@@ -640,7 +637,6 @@ function renderHourlyForecast24h(minData) {
 
         const timePartWIB = isoStr.split("T")[1].substring(0, 5);
 
-        // Filter: Sembunyikan jam yang sudah lewat dari waktu saat ini
         if (timePartWIB < currentTimeStr) return;
 
         const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : '--';
@@ -650,24 +646,23 @@ function renderHourlyForecast24h(minData) {
         const rhVal = humidities[i] !== undefined ? humidities[i] : 60;
         const compass = degToCompassShort(windDirDeg);
 
-        // Penentuan Ikon & Keterangan Cuaca Dinamis Berdasarkan Parameter Real-time
-        let iconClass = "bi-cloud-sun-fill text-warning"; // Default Cerah Berawan
+        let iconClass = "bi-cloud-sun-fill text-warning";
         let weatherTitle = "Cerah Berawan";
 
         if (precipVal > 0.5) {
-            iconClass = "bi-cloud-rain-fill text-primary"; // Hujan
+            iconClass = "bi-cloud-rain-fill text-primary";
             weatherTitle = "Hujan";
         } else if (rhVal > 85) {
-            iconClass = "bi-cloud-fog2-fill text-info"; // Kabur / Fog
+            iconClass = "bi-cloud-fog2-fill text-info";
             weatherTitle = "Kabut (Fog)";
         } else if (rhVal > 75) {
-            iconClass = "bi-cloud-haze2-fill text-secondary"; // Udara Kabur / Haze
+            iconClass = "bi-cloud-haze2-fill text-secondary";
             weatherTitle = "Berasap / Haze";
         } else if (tempVal >= 30 && rhVal < 60) {
-            iconClass = "bi-sun-fill text-warning"; // Cerah Panas
+            iconClass = "bi-sun-fill text-warning";
             weatherTitle = "Cerah";
         } else {
-            iconClass = "bi-clouds-fill text-muted"; // Berawan Tebal
+            iconClass = "bi-clouds-fill text-muted";
             weatherTitle = "Berawan";
         }
 
@@ -699,7 +694,6 @@ function render3DaysForecast(daily) {
     const windWinds = daily && daily.wind_speed_10m_max ? daily.wind_speed_10m_max : [];
     const precips = daily && daily.precipitation_sum ? daily.precipitation_sum : [];
 
-    // Basis data awal dari API (atau default jika kosong)
     const baseMax = maxTemps[1] !== undefined ? maxTemps[1] : 31.7;
     const baseMin = minTemps[1] !== undefined ? minTemps[1] : 19.1;
     const baseWind = windWinds[1] !== undefined ? windWinds[1] : 12.4;
@@ -715,7 +709,6 @@ function render3DaysForecast(daily) {
 
         const formattedDate = targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
-        // Jika data API asli untuk hari ke-i tersedia, gunakan itu. Jika tidak, berikan variasi realistis harian
         let valMax = maxTemps[i] !== undefined ? maxTemps[i] : Number((baseMax + (i * 0.3) - 0.5).toFixed(1));
         let valMin = minTemps[i] !== undefined ? minTemps[i] : Number((baseMin - (i * 0.2)).toFixed(1));
         let valWindKmh = windWinds[i] !== undefined ? windWinds[i] : Number((baseWind + (i * 0.8)).toFixed(1));
@@ -727,7 +720,7 @@ function render3DaysForecast(daily) {
         const precipSum = valPrecip;
 
         const col = document.createElement("div");
-        col.className = "col-md-4"; // Membagi card menjadi 3 kolom ukuran sedang secara horizontal
+        col.className = "col-md-4";
         col.innerHTML = `
             <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -928,7 +921,8 @@ function renderDaily00to24History(payload, fullData) {
         const minute = timePartWIB.split(":")[1];
         if ((minute === "00" || minute === "30") && datePart === todayISO && timePartWIB <= currentHHMM) {
             const spdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 6;
-            const dirDeg = windDirs[i] !== undefined ? String(Math.round(windDirs[i])).padStart(3, '0') : "180";
+            const dirDeg = windDirs[i] !== undefined ? Math.round(windDirs[i]) : 180;
+            const dirDegStr = String(dirDeg).padStart(3, '0');
             const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : 31;
             const rhVal = dews[i] !== undefined ? Math.round(dews[i]) : 50;
             const precipVal = precips[i] !== undefined ? precips[i] : 0.0;
@@ -960,7 +954,7 @@ function renderDaily00to24History(payload, fullData) {
                 heat: `${heatVal} °C`,
                 kp: kpVal,
                 visibility: visVal,
-                wind: `<i class="bi bi-arrow-down-right text-primary me-1"></i>${dirDeg}° &nbsp; ${spdKt} kt`
+                wind: `<i class="bi bi-arrow-up-circle text-primary me-1" style="display:inline-block; transform: rotate(${dirDeg}deg);"></i>${dirDegStr}° &nbsp; ${spdKt} kt`
             });
         }
     });
