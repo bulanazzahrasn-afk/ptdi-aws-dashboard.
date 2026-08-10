@@ -626,6 +626,9 @@ function renderHourlyForecast24h(minData) {
     const temps = minData.temperature_2m || [];
     const windSpeeds = minData.wind_speed_10m || [];
     const windDirs = minData.wind_direction_10m || [];
+    const precips = minData.precipitation || [];
+    const humidities = minData.relative_humidity_2m || [];
+    
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
     
     const currentTimeStr = now.toLocaleTimeString('id-ID', { 
@@ -637,19 +640,43 @@ function renderHourlyForecast24h(minData) {
 
         const timePartWIB = isoStr.split("T")[1].substring(0, 5);
 
+        // Filter: Sembunyikan jam yang sudah lewat dari waktu saat ini
         if (timePartWIB < currentTimeStr) return;
 
         const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : '--';
         const windSpdKt = windSpeeds[i] !== undefined ? Math.round(windSpeeds[i] * 0.539957) : 0;
         const windDirDeg = windDirs[i] !== undefined ? Math.round(windDirs[i]) : 0;
+        const precipVal = precips[i] !== undefined ? precips[i] : 0;
+        const rhVal = humidities[i] !== undefined ? humidities[i] : 60;
         const compass = degToCompassShort(windDirDeg);
+
+        // Penentuan Ikon & Keterangan Cuaca Dinamis Berdasarkan Parameter Real-time
+        let iconClass = "bi-cloud-sun-fill text-warning"; // Default Cerah Berawan
+        let weatherTitle = "Cerah Berawan";
+
+        if (precipVal > 0.5) {
+            iconClass = "bi-cloud-rain-fill text-primary"; // Hujan
+            weatherTitle = "Hujan";
+        } else if (rhVal > 85) {
+            iconClass = "bi-cloud-fog2-fill text-info"; // Kabur / Fog
+            weatherTitle = "Kabut (Fog)";
+        } else if (rhVal > 75) {
+            iconClass = "bi-cloud-haze2-fill text-secondary"; // Udara Kabur / Haze
+            weatherTitle = "Berasap / Haze";
+        } else if (tempVal >= 30 && rhVal < 60) {
+            iconClass = "bi-sun-fill text-warning"; // Cerah Panas
+            weatherTitle = "Cerah";
+        } else {
+            iconClass = "bi-clouds-fill text-muted"; // Berawan Tebal
+            weatherTitle = "Berawan";
+        }
 
         const card = document.createElement("div");
         card.className = "p-3 bg-light border rounded-3 text-center flex-shrink-0 shadow-sm";
         card.style.minWidth = "110px";
         card.innerHTML = `
             <div class="small fw-bold font-mono text-secondary mb-1">${timePartWIB}</div>
-            <div class="my-1"><i class="bi bi-cloud-haze2-fill text-secondary fs-4"></i></div>
+            <div class="my-1" title="${weatherTitle}"><i class="bi ${iconClass} fs-4"></i></div>
             <div class="fw-bold font-mono text-dark fs-6">${tempVal}°C</div>
             <div class="extra-small text-muted font-mono mt-1">${windSpdKt} kt</div>
             <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
