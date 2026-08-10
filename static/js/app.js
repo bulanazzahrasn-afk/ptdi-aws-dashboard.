@@ -669,12 +669,14 @@ function render3DaysForecast(daily) {
 
     container.innerHTML = "";
     
+    // Looping dari indeks 1 sampai 3 (atau lebih jika data API tersedia) untuk tanggal 11, 12, 13 Agu 2026
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         
+        // Penamaan label hari secara dinamis
         let dayLabel = "Besok";
-        if (i === 2) dayLabel = "9 Agu 2026";
-        else if (i === 3) dayLabel = "10 Agu 2026";
+        if (i === 2) dayLabel = "Lusa";
+        else if (i === 3) dayLabel = "3 Hari Kedepan";
 
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
