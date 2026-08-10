@@ -558,9 +558,27 @@ function renderDashboard(data) {
         currentDaylightData.duration = "(0:00h)";
     }
 
-    safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
-    safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
-    safeSetText("rwy-pct-val", `${r.crosswind_pct} %`);
+    // --- KALKULASI TERPISAH RUNWAY 11 DAN RUNWAY 29 ---
+    const windSpeedKt = w.surface ? w.surface.speed_kt : 0;
+    const windDirDeg = w.surface ? w.surface.dir_deg : 180;
+
+    const rad11 = (windDirDeg - 110) * (Math.PI / 180);
+    const cross11 = Math.abs(windSpeedKt * Math.sin(rad11));
+    const head11 = windSpeedKt * Math.cos(rad11);
+    const pct11 = windSpeedKt > 0 ? Math.round((cross11 / windSpeedKt) * 100) : 0;
+
+    const rad29 = (windDirDeg - 290) * (Math.PI / 180);
+    const cross29 = Math.abs(windSpeedKt * Math.sin(rad29));
+    const head29 = windSpeedKt * Math.cos(rad29);
+    const pct29 = windSpeedKt > 0 ? Math.round((cross29 / windSpeedKt) * 100) : 0;
+
+    safeSetText("rwy11-cross-val", cross11.toFixed(1), "kt");
+    safeSetText("rwy11-head-val", head11.toFixed(1), "kt");
+    safeSetText("rwy11-pct-val", pct11, "%");
+
+    safeSetText("rwy29-cross-val", cross29.toFixed(1), "kt");
+    safeSetText("rwy29-head-val", head29.toFixed(1), "kt");
+    safeSetText("rwy29-pct-val", pct29, "%");
 
     const barRh = document.getElementById("bar-rh");
     if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
@@ -815,7 +833,6 @@ function calculatePopUpCrosswind() {
     const rwyHeading = parseFloat(document.getElementById("calc-rwy-heading").value) || 110;
     let windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
     
-    // Validasi batas sudut kompas 0 - 360 derajat
     if (windDir < 0) windDir = 0;
     if (windDir > 360) windDir = 360;
     document.getElementById("calc-wind-dir").value = windDir;
