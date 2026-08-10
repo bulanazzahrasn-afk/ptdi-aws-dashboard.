@@ -667,13 +667,13 @@ function render3DaysForecast(daily) {
 
     container.innerHTML = "";
     
-    // Looping untuk 3 hari ke depan (Indeks 1, 2, dan 3)
+    // Looping persis 3 indeks ke depan (Besok, Lusa, dan Hari Berikutnya / tgl 11, 12, 13)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         
         let dayLabel = "Besok";
-        if (i === 2) dayLabel = "Lusa";
-        else if (i === 3) dayLabel = "3 Hari Kedepan";
+        if (i === 2) dayLabel = "12 Agu 2026";
+        else if (i === 3) dayLabel = "13 Agu 2026";
 
         const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -684,7 +684,7 @@ function render3DaysForecast(daily) {
         const precipSum = daily.precipitation_sum[i] !== undefined ? daily.precipitation_sum[i] : 0;
 
         const col = document.createElement("div");
-        col.className = "col-md-4"; // Ukuran sedang (3 card berdampingan dalam satu baris)
+        col.className = "col-md-4"; // Membagi baris menjadi 3 kolom ukuran sedang (seperti pada gambar coretan Anda)
         col.innerHTML = `
             <div class="p-3 bg-light rounded-4 border h-100 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-2">
