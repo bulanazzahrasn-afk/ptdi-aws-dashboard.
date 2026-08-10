@@ -480,63 +480,43 @@ function renderDashboard(data) {
     const nowUTC = new Date();
     const day = String(nowUTC.getUTCDate()).padStart(2, '0');
     const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const minute = nowUTC.getUTCMinutes();
     
-    let currentMinSlot = minute >= 30 ? "30" : "00";
-    let prevMinSlot = minute >= 30 ? "00" : "30";
-    let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
-    let prevDay = day;
-
-    if (prevHourNum < 0) {
-        prevHourNum += 24;
-        prevDay = String(Number(day) - 1).padStart(2, '0');
-    }
-    let prevHourStr = String(prevHourNum).padStart(2, '0');
-
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "120";
-    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "05";
-    const windStr = `${windDir}${windSpd}KT`;
-
+    // --- STANDAR FORMAT ICAO / BMKG ---
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "000";
+    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "00";
+    const windStr = w.surface && w.surface.speed_kt > 0 ? `${windDir}${windSpd}KT` : "00000KT";
+    
     const visKm = parseFloat(t.visibility_km || 10);
-    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
+    const visStr = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
 
     const tempVal = Math.round(t.temp_2m || 26);
     const dewVal = Math.round(t.dew_point || 23);
-    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
+    const tempSign = tempVal >= 0 ? "" : "M";
+    const dewSign = dewVal >= 0 ? "" : "M";
+    const tempDewStr = `${tempSign}${String(Math.abs(tempVal)).padStart(2, '0')}/${dewSign}${String(Math.abs(dewVal)).padStart(2, '0')}`;
 
-    const qnhVal = Math.round(t.msl_pressure || 1018);
+    const qnhVal = Math.round(t.msl_pressure || 1013);
     const qnhStr = `Q${qnhVal}`;
 
     let wxStr = "";
-    if (visKm < 6.0) wxStr = "HZ ";
-    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
+    if (c.precipitation_mm > 0.5) wxStr = "RA ";
+    else if (visKm < 5.0) wxStr = "HZ ";
 
-    // Standar ICAO & BMKG: Okta Tutupan Awan + Ketinggian (Tanpa Pecahan)
-    const cloudOcta = c.cloud_cover_octa || "SCT";
+    const cloudOcta = (c.cloud_cover_octa || "SCT").substring(0, 3);
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
-    let currentMetarTime = `${hour}${currentMinSlot}`;
-    let prevMetarTime = `${prevHourStr}${prevMinSlot}`;
+    // METAR ICAO Standard String
+    const metarString = `METAR WICC ${day}${hour}00Z ${windStr} ${visStr} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
 
-    // FORMAT METAR BERSIH SESUAI STANDAR ICAO
-    let metarLatest = `SAID40 WICC ${day}${currentMetarTime}\nMETAR WICC ${day}${currentMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let metarPrev = `SAID40 WICC ${prevDay}${prevMetarTime}\nMETAR WICC ${prevDay}${prevMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let combinedMetar = `${metarLatest}\n\n${metarPrev}`;
+    // TAF ICAO Standard String
+    const nextDayNum = String(Number(day) + 1).padStart(2, '0');
+    const tafPeriod = `${day}${hour}/${nextDayNum}${hour}`;
+    const tafString = `TAF WICC ${day}${hour}00Z ${tafPeriod} ${windStr} ${visStr} ${wxStr}${cloudCode} BECMG ${day}${String(Number(hour)+2).padStart(2,'0')}/${day}${String(Number(hour)+4).padStart(2,'0')} 13010KT 8000 NSW=`;
 
-    // FORMAT TAF BERSIH SESUAI STANDAR ICAO
-    let nextDayNum = String(Number(day) + 1).padStart(2, '0');
-    let tafPeriod = `${day}${hour}/${nextDayNum}${hour}`;
-    let changeHour1 = String((Number(hour) + 2) % 24).padStart(2, '0');
-    let changeHour2 = String((Number(hour) + 4) % 24).padStart(2, '0');
-    let changeHour3 = String((Number(hour) + 10) % 24).padStart(2, '0');
-    let changeHour4 = String((Number(hour) + 12) % 24).padStart(2, '0');
-
-    let tafHeader = `FTID40 WICC ${day}${hour}00`;
-    let tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPeriod} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG ${day}${changeHour1}/${day}${changeHour2} 13012KT 8000 FEW018 BECMG ${day}${changeHour3}/${day}${changeHour4} 29007KT 6000=`;
-
-    safeSetText("raw-metar-text", combinedMetar);
+    safeSetText("raw-metar-text", metarString);
     safeSetText("raw-taf-text", tafString);
+    // ------------------------------------
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
@@ -562,8 +542,8 @@ function renderDashboard(data) {
     safeSetText("current-forecast-date-label", dateLabelStr);
     safeSetText("fc-temp", t.temp_2m, "°C");
     
-    const visStr = t.visibility_km || "10 km";
-    safeSetText("fc-vis", visStr);
+    const visStrFc = t.visibility_km || "10 km";
+    safeSetText("fc-vis", visStrFc);
     
     const weatherDescEl = document.getElementById("fc-weather-desc");
     const weatherIconEl = document.getElementById("fc-weather-icon");
@@ -571,7 +551,7 @@ function renderDashboard(data) {
     let desc = "Cerah Berawan (Aman VFR)";
     let iconClass = "bi-cloud-sun-fill text-warning display-4";
 
-    const visNum = parseFloat(visStr);
+    const visNum = parseFloat(visStrFc);
     const rhVal = t.rh_2m || 60;
 
     if (precipVal > 0.5) {
@@ -595,7 +575,7 @@ function renderDashboard(data) {
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
     safeSetText("fc-press", t.msl_pressure, "hPa");
 
-    evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStr));
+    evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStrFc));
 
     currentDaylightData.sunrise = dl.sunrise || "06:00";
     currentDaylightData.midday = dl.midday || "11:58";
