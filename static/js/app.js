@@ -478,72 +478,6 @@ function renderDashboard(data) {
     const dl = data.daylight || {};
 
     const nowUTC = new Date();
-    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
-    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const minute = nowUTC.getUTCMinutes();
-    
-    let currentMinSlot = minute >= 30 ? "30" : "00";
-    let prevMinSlot = minute >= 30 ? "00" : "30";
-    let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
-    let prevDay = day;
-
-    if (prevHourNum < 0) {
-        prevHourNum += 24;
-        prevDay = String(Number(day) - 1).padStart(2, '0');
-    }
-    let prevHourStr = String(prevHourNum).padStart(2, '0');
-
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "168";
-    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "03";
-    const windStr = `${windDir}${windSpd}KT`;
-
-    const visKm = parseFloat(t.visibility_km || 10);
-    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
-
-    const tempVal = Math.round(t.temp_2m || 24);
-    const dewVal = Math.round(t.dew_point || 14);
-    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
-
-    const qnhVal = Math.round(t.msl_pressure || 1016);
-    const qnhStr = `Q${qnhVal}`;
-
-    let wxStr = "";
-    const rh = t.rh_2m || 70;
-    if (visKm < 6.0) wxStr = "HZ ";
-    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
-
-    // Standar ICAO: Tutupan Awan Okta (FEW, SCT, BKN, OVC) + Ketinggian (ribuan kaki)
-    const cloudOcta = c.cloud_cover_octa || "FEW";
-    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
-
-    let currentMetarTime = `${hour}${currentMinSlot}`;
-    let prevMetarTime = `${prevHourStr}${prevMinSlot}`;
-
-    let metarLatest = `SAID40 WICC ${day}${currentMetarTime}\nMETAR WICC ${day}${currentMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let metarPrev = `SAID40 WICC ${prevDay}${prevMetarTime}\nMETAR WICC ${prevDay}${prevMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-
-    const combinedMetar = `${metarLatest}\n\n${metarPrev}`;
-    
-    let tafStartHour = Number(hour);
-    let tafEndHour = tafStartHour + 24;
-    let tafEndDay = day;
-    if (tafEndHour >= 24) {
-        tafEndHour -= 24;
-        tafEndDay = String(Number(day) + 1).padStart(2, '0');
-    }
-    let tafPeriod = `${day}${String(tafStartHour).padStart(2, '0')}/${tafEndDay}${String(tafEndHour).padStart(2, '0')}`;
-
-    let nextChangeHour1 = String((tafStartHour + 2) % 24).padStart(2, '0');
-    let nextChangeHour2 = String((tafStartHour + 4) % 24).padStart(2, '0');
-    let nextChangeHour3 = String((tafStartHour + 7) % 24).padStart(2, '0');
-    let nextChangeHour4 = String((tafStartHour + 9) % 24).padStart(2, '0');
-
-    const tafHeader = `FTID40 WICC ${day}${hour}00`;
-    const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPeriod} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG ${day}${nextChangeHour1}/${day}${nextChangeHour2} 30008KT BECMG ${day}${nextChangeHour3}/${day}${nextChangeHour4} 09006KT 5000 HZ SCT017=`;
-
-    safeSetText("raw-metar-text", combinedMetar);
-    safeSetText("raw-taf-text", tafString);
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
@@ -555,6 +489,8 @@ function renderDashboard(data) {
     safeSetText("m-precip", precipVal, "mm");
     safeSetText("fc-precip-card", precipVal, "mm");
 
+    const cloudOcta = c.cloud_cover_octa || "FEW";
+    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
 
     safeSetText("m-cloud-octa", cloudOcta);
@@ -632,7 +568,7 @@ function renderDashboard(data) {
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
-        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-arrow", arrowId: "w400-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
         { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
     ];
 
@@ -874,8 +810,6 @@ function renderFlightPrepTable(data) {
     const c = data.clouds_precipitation || {};
 
     const flightParams = [
-        { name: "Raw METAR WICC", val: document.getElementById("raw-metar-text") ? document.getElementById("raw-metar-text").textContent : '--', unit: "ICAO Standard", desc: "Observasi Mentah Cuaca Penerbangan WICC" },
-        { name: "Raw TAF WICC", val: document.getElementById("raw-taf-text") ? document.getElementById("raw-taf-text").textContent : '--', unit: "ICAO Standard", desc: "Prakiraan Mentah Aerodrom WICC" },
         { name: "Altimeter Setting (QNH)", val: t.msl_pressure, unit: "hPa", desc: "Tekanan Muka Laut Standar Penerbangan" },
         { name: "Station Pressure (QFE)", val: t.surface_pressure, unit: "hPa", desc: "Tekanan Muka Stasiun Aerodrom" },
         { name: "Suhu Udara (OAT 2m)", val: t.temp_2m, unit: "°C", desc: "Suhu Luar untuk Kalkulasi Performa Takeoff" },
