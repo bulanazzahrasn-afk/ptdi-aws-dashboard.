@@ -478,61 +478,7 @@ function renderDashboard(data) {
     const dl = data.daylight || {};
 
     const nowUTC = new Date();
-    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
-    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
-    const minute = nowUTC.getUTCMinutes();
-    
-    let currentMinSlot = minute >= 30 ? "30" : "00";
-    let prevMinSlot = minute >= 30 ? "00" : "30";
-    let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
-    let prevDay = day;
 
-    if (prevHourNum < 0) {
-        prevHourNum += 24;
-        prevDay = String(Number(day) - 1).padStart(2, '0');
-    }
-    let prevHourStr = String(prevHourNum).padStart(2, '0');
-
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "120";
-    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "05";
-    const windStr = `${windDir}${windSpd}KT`;
-
-    const visKm = parseFloat(t.visibility_km || 10);
-    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
-
-    const tempVal = Math.round(t.temp_2m || 26);
-    const dewVal = Math.round(t.dew_point || 23);
-    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
-
-    const qnhVal = Math.round(t.msl_pressure || 1018);
-    const qnhStr = `Q${qnhVal}`;
-
-    let wxStr = "";
-    if (visKm < 6.0) wxStr = "HZ ";
-    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
-
-    const cloudOcta = (c.cloud_cover_octa || "SCT").substring(0, 3);
-    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
-
-    let currentMetarTime = `${hour}${currentMinSlot}`;
-    let prevMetarTime = `${prevHourStr}${prevMinSlot}`;
-
-    // FORMAT METAR SESUAI CONTOH BULLETIN BMKG
-    let metarLatest = `SAID40 WICC ${day}${currentMetarTime}\nMETAR WICC ${day}${currentMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let metarPrev = `SAID40 WICC ${prevDay}${prevMetarTime}\nMETAR WICC ${prevDay}${prevMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
-    let combinedMetar = `${metarLatest}\n\n${metarPrev}`;
-
-    // FORMAT TAF 
-    let nextDayNum = String(Number(day) + 1).padStart(2, '0');
-    let tafPeriod = `${day}${hour}/${nextDayNum}${hour}`;
-    let tafHeader = `FTID40 WICC ${day}${hour}00`;
-    let tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPeriod} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG ${day}${String(Number(hour)+2).padStart(2,'0')}/${day}${String(Number(hour)+4).padStart(2,'0')} 13012KT 8000 FEW018=`;
-
-    safeSetText("raw-metar-text", combinedMetar);
-    safeSetText("raw-taf-text", tafString);
-
-    // Sisa kode renderDashboard lainnya...
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
@@ -543,6 +489,8 @@ function renderDashboard(data) {
     safeSetText("m-precip", precipVal, "mm");
     safeSetText("fc-precip-card", precipVal, "mm");
 
+    const cloudOcta = (c.cloud_cover_octa || "SCT").substring(0, 3);
+    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
     const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
     safeSetText("m-cloud-octa", cloudOcta);
     safeSetText("m-cloud-alt", formattedCloudAlt);
@@ -975,7 +923,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat METAR WICC...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat observasi...</td></tr>';
         return;
     }
 
