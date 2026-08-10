@@ -249,11 +249,11 @@ function drawDaylightCurve() {
     const parentWidth = canvas.parentElement.clientWidth || 600;
     
     canvas.width = parentWidth;
-    canvas.height = 300;
+    canvas.height = 150;
 
     const w = canvas.width;
     const h = canvas.height;
-    const horizonY = 150; 
+    const horizonY = 25; 
 
     ctx.clearRect(0, 0, w, h);
 
@@ -628,7 +628,6 @@ function renderHourlyForecast24h(minData) {
     const windDirs = minData.wind_direction_10m || [];
     const todayISO = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' });
     
-    // Dapatkan jam dan menit saat ini dalam format string "HH:MM" untuk perbandingan
     const currentTimeStr = now.toLocaleTimeString('id-ID', { 
         timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false 
     }).replace(/\./g, ':');
@@ -638,7 +637,6 @@ function renderHourlyForecast24h(minData) {
 
         const timePartWIB = isoStr.split("T")[1].substring(0, 5);
 
-        // FILTER: Lewati / abaikan waktu yang sudah berlalu dari jam saat ini
         if (timePartWIB < currentTimeStr) return;
 
         const tempVal = temps[i] !== undefined ? Math.round(temps[i]) : '--';
@@ -669,11 +667,10 @@ function render3DaysForecast(daily) {
 
     container.innerHTML = "";
     
-    // Looping dari indeks 1 sampai 3 (atau lebih jika data API tersedia) untuk tanggal 11, 12, 13 Agu 2026
+    // Looping dari indeks 1 sampai 3 (Hari Besok / 11 Agu, 12 Agu, dan 13 Agu 2026)
     for (let i = 1; i <= 3 && i < daily.time.length; i++) {
         const dateObj = new Date(daily.time[i]);
         
-        // Penamaan label hari secara dinamis
         let dayLabel = "Besok";
         if (i === 2) dayLabel = "Lusa";
         else if (i === 3) dayLabel = "3 Hari Kedepan";
