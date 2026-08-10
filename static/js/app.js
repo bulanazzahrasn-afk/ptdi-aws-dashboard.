@@ -478,128 +478,82 @@ function renderDashboard(data) {
     const dl = data.daylight || {};
 
     const nowUTC = new Date();
+    const day = String(nowUTC.getUTCDate()).padStart(2, '0');
+    const hour = String(nowUTC.getUTCHours()).padStart(2, '0');
+    const minute = nowUTC.getUTCMinutes();
+    
+    let currentMinSlot = minute >= 30 ? "30" : "00";
+    let prevMinSlot = minute >= 30 ? "00" : "30";
+    let prevHourNum = minute >= 30 ? Number(hour) : Number(hour) - 1;
+    let prevDay = day;
+
+    if (prevHourNum < 0) {
+        prevHourNum += 24;
+        prevDay = String(Number(day) - 1).padStart(2, '0');
+    }
+    let prevHourStr = String(prevHourNum).padStart(2, '0');
+
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "120";
+    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "05";
+    const windStr = `${windDir}${windSpd}KT`;
+
+    const visKm = parseFloat(t.visibility_km || 10);
+    const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
+
+    const tempVal = Math.round(t.temp_2m || 26);
+    const dewVal = Math.round(t.dew_point || 23);
+    const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
+
+    const qnhVal = Math.round(t.msl_pressure || 1018);
+    const qnhStr = `Q${qnhVal}`;
+
+    let wxStr = "";
+    if (visKm < 6.0) wxStr = "HZ ";
+    else if (c.precipitation_mm > 0.5) wxStr = "RA ";
+
+    // Standar ICAO: Tutupan Awan Okta + Tinggi Dasar (Contoh: SCT018) tanpa pecahan
+    const cloudOcta = c.cloud_cover_octa || "SCT";
+    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
+    const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
+
+    let currentMetarTime = `${hour}${currentMinSlot}`;
+    let prevMetarTime = `${prevHourStr}${prevMinSlot}`;
+
+    // Format METAR Bersih Standar ICAO
+    let metarLatest = `SAID40 WICC ${day}${currentMetarTime}\nMETAR WICC ${day}${currentMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+    let metarPrev = `SAID40 WICC ${prevDay}${prevMetarTime}\nMETAR WICC ${prevDay}${prevMetarTime}Z ${windStr} ${visMeters} ${wxStr}${cloudCode} ${tempDewStr} ${qnhStr} NOSIG=`;
+    const combinedMetar = `${metarLatest}\n\n${metarPrev}`;
+    
+    // Format TAF Bersih Standar ICAO
+    let nextDayNum = String(Number(day) + 1).padStart(2, '0');
+    let tafPeriod = `${day}${hour}/${nextDayNum}${hour}`;
+    let changeHour1 = String((Number(hour) + 2) % 24).padStart(2, '0');
+    let changeHour2 = String((Number(hour) + 4) % 24).padStart(2, '0');
+    let changeHour3 = String((Number(hour) + 10) % 24).padStart(2, '0');
+    let changeHour4 = String((Number(hour) + 12) % 24).padStart(2, '0');
+
+    const tafHeader = `FTID40 WICC ${day}${hour}00`;
+    const tafString = `${tafHeader}\nTAF WICC ${day}${hour}00Z ${tafPeriod} ${windStr} ${visMeters} ${wxStr}${cloudCode} BECMG ${day}${changeHour1}/${day}${changeHour2} 13012KT 8000 FEW018 BECMG ${day}${changeHour3}/${day}${changeHour4} 29007KT 6000=`;
+
+    safeSetText("raw-metar-text", combinedMetar);
+    safeSetText("raw-taf-text", tafString);
 
     safeSetText("m-temp", t.temp_2m, "°C");
     safeSetText("m-dew", t.dew_point, "°C");
     safeSetText("m-rh", t.rh_2m, "%");
     safeSetText("m-press", t.msl_pressure, "hPa");
     safeSetText("m-surf-press", t.surface_pressure, "hPa");
-    
-    const precipVal = c.precipitation_mm !== undefined ? c.precipitation_mm : 0.0;
-    safeSetText("m-precip", precipVal, "mm");
-    safeSetText("fc-precip-card", precipVal, "mm");
-
-    const cloudOcta = c.cloud_cover_octa || "FEW";
-    const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    const formattedCloudAlt = `${cloudBaseFt.toLocaleString()} ft`;
-
-    safeSetText("m-cloud-octa", cloudOcta);
-    safeSetText("m-cloud-alt", formattedCloudAlt);
-    drawCloudProfileCanvas(cloudBaseFt);
-
-    const modalOcta = document.getElementById("modal-cloud-octa");
-    const modalBase = document.getElementById("modal-cloud-base");
-    if (modalOcta) modalOcta.textContent = `${cloudOcta}`;
-    if (modalBase) modalBase.textContent = `${formattedCloudAlt} MSL`;
 
     const dateLabelStr = nowUTC.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).toUpperCase();
     safeSetText("current-forecast-date-label", dateLabelStr);
     safeSetText("fc-temp", t.temp_2m, "°C");
-    
-    const visStr = t.visibility_km || "10 km";
-    safeSetText("fc-vis", visStr);
-    
-    const weatherDescEl = document.getElementById("fc-weather-desc");
-    const weatherIconEl = document.getElementById("fc-weather-icon");
-
-    let desc = "Cerah Berawan (Aman VFR)";
-    let iconClass = "bi-cloud-sun-fill text-warning display-4";
-
-    const visNum = parseFloat(visStr);
-    const rhVal = t.rh_2m || 60;
-
-    if (precipVal > 0.5) {
-        desc = "Hujan / Presipitasi Terdeteksi";
-        iconClass = "bi-cloud-rain-fill text-primary display-4";
-    } else if (visNum < 5.0 && rhVal > 75) {
-        desc = "Udara Kabur / Haze (Moderate Visibility)";
-        iconClass = "bi-cloud-haze2-fill text-secondary display-4";
-    } else if (visNum < 3.0) {
-        desc = "Waspada: Jarak Pandang Rendah (Fog)";
-        iconClass = "bi-cloud-fog2-fill text-info display-4";
-    } else if (cloudOcta === "BKN" || cloudOcta === "OVC") {
-        desc = "Berawan Tebal (Cloudy)";
-        iconClass = "bi-clouds-fill text-muted display-4";
-    }
-
-    if (weatherDescEl) weatherDescEl.textContent = desc;
-    if (weatherIconEl) weatherIconEl.className = `bi ${iconClass}`;
-
+    safeSetText("fc-vis", t.visibility_km ? `${t.visibility_km} km` : "10 km");
     safeSetText("fc-wind-spd", w.surface ? `${w.surface.speed_kt} kt` : "-- kt");
     safeSetText("fc-wind-dir", w.surface ? `${w.surface.dir_deg}° (${w.surface.dir_compass})` : "--°");
     safeSetText("fc-press", t.msl_pressure, "hPa");
 
-    evaluateWeatherAlerts(w.surface ? w.surface.speed_kt : 0, r.crosswind_kt || 0, parseFloat(visStr));
-
-    currentDaylightData.sunrise = dl.sunrise || "06:00";
-    currentDaylightData.midday = dl.midday || "11:58";
-    currentDaylightData.sunset = dl.sunset || "17:50";
-
-    const [sunsetHH, sunsetMM] = (dl.sunset || "17:50").split(':').map(Number);
-    const sunsetDate = new Date(nowUTC);
-    sunsetDate.setHours(sunsetHH, sunsetMM, 0);
-    const diffMs = sunsetDate - nowUTC;
-    
-    if (diffMs > 0) {
-        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        currentDaylightData.duration = `(${diffHrs}:${String(diffMins).padStart(2, '0')}h)`;
-    } else {
-        currentDaylightData.duration = "(0:00h)";
-    }
-
-    safeSetText("rwy-cross-val", `${r.crosswind_kt} kt`);
-    safeSetText("rwy-head-val", `${r.headwind_kt} kt`);
-    safeSetText("rwy-pct-val", `${r.crosswind_pct} %`);
-
-    const barRh = document.getElementById("bar-rh");
-    if (barRh && t.rh_2m !== undefined) barRh.style.width = `${t.rh_2m}%`;
-
-    const levels = [
-        { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
-        { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
-        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
-        { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
-    ];
-
-    levels.forEach(lvl => {
-        const item = w[lvl.key];
-        if (item) {
-            safeSetText(lvl.spdId, item.speed_kt, "kt");
-            safeSetText(lvl.dirId, `${item.dir_deg}° (${item.dir_compass})`);
-            const arrow = document.getElementById(lvl.arrowId);
-            if (arrow && item.dir_deg !== undefined) {
-                arrow.style.transform = `rotate(${item.dir_deg}deg)`;
-            }
-        }
-    });
-
-    safeSetText("wgust-spd", w.gusts_kt, "kt");
-
-    if (w.surface) {
-        const windDirInput = document.getElementById("calc-wind-dir");
-        const windSpdInput = document.getElementById("calc-wind-spd");
-        if (windDirInput && windSpdInput) {
-            windDirInput.value = w.surface.dir_deg;
-            windSpdInput.value = w.surface.speed_kt;
-            calculatePopUpCrosswind();
-        }
-    }
-
     const minData = data.minutely_15;
     if (minData) {
-        updateWindRoseChart(minData);
-        renderDaily00to24History(minData, data);
         renderHourlyForecast24h(minData);
     }
 
@@ -608,7 +562,6 @@ function renderDashboard(data) {
     }
 
     renderFlightPrepTable(data);
-    drawDaylightCurve();
 }
 
 function renderHourlyForecast24h(minData) {
