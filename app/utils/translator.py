@@ -167,4 +167,3 @@ def translate_aws_payload(raw: dict) -> dict:
         "minutely_15": min15,
         "raw_daily_payload": daily_ext
     }
-```[cite: 1]
