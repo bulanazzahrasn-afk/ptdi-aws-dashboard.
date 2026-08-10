@@ -433,7 +433,10 @@ function stopAutoRefresh() {
 
 async function fetchAWSData() {
     const icon = document.getElementById("refreshIcon");
+    const indicator = document.getElementById("loadingStatusIndicator");
+    
     if (icon) icon.classList.add("spin-anim");
+    if (indicator) indicator.classList.remove("d-none");
 
     try {
         const response = await fetch(`/api/v1/aws-translated?_t=${new Date().getTime()}`);
@@ -446,6 +449,7 @@ async function fetchAWSData() {
         console.error("Gagal memuat data Open-Meteo AWS:", err);
     } finally {
         if (icon) icon.classList.remove("spin-anim");
+        if (indicator) indicator.classList.add("d-none");
     }
 }
 
@@ -809,7 +813,13 @@ function evaluateWeatherAlerts(windSpdKt, crosswindKt, visKm) {
 
 function calculatePopUpCrosswind() {
     const rwyHeading = parseFloat(document.getElementById("calc-rwy-heading").value) || 110;
-    const windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
+    let windDir = parseFloat(document.getElementById("calc-wind-dir").value) || 0;
+    
+    // Validasi batas sudut kompas 0 - 360 derajat
+    if (windDir < 0) windDir = 0;
+    if (windDir > 360) windDir = 360;
+    document.getElementById("calc-wind-dir").value = windDir;
+
     const windSpd = parseFloat(document.getElementById("calc-wind-spd").value) || 0;
 
     const angleRad = (windDir - rwyHeading) * (Math.PI / 180);

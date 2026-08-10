@@ -27,6 +27,9 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
+                <!-- Indikator Loading Status Halus -->
+                <span id="loadingStatusIndicator" class="text-warning extra-small font-mono d-none">Memperbarui data...</span>
+
                 <button class="btn btn-outline-warning btn-sm fw-semibold rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#crosswindModal">
                     <i class="bi bi-calculator me-1"></i>Crosswind
                 </button>
@@ -116,7 +119,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- 6 Grid Sub-Cards Simetris (2 Kolom x 3 Baris) -->
+                                    <!-- 6 Grid Sub-Cards Simetris -->
                                     <div class="col-12">
                                         <div class="row g-2">
                                             <div class="col-6">
@@ -250,23 +253,25 @@
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Knots</span>
                                 </div>
                                 <div class="card-body p-0">
-                                    <table class="table table-custom-glass align-middle mb-0">
-                                        <thead class="small text-secondary">
-                                            <tr>
-                                                <th class="ps-4">Level</th>
-                                                <th>Kecepatan</th>
-                                                <th>Arah</th>
-                                                <th class="pe-4 text-center">Visual</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr><td class="ps-4 fw-bold">33 ft (Angin Permukaan)</td><td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td><td class="font-mono" id="w33-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">250 ft (Angin Lapisan Rendah)</td><td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td><td class="font-mono" id="w250-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">400 ft (Terminal Winds)</td><td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td><td class="font-mono" id="w400-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr><td class="ps-4 fw-bold">600 ft (Angin Ketinggian Jelajah)</td><td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td><td class="font-mono" id="w600-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td></tr>
-                                            <tr class="table-warning bg-opacity-10 border-0"><td class="ps-4 fw-bold text-warning">Peak Gust</td><td class="fw-bold text-warning font-mono" id="wgust-spd">-- kt</td><td colspan="2" class="pe-4 small text-muted">Max Gust METAR</td></tr>
-                                        </tbody>
-                                    </table>
+                                    <div class="table-responsive">
+                                        <table class="table table-custom-glass align-middle mb-0">
+                                            <thead class="small text-secondary">
+                                                <tr>
+                                                    <th class="ps-4">Level</th>
+                                                    <th>Kecepatan</th>
+                                                    <th>Arah</th>
+                                                    <th class="pe-4 text-center">Visual</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td class="ps-4 fw-bold">33 ft (Angin Permukaan)</td><td class="fw-bold text-primary font-mono" id="w33-spd">-- kt</td><td class="font-mono" id="w33-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w33-arrow" style="display:inline-block;"></i></td></tr>
+                                                <tr><td class="ps-4 fw-bold">250 ft (Angin Lapisan Rendah)</td><td class="fw-bold text-primary font-mono" id="w250-spd">-- kt</td><td class="font-mono" id="w250-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w250-arrow" style="display:inline-block;"></i></td></tr>
+                                                <tr><td class="ps-4 fw-bold">400 ft (Terminal Winds)</td><td class="fw-bold text-primary font-mono" id="w400-spd">-- kt</td><td class="font-mono" id="w400-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w400-arrow" style="display:inline-block;"></i></td></tr>
+                                                <tr><td class="ps-4 fw-bold">600 ft (Angin Ketinggian Jelajah)</td><td class="fw-bold text-primary font-mono" id="w600-spd">-- kt</td><td class="font-mono" id="w600-dir">--°</td><td class="pe-4 text-center"><i class="bi bi-arrow-up-circle fs-5 text-primary" id="w600-arrow" style="display:inline-block;"></i></td></tr>
+                                                <tr class="table-warning bg-opacity-10 border-0"><td class="ps-4 fw-bold text-warning">Peak Gust</td><td class="fw-bold text-warning font-mono" id="wgust-spd">-- kt</td><td colspan="2" class="pe-4 small text-muted">Max Gust METAR</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -438,6 +443,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold text-secondary">Arah Datang Angin (°)</label>
+                            <!-- Validasi Input Antara 0 hingga 360 -->
                             <input type="number" class="form-control font-mono" id="calc-wind-dir" min="0" max="360" value="180">
                         </div>
                         <div class="col-md-4">
@@ -481,16 +487,18 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <table class="table table-custom-glass align-middle mb-0">
-                        <tbody>
-                            <tr><th class="w-35 text-secondary">Nama Aerodrom</th><td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td></tr>
-                            <tr><th class="text-secondary">Kode ICAO / IATA</th><td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td></tr>
-                            <tr><th class="text-secondary">Koordinat Stasiun</th><td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td></tr>
-                            <tr><th class="text-secondary">Elevasi Aerodrom</th><td class="fw-bold text-primary font-mono">2,428 ft MSL (740 Meter)</td></tr>
-                            <tr><th class="text-secondary">Dimensi Runway</th><td><b>2,220 m x 45 m</b> (Asphalt Concrete)</td></tr>
-                            <tr><th class="text-secondary">Orientasi Runway</th><td><b>RWY 11 / RWY 29</b> (True Heading: 110° / 290°)</td></tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-custom-glass align-middle mb-0">
+                            <tbody>
+                                <tr><th class="w-35 text-secondary">Nama Aerodrom</th><td>Bandara Internasional Husein Sastranegara / PT. Dirgantara Indonesia</td></tr>
+                                <tr><th class="text-secondary">Kode ICAO / IATA</th><td><span class="badge bg-dark font-mono">WICC</span> / <span class="badge bg-secondary font-mono">BDO</span></td></tr>
+                                <tr><th class="text-secondary">Koordinat Stasiun</th><td><code>06° 54' 02" S, 107° 34' 34" E</code> (-6.9006, 107.5762)</td></tr>
+                                <tr><th class="text-secondary">Elevasi Aerodrom</th><td class="fw-bold text-primary font-mono">2,428 ft MSL (740 Meter)</td></tr>
+                                <tr><th class="text-secondary">Dimensi Runway</th><td><b>2,220 m x 45 m</b> (Asphalt Concrete)</td></tr>
+                                <tr><th class="text-secondary">Orientasi Runway</th><td><b>RWY 11 / RWY 29</b> (True Heading: 110° / 290°)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
