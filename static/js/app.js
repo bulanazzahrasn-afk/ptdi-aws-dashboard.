@@ -452,13 +452,7 @@ async function fetchAWSData() {
 function safeSetText(id, value, suffix = "") {
     const el = document.getElementById(id);
     if (el) {
-        let newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
-        
-        // PEMBERSIH PAKSA: Jika elemen menyangkut raw-metar-text atau raw-taf-text, hapus pecahan okta jika ada
-        if (id === "raw-metar-text" || id === "raw-taf-text") {
-            newText = newText.replace(/\d+-\d+\/\d+\s*\([A-Z]+\)/g, ''); // Menghapus format pecahan seperti 5-7/8 (BKN)
-        }
-
+        const newText = (value !== null && value !== undefined) ? `${value} ${suffix}`.trim() : `-- ${suffix}`.trim();
         if (el.textContent !== newText) {
             el.textContent = newText;
             el.classList.remove("value-update-anim");
@@ -499,29 +493,28 @@ function renderDashboard(data) {
     }
     let prevHourStr = String(prevHourNum).padStart(2, '0');
 
-    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "100";
-    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "07";
+    const windDir = w.surface ? String(Math.round(w.surface.dir_deg)).padStart(3, '0') : "168";
+    const windSpd = w.surface ? String(Math.round(w.surface.speed_kt)).padStart(2, '0') : "03";
     const windStr = `${windDir}${windSpd}KT`;
 
-    const visKm = parseFloat(t.visibility_km || 5);
+    const visKm = parseFloat(t.visibility_km || 10);
     const visMeters = visKm >= 10 ? "9999" : String(Math.round(visKm * 1000)).padStart(4, '0');
 
-    const tempVal = Math.round(t.temp_2m || 30);
-    const dewVal = Math.round(t.dew_point || 25);
+    const tempVal = Math.round(t.temp_2m || 24);
+    const dewVal = Math.round(t.dew_point || 14);
     const tempDewStr = `${String(tempVal).padStart(2, '0')}/${String(dewVal).padStart(2, '0')}`;
 
-    const qnhVal = Math.round(t.msl_pressure || 1017);
+    const qnhVal = Math.round(t.msl_pressure || 1016);
     const qnhStr = `Q${qnhVal}`;
 
     let wxStr = "";
-    const rh = t.rh_2m || 75;
+    const rh = t.rh_2m || 70;
     if (visKm < 6.0) wxStr = "HZ ";
     else if (c.precipitation_mm > 0.5) wxStr = "RA ";
 
+    // Standar ICAO: Tutupan Awan Okta (FEW, SCT, BKN, OVC) + Ketinggian (ribuan kaki)
     const cloudOcta = c.cloud_cover_octa || "FEW";
     const cloudBaseFt = (c.cloud_base_ft !== undefined && c.cloud_base_ft !== null) ? c.cloud_base_ft : 1800;
-    
-    // MURNI SANDI OKTA TANPA PECAHAN
     const cloudCode = `${cloudOcta}${String(Math.round(cloudBaseFt / 100)).padStart(3, '0')}`;
 
     let currentMetarTime = `${hour}${currentMinSlot}`;
@@ -639,7 +632,7 @@ function renderDashboard(data) {
     const levels = [
         { key: "surface", spdId: "w33-spd", dirId: "w33-dir", arrowId: "w33-arrow" },
         { key: "lvl_025", spdId: "w250-spd", dirId: "w250-dir", arrowId: "w250-arrow" },
-        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-dir", arrowId: "w400-arrow" },
+        { key: "lvl_040", spdId: "w400-spd", dirId: "w400-arrow", arrowId: "w400-arrow" },
         { key: "lvl_060", spdId: "w600-spd", dirId: "w600-dir", arrowId: "w600-arrow" }
     ];
 
