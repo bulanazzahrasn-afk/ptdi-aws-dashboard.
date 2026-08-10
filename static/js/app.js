@@ -558,26 +558,28 @@ function renderDashboard(data) {
         currentDaylightData.duration = "(0:00h)";
     }
 
-    // --- KALKULASI TERPISAH RUNWAY 11 DAN RUNWAY 29 ---
+    // --- KALKULASI RUNWAY 11 DAN RUNWAY 29 (DENGAN HEADWIND / TAILWIND) ---
     const windSpeedKt = w.surface ? w.surface.speed_kt : 0;
     const windDirDeg = w.surface ? w.surface.dir_deg : 180;
 
     const rad11 = (windDirDeg - 110) * (Math.PI / 180);
     const cross11 = Math.abs(windSpeedKt * Math.sin(rad11));
-    const head11 = windSpeedKt * Math.cos(rad11);
+    const headtail11 = windSpeedKt * Math.cos(rad11);
+    const type11 = headtail11 >= 0 ? "Headwind" : "Tailwind";
     const pct11 = windSpeedKt > 0 ? Math.round((cross11 / windSpeedKt) * 100) : 0;
 
     const rad29 = (windDirDeg - 290) * (Math.PI / 180);
     const cross29 = Math.abs(windSpeedKt * Math.sin(rad29));
-    const head29 = windSpeedKt * Math.cos(rad29);
+    const headtail29 = windSpeedKt * Math.cos(rad29);
+    const type29 = headtail29 >= 0 ? "Headwind" : "Tailwind";
     const pct29 = windSpeedKt > 0 ? Math.round((cross29 / windSpeedKt) * 100) : 0;
 
     safeSetText("rwy11-cross-val", cross11.toFixed(1), "kt");
-    safeSetText("rwy11-head-val", head11.toFixed(1), "kt");
+    safeSetText("rwy11-headtail-val", `${Math.abs(headtail11).toFixed(1)} kt (${type11})`);
     safeSetText("rwy11-pct-val", pct11, "%");
 
     safeSetText("rwy29-cross-val", cross29.toFixed(1), "kt");
-    safeSetText("rwy29-head-val", head29.toFixed(1), "kt");
+    safeSetText("rwy29-headtail-val", `${Math.abs(headtail29).toFixed(1)} kt (${type29})`);
     safeSetText("rwy29-pct-val", pct29, "%");
 
     const barRh = document.getElementById("bar-rh");
