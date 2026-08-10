@@ -88,21 +88,21 @@ def translate_aws_payload(raw: dict) -> dict:
         vis_km_str = "7 km"
         weather_qualifier = ""
 
-    # PENENTUAN OKTA AWAN DINAMIS BERDASARKAN PERSENTASE AKTUAL OPEN-METEO
+    # PENENTUAN OKTA AWAN LENGKAP DENGAN KETERANGAN ANGKA OKTA
     if cloud_cover_pct <= 10:
-        cloud_octa = "SKC"
+        cloud_octa = "0/8 (SKC)"
         metar_cloud = "SKC"
     elif cloud_cover_pct <= 25:
-        cloud_octa = "FEW"
+        cloud_octa = "1-2/8 (FEW)"
         metar_cloud = "FEW018"
     elif cloud_cover_pct <= 50:
-        cloud_octa = "SCT"
+        cloud_octa = "3-4/8 (SCT)"
         metar_cloud = "SCT018"
     elif cloud_cover_pct <= 87:
-        cloud_octa = "BKN"
+        cloud_octa = "5-7/8 (BKN)"
         metar_cloud = "BKN018"
     else:
-        cloud_octa = "OVC"
+        cloud_octa = "8/8 (OVC)"
         metar_cloud = "OVC018"
 
     now_utc = datetime.utcnow()
