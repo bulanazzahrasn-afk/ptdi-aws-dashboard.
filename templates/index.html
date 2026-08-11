@@ -12,57 +12,53 @@
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-3 py-2 fixed-top">
-        <div class="container-fluid">
+        <div class="container-fluid justify-content-between align-items-center">
+            
+            <!-- Sisi Kiri: Logo & Identitas Institusi -->
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-toggle-sidebar" id="sidebarToggle" title="Buka/Tutup Sidebar">
                     <i class="bi bi-list fs-5"></i>
                 </button>
                 
-                <!-- Brand & Dual Logo (PTDI & ITB) -->
-                <a class="navbar-brand d-flex align-items-center gap-2.5 m-0 text-decoration-none" href="#">
-                    <div class="d-flex align-items-center gap-2">
-                        <img src="/static/images/logo-ptdi.jpg" alt="Logo PTDI" style="height: 40px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm">
-                        <img src="/static/images/logo-itb.jpg" alt="Logo ITB" style="height: 40px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm" onerror="this.style.display='none'">
+                <div class="d-flex align-items-center gap-2">
+                    <img src="/static/images/logo-ptdi.jpg" alt="Logo PTDI" style="height: 38px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm">
+                    <img src="/static/images/logo-itb.png" alt="Logo ITB" style="height: 38px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm" onerror="this.style.display='none'">
+                </div>
+
+                <div class="ps-1 border-start border-secondary border-opacity-50">
+                    <div class="fw-bold text-white tracking-wide lh-1 mb-1" style="font-size: 0.95rem;">PT. DIRGANTARA INDONESIA</div>
+                    <div class="d-flex flex-column" style="font-size: 0.7rem; line-height: 1.2;">
+                        <span class="text-info fw-semibold">Automatic Weather Station - WICC/BDO</span>
+                        <span class="text-secondary">Program Studi Meteorologi ITB &nbsp;|&nbsp; <span class="text-warning fw-semibold">Flight Test Operations Department - FT200</span></span>
                     </div>
-                    <div class="ps-1 border-start border-secondary border-opacity-50">
-                        <div class="fw-bold fs-6 text-white tracking-wide lh-1 mb-1">PT. DIRGANTARA INDONESIA</div>
-                        <div class="d-flex flex-wrap align-items-center gap-2 extra-small text-secondary" style="font-size: 0.7rem;">
-                            <span class="text-info fw-semibold">Automatic Weather Station - WICC/BDO</span>
-                            <span class="opacity-50">|</span>
-                            <span>Program Studi Meteorologi ITB</span>
-                            <span class="opacity-50">|</span>
-                            <span class="text-warning">Flight Test Operations Department - FT200</span>
-                        </div>
-                    </div>
-                </a>
+                </div>
             </div>
 
+            <!-- Sisi Kanan: Status Jam, Info WICC, Auto Refresh & Tombol Refresh -->
             <div class="d-flex align-items-center gap-2">
-                <span id="loadingStatusIndicator" class="text-warning extra-small font-mono d-none">Memperbarui data...</span>
+                <span id="loadingStatusIndicator" class="text-warning extra-small font-mono d-none">Memperbarui...</span>
 
-                <button class="btn btn-outline-warning btn-sm fw-semibold rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#crosswindModal">
-                    <i class="bi bi-calculator me-1"></i>Crosswind
-                </button>
-                <button class="btn btn-outline-info btn-sm fw-semibold rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
+                <button class="btn btn-outline-info btn-sm fw-semibold rounded-3 px-3 py-1" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
                     <i class="bi bi-info-circle me-1"></i>Info WICC
                 </button>
 
                 <div class="vr bg-secondary mx-1 my-1 opacity-25"></div>
 
-                <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1.5 rounded-3 border border-secondary border-opacity-25">
+                <div class="d-flex align-items-center gap-2 bg-dark bg-opacity-50 px-3 py-1 rounded-3 border border-secondary border-opacity-25">
                     <span class="live-beacon"></span>
                     <span class="text-light font-mono small" id="utc-wib-clock">STANDAR WAKTU INDONESIA -- : -- : -- / -- : -- : -- UTC</span>
                 </div>
 
-                <div class="form-check form-switch text-white mb-0 ms-2">
+                <div class="form-check form-switch text-white mb-0 ms-1">
                     <input class="form-check-input" type="checkbox" id="autoRefreshSwitch" checked>
                     <label class="form-check-label small text-secondary" for="autoRefreshSwitch">Auto</label>
                 </div>
 
-                <button class="btn btn-primary btn-sm px-3 fw-semibold rounded-3" id="manualRefreshBtn">
+                <button class="btn btn-primary btn-sm px-2.5 py-1 fw-semibold rounded-3" id="manualRefreshBtn" title="Refresh Data">
                     <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
                 </button>
             </div>
+
         </div>
     </nav>
 
@@ -305,7 +301,7 @@
                         </div>
                     </div>
 
-                    <!-- RUNWAYS DENGAN KOLOM HEAD/TAILWIND -->
+                    <!-- RUNWAYS -->
                     <div class="card card-luxury p-4 shadow-sm">
                         <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-signpost-split me-2 text-primary"></i>Runways</h4>
                         <div class="table-responsive">
@@ -437,59 +433,6 @@
                     <div class="p-3 bg-light rounded-3 border">
                         <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i>Keterangan Operasional Penerbangan:</div>
                         <p class="small text-muted mb-0">Lapisan awan Scattered (SCT) pada ketinggian 1,800 ft aman untuk penerbangan VFR/IFR namun tetap memerlukan kewaspadaan visual pada sektor pendekatan final Runway 11/29.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="crosswindModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content card-luxury border-0 shadow-lg">
-                <div class="modal-header bg-dark text-white p-4 border-bottom">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calculator me-2 text-warning"></i>Runway Crosswind Calculator</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Runway Alignment</label>
-                            <select class="form-select fw-bold" id="calc-rwy-heading">
-                                <option value="110" selected>RWY 11 (110°)</option>
-                                <option value="290">RWY 29 (290°)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Arah Datang Angin (°)</label>
-                            <input type="number" class="form-control font-mono" id="calc-wind-dir" min="0" max="360" value="180">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-secondary">Kecepatan (Knots)</label>
-                            <input type="number" class="form-control font-mono" id="calc-wind-spd" min="0" value="12">
-                        </div>
-                    </div>
-
-                    <div class="alert alert-light border rounded-3 p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold text-dark">Status Keselamatan Komponen Angin:</span>
-                            <span class="badge bg-success px-3 py-1 font-mono fs-6" id="calc-threat-badge">SAFE</span>
-                        </div>
-                        <p class="small text-muted mb-0" id="calc-threat-desc">Kondisi angin samping di bawah limit aman penerbangan normal (15 Knots).</p>
-                    </div>
-
-                    <div class="row g-3 text-center">
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <div class="small text-muted fw-bold mb-1">CROSSWIND (ANGIN SAMPING)</div>
-                                <div class="fs-2 fw-bold text-warning font-mono" id="calc-out-cross">0.0 kt</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <div class="small text-muted fw-bold mb-1">HEADWIND / TAILWIND</div>
-                                <div class="fs-2 fw-bold text-primary font-mono" id="calc-out-headtail">0.0 kt</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
