@@ -22,21 +22,27 @@
                 
                 <div class="d-flex align-items-center gap-2">
                     <img src="/static/images/logo-ptdi.jpg" alt="Logo PTDI" style="height: 38px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm">
-                    <img src="/static/images/logo-itb.png" alt="Logo ITB" style="height: 38px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm" onerror="this.style.display='none'">
+                    <img src="/static/images/logo-itb.jpg" alt="Logo ITB" style="height: 38px; width: auto; object-fit: contain;" class="rounded-2 bg-white p-0.5 shadow-sm" onerror="this.style.display='none'">
                 </div>
 
                 <div class="ps-1 border-start border-secondary border-opacity-50">
-                    <div class="fw-bold text-white tracking-wide lh-1 mb-1" style="font-size: 0.95rem;">PT. DIRGANTARA INDONESIA</div>
-                    <div class="d-flex flex-column" style="font-size: 0.7rem; line-height: 1.2;">
+                    <div class="d-flex flex-wrap align-items-center gap-2 lh-1 mb-1">
+                        <span class="fw-bold text-white tracking-wide" style="font-size: 0.95rem;">PT. DIRGANTARA INDONESIA</span>
+                        <span class="text-secondary opacity-50">•</span>
+                        <span class="fw-semibold text-light" style="font-size: 0.85rem;">Program Studi Meteorologi</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2" style="font-size: 0.7rem; line-height: 1.2;">
                         <span class="text-info fw-semibold">Automatic Weather Station - WICC/BDO</span>
-                        <span class="text-secondary">Program Studi Meteorologi ITB &nbsp;|&nbsp; <span class="text-warning fw-semibold">Flight Test Operations Department - FT200</span></span>
+                        <span class="text-secondary opacity-50">|</span>
+                        <span class="text-warning fw-semibold">Flight Test Operations Department - FT200</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Sisi Kanan: Status Jam, Info WICC, Auto Refresh & Tombol Refresh -->
+            <!-- Sisi Kanan: Status Jam, Info WICC, Indikator Loading & Tombol Refresh -->
             <div class="d-flex align-items-center gap-2">
-                <span id="loadingStatusIndicator" class="text-warning extra-small font-mono d-none">Memperbarui...</span>
+                <!-- Indikator Loading Dipindah ke Sini agar Tidak Menumpuk -->
+                <span id="loadingStatusIndicator" class="badge bg-warning text-dark font-mono extra-small d-none py-1 px-2">Memperbarui data...</span>
 
                 <button class="btn btn-outline-info btn-sm fw-semibold rounded-3 px-3 py-1" data-bs-toggle="modal" data-bs-target="#airportInfoModal">
                     <i class="bi bi-info-circle me-1"></i>Info WICC
