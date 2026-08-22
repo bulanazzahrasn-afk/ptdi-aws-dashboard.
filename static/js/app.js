@@ -957,7 +957,6 @@ function renderDaily00to24History(payload, fullData) {
             const precipVal = precips[i] !== undefined ? precips[i] : 0.0;
             const dewpVal = tempVal > 10 ? tempVal - 10 : 15;
             const heatVal = tempVal + 2;
-            const kpVal = "1 (0-9)";
 
             let weatherCode = '<i class="bi bi-cloud-sun-fill text-warning fs-5" title="SCT / SKC"></i>';
             let visVal = "10 km (9999)";
@@ -981,7 +980,6 @@ function renderDaily00to24History(payload, fullData) {
                 dewpoint: `${dewpVal} °C`,
                 rh: `${rhVal} %`,
                 heat: `${heatVal} °C`,
-                kp: kpVal,
                 visibility: visVal,
                 wind: `<i class="bi bi-arrow-up-circle text-primary me-1" style="display:inline-block; transform: rotate(${dirDeg}deg);"></i>${dirDegStr}° &nbsp; ${spdKt} kt`
             });
@@ -997,7 +995,7 @@ function renderHistoryTable() {
     if (!tbody) return;
 
     if (historyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Memuat riwayat observasi...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Memuat riwayat observasi...</td></tr>';
         return;
     }
 
@@ -1011,7 +1009,6 @@ function renderHistoryTable() {
             <td class="font-mono text-secondary">${log.dewpoint}</td>
             <td class="font-mono text-info">${log.rh}</td>
             <td class="font-mono text-warning">${log.heat}</td>
-            <td class="font-mono text-secondary">${log.kp}</td>
             <td class="font-mono text-secondary">${log.visibility}</td>
             <td class="pe-4 font-mono text-dark">${log.wind}</td>
         `;
@@ -1021,11 +1018,11 @@ function renderHistoryTable() {
 
 function exportHistoryCSV() {
     if (historyLogs.length === 0) return;
-    let csv = "Time,Temp,Dewpoint,Rel_Humidity,Heat_Index,Kp_Index,Visibility,Wind\n";
+    let csv = "Time,Temp,Dewpoint,Rel_Humidity,Heat_Index,Visibility,Wind\n";
     historyLogs.forEach(l => {
         const cleanTime = l.time.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
         const cleanWind = l.wind.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
-        csv += `"${cleanTime}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.kp}","${l.visibility}","${cleanWind}"\n`;
+        csv += `"${cleanTime}","${l.temp}","${l.dewpoint}","${l.rh}","${l.heat}","${l.visibility}","${cleanWind}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
@@ -1069,7 +1066,6 @@ function exportHistoryPDF() {
                         <th>Dewpoint</th>
                         <th>Rel. Hum</th>
                         <th>Heat Index</th>
-                        <th>Kp-Index</th>
                         <th>Visibility</th>
                         <th>Wind</th>
                     </tr>
@@ -1090,7 +1086,6 @@ function exportHistoryPDF() {
                 <td>${l.dewpoint}</td>
                 <td>${l.rh}</td>
                 <td>${l.heat}</td>
-                <td>${l.kp}</td>
                 <td>${l.visibility}</td>
                 <td>${cleanWind}</td>
             </tr>
